@@ -1,0 +1,104 @@
+// ============================================
+// BackEnd/Api/System-Back-Office/Comentarios/00 - README.bru
+// ============================================
+
+# Sistema de Comentarios
+
+## Descripción
+Sistema de comentarios para ventas con control de permisos.
+
+## Tipos de Comentario
+- GENERAL: Comentario normal
+- IMPORTANTE: Comentario prioritario
+- SISTEMA: Comentario generado automáticamente
+- SEGUIMIENTO: Comentario de seguimiento
+
+## Permisos
+
+### Crear Comentarios
+- **VENDEDOR**: Solo puede crear comentarios en ventas que le pertenecen
+- **SUPERVISOR, BACK_OFFICE, ADMIN, SUPERADMIN**: Pueden crear comentarios en cualquier venta
+
+### Ver Comentarios
+- **Todos los usuarios autenticados** pueden ver todos los comentarios
+
+### Editar/Eliminar
+- **Creador del comentario**: Puede editar/eliminar sus propios comentarios
+- **SUPERADMIN**: Puede editar/eliminar cualquier comentario
+
+## Endpoints
+
+### GET /comentarios
+Lista todos los comentarios con filtros opcionales.
+
+**Query Params:**
+- page: número de página (default: 1)
+- limit: cantidad por página (default: 20)
+- venta_id: filtrar por venta
+- usuario_id: filtrar por usuario
+- tipo_comentario: filtrar por tipo
+- desde: fecha inicio (ISO 8601)
+- hasta: fecha fin (ISO 8601)
+
+### GET /comentarios/venta/:venta_id
+Obtiene todos los comentarios de una venta específica.
+
+### GET /comentarios/venta/:venta_id/ultimo
+Obtiene el último comentario de una venta.
+
+### GET /comentarios/usuario/:usuario_id
+Obtiene comentarios de un usuario específico.
+
+### GET /comentarios/:id
+Obtiene un comentario por su ID.
+
+### POST /comentarios
+Crea un nuevo comentario.
+
+**Body:**
+```json
+{
+  "titulo": "string",
+  "comentario": "string",
+  "venta_id": number,
+  "tipo_comentario": "GENERAL | IMPORTANTE | SISTEMA | SEGUIMIENTO"
+}
+```
+
+### PATCH /comentarios/:id
+Actualiza un comentario existente.
+
+**Body (campos opcionales):**
+```json
+{
+  "titulo": "string",
+  "comentario": "string",
+  "tipo_comentario": "GENERAL | IMPORTANTE | SISTEMA | SEGUIMIENTO"
+}
+```
+
+### DELETE /comentarios/:id
+Elimina un comentario.
+
+## Respuestas
+
+### Éxito (200/201)
+```json
+{
+  "success": true,
+  "data": { ... },
+  "pagination": { page, limit, total }
+}
+```
+
+### Error (400/403/404/500)
+```json
+{
+  "success": false,
+  "message": "Descripción del error"
+}
+```
+
+## Notas
+- Los campos de usuario (nombre, apellido, legajo, rol) se incluyen automáticamente en las respuestas de GET por venta
+- Los comentarios se ordenan por fecha descendente (más recientes primero)

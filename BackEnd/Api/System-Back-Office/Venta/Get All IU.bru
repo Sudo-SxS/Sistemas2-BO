@@ -1,0 +1,21 @@
+meta {
+  name: Get All IU
+  type: http
+  seq: 15
+}
+
+get {
+  url: http://localhost:8000/ventas/ui?page=1&limit=50
+  body: none
+  auth: inherit
+}
+
+params:query {
+  page: 1
+  limit: 50
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

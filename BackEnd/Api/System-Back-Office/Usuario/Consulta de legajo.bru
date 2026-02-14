@@ -1,0 +1,20 @@
+meta {
+  name: Consulta de legajo
+  type: http
+  seq: 5
+}
+
+get {
+  url: http://localhost:8000/usuarios/search/legajo?legajo=00001
+  body: none
+  auth: bearer
+}
+
+params:query {
+  legajo: 00001
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

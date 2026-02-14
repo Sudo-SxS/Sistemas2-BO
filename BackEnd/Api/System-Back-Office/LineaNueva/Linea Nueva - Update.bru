@@ -1,0 +1,19 @@
+meta {
+  name: Linea Nueva - Update
+  type: http
+  seq: 5
+}
+
+put {
+  url: http://localhost:8000/linea-nueva/1
+  body: json
+  auth {
+    bearer
+  }
+}
+
+body:json {
+  {
+    "lineaNueva": {}
+  }
+}

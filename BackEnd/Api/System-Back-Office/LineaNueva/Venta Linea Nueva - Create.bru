@@ -1,0 +1,39 @@
+meta {
+  name: Venta Linea Nueva - Create
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8000/ventas
+  body: json
+  auth {
+    bearer
+  }
+}
+
+body:json {
+  {
+    "venta": {
+      "sds": "SDS123LN",
+      "chip": "sim",
+      "stl": "STL456LN",
+      "tipo_venta": "LINEA_NUEVA",
+      "sap": "SP65345624",
+      "cliente_id": "8efc06b1-9419-4d7b-bf6f-723b2d5ff2f4",
+      "multiple": 0,
+      "plan_id": 1,
+      "promocion_id": 1
+    },
+    "lineaNueva": {}
+  }
+}
+
+docs {
+  NOTA IMPORTANTE: El vendedor_id se obtiene automáticamente del token JWT.
+  No es necesario enviarlo en el body.
+  
+  Estados automáticos según SDS/STL:
+  - Si tiene SDS y STL: Estado = CREADO_SIN_DOCU
+  - Si falta SDS o STL: Estado = PENDIENTE_DE_CARGA
+}

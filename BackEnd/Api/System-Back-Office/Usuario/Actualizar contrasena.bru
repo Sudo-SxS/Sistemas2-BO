@@ -1,0 +1,24 @@
+meta {
+  name: Actualizar contrasena
+  type: http
+  seq: 12
+}
+
+patch {
+  url: http://localhost:8000/usuarios/ea6c39bd-40e8-47bd-9922-91239789c51c/password
+  body: json
+  auth: bearer
+}
+
+body:json {
+  { 
+    "passwordActual": "12345678", 
+    "passwordNueva": "{{test_password}}", 
+    "passwordNuevaConfirmacion": "{{test_password}}" 
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,20 @@
+meta {
+  name: Buscar Por SAP Ultimo
+  type: http
+  seq: 7
+}
+
+get {
+  url: http://localhost:8000/estados-correo/search/sap/ultimo?sap=UES4209494923
+  body: none
+  auth: bearer
+}
+
+params:query {
+  sap: UES4209494923
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

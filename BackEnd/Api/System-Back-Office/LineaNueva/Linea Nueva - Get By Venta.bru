@@ -1,0 +1,13 @@
+meta {
+  name: Linea Nueva - Get By Venta
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://localhost:8000/linea-nueva/1
+  body: json
+  auth {
+    bearer
+  }
+}

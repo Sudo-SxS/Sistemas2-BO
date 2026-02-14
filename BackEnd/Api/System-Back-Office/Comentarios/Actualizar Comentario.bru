@@ -1,0 +1,42 @@
+meta {
+  name: Actualizar Comentario
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/comentarios/1
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "titulo": "Revisión de documentación - Actualizado",
+    "comentario": "El cliente ya presentó la factura. Continuar con el proceso.",
+    "tipo_comentario": "GENERAL"
+  }
+}
+
+docs {
+  ## Actualizar Comentario
+  
+  Actualiza un comentario existente.
+  
+  ### Permisos
+  - Creador del comentario
+  - SUPERADMIN
+  
+  ### Body (todos opcionales)
+  - titulo: Nuevo título
+  - comentario: Nuevo contenido
+  - tipo_comentario: Nuevo tipo
+  
+  ### Errores
+  - 403: No tiene permisos para editar este comentario
+  - 404: Comentario no encontrado
+}

@@ -1,0 +1,40 @@
+meta {
+  name: Crear Comentario
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8000/comentarios
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "titulo": "Revisión de documentación",
+    "comentario": "El cliente debe presentar la factura de servicio para continuar con el proceso de portabilidad.",
+    "venta_id": 15,
+    "tipo_comentario": "IMPORTANTE"
+  }
+}
+
+docs {
+  ## Crear Comentario
+  
+  Crea un nuevo comentario asociado a una venta.
+  
+  ### Permisos
+  - VENDEDOR: Solo en sus propias ventas
+  - Otros roles: En cualquier venta
+  
+  ### Body
+  - titulo (requerido): Título del comentario
+  - comentario (requerido): Contenido del comentario
+  - venta_id (requerido): ID de la venta
+  - tipo_comentario (requerido): GENERAL, IMPORTANTE, SISTEMA, SEGUIMIENTO
+}

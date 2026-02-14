@@ -1,0 +1,51 @@
+meta {
+  name: Venta - Create Portabilidad
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:8000/ventas
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "venta": {
+      "sds": "02321369UEC",
+      "stl":"123123123",
+      "chip": "SIM",
+      "tipo_venta": "portabilidad",
+      "cliente_id": "18813772-835c-4ea1-8794-b2284d25b6cd",
+      "plan_id": 6,
+      "promocion_id": 6,
+      "empresa_origen_id": 5
+    },
+    "correo":{
+    "sap_id": "UES4208837893",
+    "telefono_contacto": "3514567890",
+    "telefono_alternativo": "3517654321",
+    "destinatario": "Juan Pérez",
+    "persona_autorizada": "María",
+    "direccion": "Av. Colón",
+    "numero_casa": 1234,
+    "entre_calles": "25 de Mayo y 9 de Julio",
+    "barrio": "Centro",
+    "localidad": "CABA",
+    "departamento": "Capital",
+    "codigo_postal": 5000
+  },  
+   "portabilidad": {
+           "spn": "00231515PNU",
+           "empresa_origen_id": 5,
+           "mercado_origen": "pospago",
+           "numero_porta": "123456789",
+           "pin": 1234
+         }
+  }
+}

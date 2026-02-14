@@ -1,0 +1,76 @@
+meta {
+  name: Mensajes - Crear Notificación
+  type: http
+  seq: 7
+}
+
+post {
+  url: http://localhost:8000/mensajes
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImRjYjdhYjI4LTYxMTgtNDE1NS05ZTI5LWQwMWVhYmZkYjFmOSIsImVtYWlsIjoic2FudGkuc2FuY2hlekBwcnV2YS5jb20iLCJyb2wiOiJCQUNLX09GRklDRSIsInBlcm1pc29zIjpbIlNVUEVSQURNSU4iXSwibGVnYWpvIjoiMTExMjEiLCJleGEiOiJFWEM3NzA0MCIsImV4cCI6MTc3MDM2ODc1M30.nhOo-zOhNfCmwfn-NTzq4Yl974lZ_fvFiwjaK5OaZBQ
+}
+
+body:json {
+  {
+    "tipo": "NOTIFICACION",
+    "subtipo": "PROMOCION_NUEVA",
+    "titulo": "NUEVA PROMOCION VERANO 2026",
+    "comentario": "A partir de hoy todos los planes tienen 25% de descuento durante todo febrero. Aprovechá para vender más!",
+    "destinatarios": {
+      "tipo": "ROL",
+      "valor": "VENDEDOR"
+    }
+  }
+  
+  /* 
+  EJEMPLOS DE TIPOS DE DESTINATARIOS:
+  
+  1. USUARIO específico:
+  "destinatarios": {
+    "tipo": "USUARIO",
+    "valor": "dcb7ab28-6118-4155-9e29-d01eabfdb1f9"
+  }
+  
+  2. Todos con un ROL:
+  "destinatarios": {
+    "tipo": "ROL",
+    "valor": "VENDEDOR"
+  }
+  
+  3. Todos en una CELULA:
+  "destinatarios": {
+    "tipo": "CELULA",
+    "valor": "1"
+  }
+  
+  4. VENTA_RELACIONADA (vendedor + supervisor):
+  "destinatarios": {
+    "tipo": "VENTA_RELACIONADA"
+  },
+  "referencia_id": 18,
+  "referencia_tipo": "VENTA"
+  
+  5. Todos los usuarios (GLOBAL):
+  "destinatarios": {
+    "tipo": "GLOBAL"
+  }
+  
+  SUBTIPOS DE NOTIFICACION disponibles:
+  - PRECIO_ACTUALIZADO
+  - PROMOCION_NUEVA
+  - PROMOCION_FINALIZADA
+  - CAMBIO_PLAN
+  - SISTEMA_INFO
+  - MENSAJE_INTERNO
+  */
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

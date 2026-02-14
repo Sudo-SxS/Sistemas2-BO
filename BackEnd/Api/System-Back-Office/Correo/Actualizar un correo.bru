@@ -1,0 +1,28 @@
+meta {
+  name: Actualizar un correo
+  type: http
+  seq: 9
+}
+
+put {
+  url: http://localhost:8000/correos/SAP12345678
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "telefono_contacto": "3519876543",
+    "persona_autorizada": "Carlos Rodríguez",
+    "fecha_limite": "2025-01-25T18:00:00Z"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

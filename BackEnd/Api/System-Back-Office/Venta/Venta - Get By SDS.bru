@@ -1,0 +1,20 @@
+meta {
+  name: Venta - Get By SDS
+  type: http
+  seq: 10
+}
+
+get {
+  url: http://localhost:8000/ventas/sds/02302166UEC
+  body: none
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

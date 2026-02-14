@@ -1,0 +1,27 @@
+meta {
+  name: Actualizar contrasena Admin
+  type: http
+  seq: 11
+}
+
+patch {
+  url: http://localhost:8000/usuarios/22222222-2222-2222-2222-222222222222/password
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+   {
+    "passwordNueva": "Nueva123Password",
+    "passwordNuevaConfirmacion": "Nueva123Password"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

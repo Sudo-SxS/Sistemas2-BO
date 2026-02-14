@@ -1,0 +1,308 @@
+{
+  "project": "System Back-Office API",
+  "version": "3.0.0",
+  "lastUpdated": "2026-02-12",
+  "authScheme": "Bearer Token / Cookie",
+  "baseUrl": "http://localhost:8000",
+  "totalEndpoints": 128,
+  "categories": [
+    {
+      "id": "auth",
+      "name": "🔐 Acceso y Sesión",
+      "icon": "key",
+      "description": "Endpoints de autenticación y gestión de sesiones",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/usuario/login",
+          "description": "Inicia sesión y genera token JWT. Almacena token en cookie httpOnly.",
+          "auth": false,
+          "roles": ["Public"],
+          "request": {
+            "body": {
+              "fields": {
+                "user": {
+                  "type": "object",
+                  "required": true,
+                  "desc": "Objeto con credenciales",
+                  "fields": {
+                    "email": { "type": "string", "required": true, "desc": "Email del usuario" },
+                    "password": { "type": "string", "required": true, "desc": "Contraseña" }
+                  }
+                }
+              }
+            }
+          },
+          "response": {
+            "status": 200,
+            "example": {
+              "success": true,
+              "message": "Autenticación exitosa",
+              "data": {
+                "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                "user": { "id": "18813772-835c-4ea1-8794-b2284d25b6cd", "email": "usuario@example.com", "nombre": "Juan", "apellido": "Pérez", "rol": "VENDEDOR" }
+              }
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/usuario/register",
+          "description": "Registra un nuevo usuario. Requiere SUPERADMIN.",
+          "auth": true,
+          "roles": ["SUPERADMIN"],
+          "request": { "body": { "fields": { "user": { "type": "object", "required": true, "desc": "Datos del usuario: nombre, apellido, documento, tipo_documento, nacionalidad, email, fecha_nacimiento, telefono, genero, legajo, rol, exa, password, celula, estado" } } } },
+          "response": { "status": 201, "example": { "success": true, "message": "Usuario registrado exitosamente" } }
+        },
+        {
+          "method": "GET",
+          "path": "/usuario/verify",
+          "description": "Verifica validez del token y retorna payload.",
+          "auth": false,
+          "roles": ["Authenticated"],
+          "request": {},
+          "response": { "status": 200, "example": { "success": true, "payload": { "id": "18813772-835c-4ea1-8794-b2284d25b6cd", "email": "usuario@example.com", "rol": "ADMIN" } } }
+        },
+        {
+          "method": "POST",
+          "path": "/usuario/refresh",
+          "description": "Renueva el token de acceso.",
+          "auth": false,
+          "roles": ["Authenticated"],
+          "request": {},
+          "response": { "status": 200, "example": { "success": true, "message": "Token renovado exitosamente" } }
+        },
+        {
+          "method": "POST",
+          "path": "/usuario/logout",
+          "description": "Cierra sesión y elimina cookies.",
+          "auth": false,
+          "roles": ["Authenticated"],
+          "request": {},
+          "response": { "status": 200, "example": { "success": true, "message": "Sesión cerrada" } }
+        },
+        {
+          "method": "PATCH",
+          "path": "/usuarios/:id/password",
+          "description": "Cambia contraseña. Requiere contraseña actual si no es admin.",
+          "auth": true,
+          "roles": ["Self", "ADMIN", "SUPERADMIN"],
+          "request": { "body": { "fields": { "oldPassword": { "type": "string", "required": false }, "newPassword": { "type": "string", "required": true }, "confirmNewPassword": { "type": "string", "required": true } } } },
+          "response": { "status": 200, "example": { "success": true, "message": "Contraseña actualizada correctamente" } }
+        }
+      ]
+    },
+    {
+      "id": "usuarios",
+      "name": "👥 Gestión de Usuarios",
+      "icon": "users",
+      "description": "CRUD completo de usuarios",
+      "endpoints": [
+        { "method": "GET", "path": "/usuarios", "description": "Lista usuarios con paginación", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "query": { "page": { "type": "number", "default": 1 }, "limit": { "type": "number", "default": 10 }, "name": { "type": "string" }, "email": { "type": "string" } } }, "response": { "status": 200, "example": { "success": true, "data": [], "pagination": { "page": 1, "limit": 10, "total": 50 } } } },
+        { "method": "GET", "path": "/usuarios/stats", "description": "Estadísticas de usuarios", "auth": true, "roles": ["ADMIN", "SUPERADMIN"], "request": {}, "response": { "status": 200, "example": { "success": true, "data": { "total": 50, "por_rol": {}, "por_estado": {} } } } },
+        { "method": "GET", "path": "/usuarios/search/email", "description": "Busca usuario por email", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "query": { "email": { "type": "string", "required": true } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/usuarios/search/legajo", "description": "Busca usuario por legajo", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "query": { "legajo": { "type": "string", "required": true } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/usuarios/search/exa", "description": "Busca usuario por EXA", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "query": { "exa": { "type": "string", "required": true } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/usuarios/:id", "description": "Obtiene usuario por ID", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": {}, "response": { "status": 200 } },
+        { "method": "PUT", "path": "/usuarios/:id", "description": "Actualiza usuario", "auth": true, "roles": ["BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "body": { "fields": { "nombre": { "type": "string" }, "apellido": { "type": "string" }, "telefono": { "type": "string" }, "rol": { "type": "string" }, "legajo": { "type": "string" }, "celula": { "type": "number" } } } }, "response": { "status": 200 } },
+        { "method": "PATCH", "path": "/usuarios/:id/status", "description": "Cambia estado del usuario", "auth": true, "roles": ["BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "body": { "fields": { "estado": { "type": "string", "required": true, "desc": "ACTIVO o INACTIVO" } } } }, "response": { "status": 200 } },
+        { "method": "DELETE", "path": "/usuarios/:id", "description": "Elimina usuario permanentemente", "auth": true, "roles": ["SUPERADMIN"], "request": {}, "response": { "status": 200 } }
+      ]
+    },
+    {
+      "id": "ventas",
+      "name": "🛒 Ventas Core",
+      "icon": "shopping-cart",
+      "description": "Gestión principal de ventas",
+      "endpoints": [
+        { "method": "GET", "path": "/ventas", "description": "Listado paginado de ventas", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "query": { "page": { "type": "number", "default": 1 }, "limit": { "type": "number", "default": 10 } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/ventas/estadisticas", "description": "Estadísticas de ventas", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/ventas/fechas", "description": "Ventas por rango de fechas", "auth": true, "roles": ["Authenticated"], "request": { "query": { "start": { "type": "string", "required": true }, "end": { "type": "string", "required": true } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/ventas/sds/:sds", "description": "Busca venta por SDS", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/ventas/sap/:sap", "description": "Busca venta por SAP", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/ventas/vendedor/:vendedor", "description": "Ventas por vendedor", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/ventas/cliente/:cliente", "description": "Ventas por cliente", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/ventas/plan/:plan", "description": "Ventas por plan", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/ventas/:id/detalle", "description": "Detalle completo de venta", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/ventas/ui", "description": "Ventas optimizadas para UI", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "query": { "page": { "type": "number", "default": 1 }, "limit": { "type": "number", "default": 10 }, "estado": { "type": "string" }, "vendedor": { "type": "string" } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/ventas/:id", "description": "Obtiene venta por ID", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "POST", "path": "/ventas", "description": "Crea nueva venta", "auth": true, "roles": ["VENDEDOR", "BACK_OFFICE"], "request": { "body": { "fields": { "venta": { "type": "object", "required": true }, "cliente": { "type": "object", "required": true } } } }, "response": { "status": 201 } },
+        { "method": "PUT", "path": "/ventas/:id", "description": "Actualiza venta", "auth": true, "roles": ["BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "body": { "fields": { "sds": { "type": "string" }, "chip": { "type": "string" }, "plan_id": { "type": "number" }, "promocion_id": { "type": "number" } } } }, "response": { "status": 200 } },
+        { "method": "DELETE", "path": "/ventas/:id", "description": "Elimina venta", "auth": true, "roles": ["ADMIN", "SUPERADMIN"], "request": {}, "response": { "status": 200 } }
+      ]
+    },
+    {
+      "id": "clientes",
+      "name": "👤 Clientes",
+      "icon": "user-check",
+      "description": "Gestión de clientes",
+      "endpoints": [
+        { "method": "GET", "path": "/clientes", "description": "Lista clientes", "auth": true, "roles": ["Authenticated"], "request": { "query": { "page": { "type": "number", "default": 1 }, "limit": { "type": "number", "default": 10 } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/clientes/persona/:personaId", "description": "Cliente con datos de persona", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/clientes/completo", "description": "Clientes con datos completos", "auth": true, "roles": ["Authenticated"], "request": { "query": { "page": { "type": "number", "default": 1 }, "limit": { "type": "number", "default": 10 } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/clientes/buscar", "description": "Busca cliente por documento", "auth": true, "roles": ["Authenticated"], "request": { "query": { "tipo_documento": { "type": "string" }, "documento": { "type": "string", "required": true } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/clientes/:id", "description": "Obtiene cliente por ID", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "POST", "path": "/clientes", "description": "Crea cliente", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "VENDEDOR", "ADMIN", "SUPERADMIN"], "request": { "body": { "fields": { "cliente": { "type": "object", "required": true } } } }, "response": { "status": 201 } },
+        { "method": "PUT", "path": "/clientes/:id", "description": "Actualiza cliente", "auth": true, "roles": ["ADMIN", "SUPERADMIN"], "request": { "body": { "fields": { "cliente": { "type": "object", "required": true } } } }, "response": { "status": 200 } },
+        { "method": "DELETE", "path": "/clientes/:id", "description": "Elimina cliente", "auth": true, "roles": ["ADMIN", "SUPERADMIN"], "request": {}, "response": { "status": 200 } }
+      ]
+    },
+    {
+      "id": "catalogos",
+      "name": "📚 Catálogos",
+      "icon": "list",
+      "description": "Planes, promociones y empresas",
+      "endpoints": [
+        { "method": "GET", "path": "/planes", "description": "Lista planes", "auth": true, "roles": ["Authenticated"], "request": { "query": { "page": { "type": "number", "default": 1 }, "limit": { "type": "number", "default": 10 } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/planes/:id", "description": "Obtiene plan por ID", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/planes/empresa/:id", "description": "Planes por empresa", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "POST", "path": "/planes", "description": "Crea plan", "auth": true, "roles": ["ADMIN", "SUPERADMIN"], "request": { "body": { "fields": { "nombre": { "type": "string", "required": true }, "precio": { "type": "number", "required": true }, "gigabyte": { "type": "number", "required": true }, "llamadas": { "type": "string", "required": true }, "mensajes": { "type": "string", "required": true }, "beneficios": { "type": "string" }, "whatsapp": { "type": "string", "required": true }, "roaming": { "type": "string", "required": true }, "empresa_origen_id": { "type": "number", "required": true } } } }, "response": { "status": 201 } },
+        { "method": "PUT", "path": "/planes/:id", "description": "Actualiza plan", "auth": true, "roles": ["ADMIN", "SUPERADMIN"], "request": { "body": { "fields": { "nombre": { "type": "string" }, "precio": { "type": "number" }, "gigabyte": { "type": "number" }, "whatsapp": { "type": "string" }, "roaming": { "type": "string" } } } }, "response": { "status": 200 } },
+        { "method": "DELETE", "path": "/planes/:id", "description": "Elimina plan", "auth": true, "roles": ["ADMIN", "SUPERADMIN"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/promociones", "description": "Lista promociones", "auth": true, "roles": ["Authenticated"], "request": { "query": { "page": { "type": "number", "default": 1 }, "limit": { "type": "number", "default": 10 } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/promociones/empresa/:empresa", "description": "Promociones por empresa", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/promociones/:id", "description": "Obtiene promoción por ID", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "POST", "path": "/promociones", "description": "Crea promoción", "auth": true, "roles": ["ADMIN", "SUPERADMIN"], "request": { "body": { "fields": { "nombre": { "type": "string", "required": true }, "beneficios": { "type": "string" }, "descuento": { "type": "number", "default": 0 }, "empresa_origen_id": { "type": "number", "required": true } } } }, "response": { "status": 201 } },
+        { "method": "PUT", "path": "/promociones/:id", "description": "Actualiza promoción", "auth": true, "roles": ["ADMIN", "SUPERADMIN"], "request": { "body": { "fields": { "promocion": { "type": "object", "required": true } } } }, "response": { "status": 200 } },
+        { "method": "DELETE", "path": "/promociones/:id", "description": "Elimina promoción", "auth": true, "roles": ["ADMIN", "SUPERADMIN"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/empresa-origen", "description": "Lista empresas origen", "auth": true, "roles": ["Authenticated"], "request": { "query": { "page": { "type": "number", "default": 1 }, "limit": { "type": "number", "default": 10 }, "search": { "type": "string" } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/empresa-origen/:id", "description": "Obtiene empresa origen por ID", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "POST", "path": "/empresa-origen", "description": "Crea empresa origen", "auth": true, "roles": ["ADMIN", "SUPERADMIN"], "request": { "body": { "fields": { "nombre": { "type": "string", "required": true }, "pais": { "type": "string", "required": true } } } }, "response": { "status": 201 } },
+        { "method": "PUT", "path": "/empresa-origen/:id", "description": "Actualiza empresa origen", "auth": true, "roles": ["ADMIN", "SUPERADMIN"], "request": { "body": { "fields": { "nombre": { "type": "string" }, "pais": { "type": "string" } } } }, "response": { "status": 200 } },
+        { "method": "DELETE", "path": "/empresa-origen/:id", "description": "Elimina empresa origen", "auth": true, "roles": ["ADMIN", "SUPERADMIN"], "request": {}, "response": { "status": 204 } }
+      ]
+    },
+    {
+      "id": "ventas_tipos",
+      "name": "📊 Tracking de Ventas",
+      "icon": "smartphone",
+      "description": "Línea nueva, portabilidad y estados",
+      "endpoints": [
+        { "method": "GET", "path": "/linea-nueva", "description": "Lista líneas nuevas", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "query": { "page": { "type": "number", "default": 1 }, "limit": { "type": "number", "default": 10 } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/linea-nueva/:venta_id", "description": "Línea nueva por venta ID", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "POST", "path": "/linea-nueva", "description": "Crea línea nueva", "auth": true, "roles": ["Authenticated"], "request": { "body": { "fields": { "lineaNueva": { "type": "object", "required": true } } } }, "response": { "status": 201 } },
+        { "method": "PUT", "path": "/linea-nueva/:venta_id", "description": "Actualiza línea nueva", "auth": true, "roles": ["ADMIN", "SUPERADMIN"], "request": { "body": { "fields": { "lineaNueva": { "type": "object", "required": true } } } }, "response": { "status": 200 } },
+        { "method": "DELETE", "path": "/linea-nueva/:venta_id", "description": "Elimina línea nueva", "auth": true, "roles": ["ADMIN", "SUPERADMIN"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/portabilidad", "description": "Lista portabilidades", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "query": { "page": { "type": "number", "default": 1 }, "limit": { "type": "number", "default": 10 } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/portabilidad/:venta_id", "description": "Portabilidad por venta ID", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "POST", "path": "/portabilidad", "description": "Crea portabilidad", "auth": true, "roles": ["Authenticated"], "request": { "body": { "fields": { "portabilidad": { "type": "object", "required": true, "fields": { "venta": { "type": "number", "required": true }, "spn": { "type": "string", "required": true }, "empresa_origen": { "type": "string", "required": true }, "mercado_origen": { "type": "string", "required": true }, "numero_porta": { "type": "string", "required": true }, "pin": { "type": "string" }, "fecha_portacion": { "type": "string" } } } } } }, "response": { "status": 201 } },
+        { "method": "PUT", "path": "/portabilidad/:venta_id", "description": "Actualiza portabilidad", "auth": true, "roles": ["ADMIN", "SUPERADMIN"], "request": { "body": { "fields": { "portabilidad": { "type": "object", "required": true } } } }, "response": { "status": 200 } },
+        { "method": "DELETE", "path": "/portabilidad/:venta_id", "description": "Elimina portabilidad", "auth": true, "roles": ["ADMIN", "SUPERADMIN"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/portabilidad/estadisticas", "description": "Estadísticas de portabilidad", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/portabilidad/estado/:estado", "description": "Portabilidades por estado", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/estados", "description": "Lista estados de venta", "auth": true, "roles": ["Authenticated"], "request": { "query": { "page": { "type": "number", "default": 1 }, "limit": { "type": "number", "default": 10 } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/estados/ultimos", "description": "Último estado de cada venta", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/estados/buscar", "description": "Búsqueda avanzada de estados", "auth": true, "roles": ["Authenticated"], "request": { "query": { "venta_id": { "type": "number" }, "estado": { "type": "string" }, "usuario_id": { "type": "string" }, "fechaInicio": { "type": "string" }, "fechaFin": { "type": "string" }, "page": { "type": "number", "default": 1 }, "limit": { "type": "number", "default": 10 } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/estados/por-fecha", "description": "Estados por rango de fechas", "auth": true, "roles": ["Authenticated"], "request": { "query": { "fechaInicio": { "type": "string", "required": true }, "fechaFin": { "type": "string", "required": true } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/estados/tipo/:estado", "description": "Estados por tipo", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/estados/venta/:venta_id", "description": "Estados de una venta", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/estados/venta/:venta_id/ultimo", "description": "Último estado de una venta", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/estados/:id", "description": "Obtiene estado por ID", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "POST", "path": "/estados", "description": "Crea estado de venta", "auth": true, "roles": ["ADMIN", "SUPERADMIN", "BACK_OFFICE"], "request": { "body": { "fields": { "estado_id": { "type": "number" }, "venta_id": { "type": "number", "required": true }, "estado": { "type": "string", "required": true }, "descripcion": { "type": "string", "required": true }, "usuario_id": { "type": "string", "required": true } } } }, "response": { "status": 201 } },
+        { "method": "PUT", "path": "/estados/:id", "description": "Actualiza estado de venta", "auth": true, "roles": ["ADMIN", "SUPERADMIN", "BACK_OFFICE"], "request": { "body": { "fields": { "estado": { "type": "string" }, "descripcion": { "type": "string" } } } }, "response": { "status": 200 } },
+        { "method": "DELETE", "path": "/estados/:id", "description": "Elimina estado de venta", "auth": true, "roles": ["ADMIN", "SUPERADMIN"], "request": {}, "response": { "status": 200 } }
+      ]
+    },
+    {
+      "id": "logistica",
+      "name": "📮 Logística y Envíos",
+      "icon": "truck",
+      "description": "Gestión de correos y envíos",
+      "endpoints": [
+        { "method": "GET", "path": "/correos", "description": "Lista correos", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "query": { "page": { "type": "number", "default": 1 }, "limit": { "type": "number", "default": 10 }, "name": { "type": "string" } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/correos/stats", "description": "Estadísticas de correos", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/correos/proximos-vencer", "description": "Correos próximos a vencer", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "query": { "dias": { "type": "number", "default": 3 } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/correos/vencidos", "description": "Correos vencidos", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/correos/search/sap", "description": "Busca correo por SAP", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "query": { "sap": { "type": "string", "required": true } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/correos/search/localidad", "description": "Busca correos por localidad", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "query": { "localidad": { "type": "string", "required": true } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/correos/search/departamento", "description": "Busca correos por departamento", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "query": { "departamento": { "type": "string", "required": true } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/correos/:id", "description": "Obtiene correo por SAP", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": {}, "response": { "status": 200 } },
+        { "method": "POST", "path": "/correos", "description": "Crea correo", "auth": true, "roles": ["VENDEDOR", "SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "body": { "fields": { "sap_id": { "type": "string", "required": true }, "destinatario": { "type": "string", "required": true }, "direccion": { "type": "string", "required": true }, "localidad": { "type": "string", "required": true }, "departamento": { "type": "string", "required": true }, "codigo_postal": { "type": "number", "required": true }, "telefono_contacto": { "type": "string", "required": true }, "fecha_limite": { "type": "string", "required": true } } } }, "response": { "status": 201 } },
+        { "method": "PUT", "path": "/correos/:id", "description": "Actualiza correo", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "body": { "fields": { "destinatario": { "type": "string" }, "direccion": { "type": "string" }, "localidad": { "type": "string" }, "estado": { "type": "string" } } } }, "response": { "status": 200 } },
+        { "method": "DELETE", "path": "/correos/:id", "description": "Elimina correo", "auth": true, "roles": ["SUPERADMIN"], "request": {}, "response": { "status": 200 } }
+      ]
+    },
+    {
+      "id": "estado_correo",
+      "name": "📬 Estados de Correo",
+      "icon": "mail",
+      "description": "Tracking de envíos postales",
+      "endpoints": [
+        { "method": "GET", "path": "/estados-correo", "description": "Lista estados de correo", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "query": { "page": { "type": "number", "default": 1 }, "limit": { "type": "number", "default": 10 } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/estados-correo/stats", "description": "Estadísticas de estados de correo", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/estados-correo/entregados", "description": "Correos entregados", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/estados-correo/no-entregados", "description": "Correos no entregados", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/estados-correo/devueltos", "description": "Correos devueltos", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/estados-correo/en-transito", "description": "Correos en tránsito", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/estados-correo/asignados", "description": "Correos asignados", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/estados-correo/por-estado/:estado", "description": "Correos por estado específico", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/estados-correo/search/sap", "description": "Busca historial por SAP", "auth": true, "roles": ["VENDEDOR", "SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "query": { "sap": { "type": "string", "required": true } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/estados-correo/search/sap/ultimo", "description": "Último estado por SAP", "auth": true, "roles": ["VENDEDOR", "SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "query": { "sap": { "type": "string", "required": true } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/estados-correo/search/ubicacion", "description": "Busca por ubicación", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "query": { "ubicacion": { "type": "string", "required": true } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/estados-correo/search/fecha-rango", "description": "Busca por rango de fechas", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "query": { "fechaInicio": { "type": "string", "required": true }, "fechaFin": { "type": "string", "required": true } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/estados-correo/:id", "description": "Obtiene estado de correo por ID", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": {}, "response": { "status": 200 } },
+        { "method": "POST", "path": "/estados-correo", "description": "Crea estado de correo", "auth": true, "roles": ["BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "body": { "fields": { "sap_id": { "type": "string", "required": true }, "estado": { "type": "string", "required": true }, "descripcion": { "type": "string", "required": true }, "ubicacion_actual": { "type": "string" }, "usuario_id": { "type": "string", "required": true } } } }, "response": { "status": 201 } },
+        { "method": "PUT", "path": "/estados-correo/:id", "description": "Actualiza estado de correo", "auth": true, "roles": ["BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "body": { "fields": { "estado": { "type": "string" }, "descripcion": { "type": "string" }, "ubicacion_actual": { "type": "string" } } } }, "response": { "status": 200 } },
+        { "method": "PATCH", "path": "/estados-correo/:id/marcar-entregado", "description": "Marca como entregado", "auth": true, "roles": ["BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": {}, "response": { "status": 200 } },
+        { "method": "PATCH", "path": "/estados-correo/:id/actualizar-ubicacion", "description": "Actualiza ubicación", "auth": true, "roles": ["BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "body": { "fields": { "ubicacion": { "type": "string", "required": true } } } }, "response": { "status": 200 } },
+        { "method": "DELETE", "path": "/estados-correo/:id", "description": "Elimina estado de correo", "auth": true, "roles": ["SUPERADMIN"], "request": {}, "response": { "status": 200 } }
+      ]
+    },
+    {
+      "id": "mensajeria",
+      "name": "💬 Mensajería y Alertas",
+      "icon": "message-circle",
+      "description": "Notificaciones y alertas del sistema",
+      "endpoints": [
+        { "method": "GET", "path": "/mensajes/inbox", "description": "Inbox del usuario autenticado", "auth": true, "roles": ["Authenticated"], "request": { "query": { "page": { "type": "number", "default": 1 }, "limit": { "type": "number", "default": 10 } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/mensajes/no-leidos", "description": "Cantidad de mensajes no leídos", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200, "example": { "success": true, "count": 5 } } },
+        { "method": "GET", "path": "/mensajes/alertas-pendientes", "description": "Alertas pendientes de resolución", "auth": true, "roles": ["SUPERVISOR", "ADMIN", "SUPERADMIN"], "request": { "query": { "page": { "type": "number", "default": 1 }, "limit": { "type": "number", "default": 10 } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/mensajes/tipo/:tipo", "description": "Mensajes por tipo (ALERTA/NOTIFICACION)", "auth": true, "roles": ["Authenticated"], "request": { "query": { "page": { "type": "number", "default": 1 }, "limit": { "type": "number", "default": 10 } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/mensajes/referencia/:id", "description": "Alertas por referencia (ej: venta_id)", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/mensajes/:id", "description": "Obtiene mensaje por ID", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "POST", "path": "/mensajes", "description": "Crea mensaje (ALERTA o NOTIFICACION)", "auth": true, "roles": ["Authenticated"], "request": { "body": { "fields": { "titulo": { "type": "string", "required": true }, "contenido": { "type": "string", "required": true }, "tipo": { "type": "string", "required": true, "desc": "ALERTA o NOTIFICACION" }, "destinatario_id": { "type": "string", "required": true }, "referencia_id": { "type": "string" }, "referencia_tipo": { "type": "string" } } } }, "response": { "status": 201 } },
+        { "method": "PATCH", "path": "/mensajes/:id/leido", "description": "Marca mensaje como leído", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "PATCH", "path": "/mensajes/:id/resolver", "description": "Resuelve una alerta", "auth": true, "roles": ["SUPERVISOR", "ADMIN", "SUPERADMIN"], "request": {}, "response": { "status": 200 } }
+      ]
+    },
+    {
+      "id": "comentarios",
+      "name": "📝 Comentarios",
+      "icon": "message-square",
+      "description": "Comentarios en ventas",
+      "endpoints": [
+        { "method": "GET", "path": "/comentarios", "description": "Lista comentarios con filtros", "auth": true, "roles": ["Authenticated"], "request": { "query": { "page": { "type": "number", "default": 1 }, "limit": { "type": "number", "default": 10 }, "venta_id": { "type": "number" }, "usuario_id": { "type": "string" }, "tipo_comentario": { "type": "string" }, "desde": { "type": "string" }, "hasta": { "type": "string" } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/comentarios/venta/:venta_id", "description": "Comentarios de una venta", "auth": true, "roles": ["Authenticated"], "request": { "query": { "page": { "type": "number", "default": 1 }, "limit": { "type": "number", "default": 10 } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/comentarios/venta/:venta_id/ultimo", "description": "Último comentario de una venta", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "GET", "path": "/comentarios/usuario/:usuario_id", "description": "Comentarios por usuario", "auth": true, "roles": ["Authenticated"], "request": { "query": { "page": { "type": "number", "default": 1 }, "limit": { "type": "number", "default": 10 } } }, "response": { "status": 200 } },
+        { "method": "GET", "path": "/comentarios/:id", "description": "Obtiene comentario por ID", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } },
+        { "method": "POST", "path": "/comentarios", "description": "Crea comentario", "auth": true, "roles": ["Authenticated"], "request": { "body": { "fields": { "titulo": { "type": "string", "required": true }, "comentario": { "type": "string", "required": true }, "venta_id": { "type": "number", "required": true }, "tipo_comentario": { "type": "string", "required": true, "desc": "GENERAL, IMPORTANTE, SISTEMA, SEGUIMIENTO" } } } }, "response": { "status": 201 } },
+        { "method": "PATCH", "path": "/comentarios/:id", "description": "Actualiza comentario", "auth": true, "roles": ["Authenticated"], "request": { "body": { "fields": { "titulo": { "type": "string" }, "comentario": { "type": "string" }, "tipo_comentario": { "type": "string" } } } }, "response": { "status": 200 } },
+        { "method": "DELETE", "path": "/comentarios/:id", "description": "Elimina comentario", "auth": true, "roles": ["Authenticated"], "request": {}, "response": { "status": 200 } }
+      ]
+    },
+    {
+      "id": "carga_masiva",
+      "name": "📤 Cargas Masivas",
+      "icon": "upload-cloud",
+      "description": "Actualización masiva por CSV/Excel",
+      "endpoints": [
+        { "method": "POST", "path": "/actualizar/correo", "description": "Actualiza estados de correo desde CSV", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "body": { "contentType": "multipart/form-data", "fields": { "file": { "type": "file", "required": true, "desc": "Archivo CSV con columnas: sap_id, estado, descripcion" } } } }, "response": { "status": 200, "example": { "success": true, "message": "Actualizados 50 correos" } } },
+        { "method": "POST", "path": "/actualizar/estado-venta", "description": "Actualiza estados de venta desde CSV", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "body": { "contentType": "multipart/form-data", "fields": { "file": { "type": "file", "required": true, "desc": "Archivo CSV con columnas: sds, estado, descripcion" } } } }, "response": { "status": 200, "example": { "success": true, "message": "Actualizadas 30 ventas" } } },
+        { "method": "POST", "path": "/actualizar/seguimiento-linea", "description": "Actualiza seguimiento de línea desde CSV", "auth": true, "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"], "request": { "body": { "contentType": "multipart/form-data", "fields": { "file": { "type": "file", "required": true, "desc": "Archivo CSV con seguimiento" } } } }, "response": { "status": 200, "example": { "success": true, "message": "Actualizadas 25 líneas" } } }
+      ]
+    },
+    {
+      "id": "sistema",
+      "name": "⚙️ Sistema",
+      "icon": "activity",
+      "description": "Estado y documentación",
+      "endpoints": [
+        { "method": "GET", "path": "/", "description": "Página de inicio con documentación interactiva", "auth": false, "roles": ["Public"], "request": {}, "response": { "status": 200, "type": "text/html" } },
+        { "method": "GET", "path": "/home", "description": "Redirige a la página de inicio", "auth": false, "roles": ["Public"], "request": {}, "response": { "status": 302 } },
+        { "method": "GET", "path": "/api-docs-json", "description": "JSON completo de documentación de API", "auth": false, "roles": ["Public"], "request": {}, "response": { "status": 200, "type": "application/json" } },
+        { "method": "GET", "path": "/health", "description": "Estado de salud del servidor y conexión a BD", "auth": false, "roles": ["Public"], "request": {}, "response": { "status": 200, "example": { "status": "healthy", "database": "connected", "timestamp": "2026-02-12T10:00:00Z", "uptime": 86400 } } }
+      ]
+    }
+  ]
+}

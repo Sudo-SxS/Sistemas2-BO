@@ -1,0 +1,20 @@
+meta {
+  name: Buscar correo por SAP
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:8000/correos/search/sap?sap=SAP753766132
+  body: none
+  auth: bearer
+}
+
+params:query {
+  sap: SAP753766132
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

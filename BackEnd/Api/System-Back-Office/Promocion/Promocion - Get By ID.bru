@@ -1,0 +1,19 @@
+meta {
+  name: Promocion - Get By ID
+  type: http
+  seq: 6
+}
+
+get {
+  url: http://localhost:8000/promociones/1
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,20 @@
+meta {
+  name: Mensajes - Marcar Como Leido
+  type: http
+  seq: 8
+}
+
+patch {
+  url: http://localhost:8000/mensajes/1/leido
+  body: none
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

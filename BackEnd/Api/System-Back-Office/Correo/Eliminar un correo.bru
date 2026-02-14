@@ -1,0 +1,15 @@
+meta {
+  name: Eliminar un correo
+  type: http
+  seq: 10
+}
+
+delete {
+  url: http://localhost:8000/correos/SAP12345678
+  body: none
+  auth: bearer
+}
+
+settings {
+  encodeUrl: true
+}

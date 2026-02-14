@@ -1,0 +1,27 @@
+meta {
+  name: Get Comentario por ID
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/comentarios/1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  ## Comentario por ID
+  
+  Obtiene un comentario específico por su ID.
+  
+  ### Respuesta
+  Retorna el comentario con todos sus campos.
+  
+  ### Errores
+  - 404: Comentario no encontrado
+}

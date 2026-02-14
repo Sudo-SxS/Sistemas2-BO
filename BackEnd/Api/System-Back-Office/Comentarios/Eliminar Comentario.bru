@@ -1,0 +1,29 @@
+meta {
+  name: Eliminar Comentario
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/comentarios/1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  ## Eliminar Comentario
+  
+  Elimina un comentario existente.
+  
+  ### Permisos
+  - Creador del comentario
+  - SUPERADMIN
+  
+  ### Errores
+  - 403: No tiene permisos para eliminar este comentario
+  - 404: Comentario no encontrado
+}

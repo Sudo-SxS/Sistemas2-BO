@@ -1,0 +1,38 @@
+meta {
+  name: Actualizar Usuario
+  type: http
+  seq: 8
+}
+
+put {
+  url: http://localhost:8000/usuarios/4aea94b1-dcf8-445e-b6bc-013b6b301ea1
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Sa",
+    "apellido": "hahahha",
+    "email": "santiago.sanchez@example.com",
+    "documento": "40320123",
+    "tipo_documento": "DNI",
+    "telefono": "+54 9 351 234 5678",
+    "fecha_nacimiento": "1999-07-14",
+    "nacionalidad": "Argentina",
+    "rol": "VENDEDOR",
+    "exa": "ABC12345",
+    "empresa_id_empresa": 1,
+    "estado": "ACTIVO"
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

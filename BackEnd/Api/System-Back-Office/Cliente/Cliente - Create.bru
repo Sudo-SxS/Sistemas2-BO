@@ -1,0 +1,34 @@
+meta {
+  name: Cliente - Create
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:8000/clientes
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {"cliente": {
+    "nombre": "Juan",
+    "apellido": "Pérez",
+    "fecha_nacimiento": "1990-01-01",
+    "documento": "12345678",
+    "email": "asdasd@puevas.com",
+    "telefono": "123456789",
+    "tipo_documento": "DNI",
+    "nacionalidad": "Argentina",
+    "genero": "MASCULINO"
+  }}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

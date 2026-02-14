@@ -1,0 +1,17 @@
+meta {
+  name: Empresa Origen - Crear
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:8000/empresa-origen
+  headers {
+    Content-Type: application/json
+    Cookie: session={{session_cookie}}
+  }
+  body: json {
+    "nombre_empresa": "Test Company",
+    "pais": "Argentina"
+  }
+}

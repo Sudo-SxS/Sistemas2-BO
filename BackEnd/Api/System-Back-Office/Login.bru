@@ -1,0 +1,29 @@
+meta {
+  name: Login
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:8000/usuario/login
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "user":{
+      "email": "santi.sanchez@pruva.com",
+      "password":"A_a87654321"
+    }
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

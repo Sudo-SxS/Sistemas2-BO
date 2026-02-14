@@ -1,0 +1,39 @@
+meta {
+  name: Get Comentarios
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:8000/comentarios?page=1&limit=20&venta_id=1
+  body: none
+  auth: bearer
+}
+
+params:query {
+  page: 1
+  limit: 20
+  venta_id: 1
+  ~tipo_comentario: IMPORTANTE
+  ~desde: 2024-01-01
+  ~hasta: 2024-12-31
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  ## Listar Comentarios
+  
+  Obtiene todos los comentarios con filtros opcionales.
+  
+  ### Query Params Opcionales
+  - page: Número de página (default: 1)
+  - limit: Cantidad por página (default: 20)
+  - venta_id: Filtrar por ID de venta
+  - usuario_id: Filtrar por ID de usuario
+  - tipo_comentario: Filtrar por tipo
+  - desde: Fecha inicio (ISO 8601)
+  - hasta: Fecha fin (ISO 8601)
+}

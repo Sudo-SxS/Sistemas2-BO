@@ -1,0 +1,354 @@
+{
+  "project": "System Back-Office API",
+  "version": "3.0.0",
+  "lastUpdated": "2026-02-12",
+  "authScheme": "Bearer Token / Cookie",
+  "baseUrl": "http://localhost:8000",
+  "totalEndpoints": 128,
+  "categories": [
+    {
+      "id": "auth",
+      "name": "🔐 Acceso y Sesión",
+      "icon": "key",
+      "description": "Endpoints de autenticación y gestión de sesiones",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/usuario/login",
+          "description": "Inicia sesión y genera token JWT. Almacena token en cookie httpOnly.",
+          "auth": false,
+          "roles": ["Public"],
+          "request": {
+            "body": {
+              "fields": {
+                "user": {
+                  "type": "object",
+                  "required": true,
+                  "desc": "Objeto con credenciales",
+                  "fields": {
+                    "email": { "type": "string", "required": true, "desc": "Email del usuario" },
+                    "password": { "type": "string", "required": true, "desc": "Contraseña" }
+                  }
+                }
+              }
+            }
+          },
+          "response": {
+            "status": 200,
+            "example": {
+              "success": true,
+              "message": "Autenticación exitosa",
+              "data": {
+                "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                "user": { "id": "18813772-835c-4ea1-8794-b2284d25b6cd", "email": "usuario@example.com", "nombre": "Juan", "apellido": "Pérez", "rol": "VENDEDOR" }
+              }
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/usuario/register",
+          "description": "Registra un nuevo usuario en el sistema. Requiere privilegios de SUPERADMIN.",
+          "auth": true,
+          "roles": ["SUPERADMIN"],
+          "request": {
+            "body": {
+              "fields": {
+                "user": {
+                  "type": "object",
+                  "required": true,
+                  "desc": "Datos del nuevo usuario",
+                  "fields": {
+                    "nombre": { "type": "string", "required": true },
+                    "apellido": { "type": "string", "required": true },
+                    "documento": { "type": "string", "required": true },
+                    "tipo_documento": { "type": "string", "required": true, "desc": "DNI, CUIL, PASAPORTE" },
+                    "nacionalidad": { "type": "string", "required": true },
+                    "email": { "type": "string", "required": true },
+                    "fecha_nacimiento": { "type": "string", "required": true, "desc": "YYYY-MM-DD" },
+                    "telefono": { "type": "string", "required": false },
+                    "genero": { "type": "string", "required": true, "desc": "MASCULINO, FEMENINO, OTRO" },
+                    "legajo": { "type": "string", "required": true },
+                    "rol": { "type": "string", "required": true, "desc": "ADMIN, SUPERADMIN, SUPERVISOR, BACK_OFFICE, VENDEDOR" },
+                    "exa": { "type": "string", "required": true },
+                    "password": { "type": "string", "required": true, "desc": "Mínimo 8 caracteres" },
+                    "celula": { "type": "number", "required": false },
+                    "estado": { "type": "string", "required": false, "default": "ACTIVO" }
+                  }
+                }
+              }
+            }
+          },
+          "response": { "status": 201, "example": { "success": true, "message": "Usuario registrado exitosamente" } }
+        },
+        {
+          "method": "GET",
+          "path": "/usuario/verify",
+          "description": "Verifica si el token actual es válido y retorna los datos del payload decodificado.",
+          "auth": false,
+          "roles": ["Authenticated"],
+          "request": { "headers": { "Cookie": "token=<JWT_TOKEN>" } },
+          "response": { "status": 200, "example": { "success": true, "payload": { "id": "18813772-835c-4ea1-8794-b2284d25b6cd", "email": "usuario@example.com", "rol": "ADMIN" } } }
+        },
+        {
+          "method": "POST",
+          "path": "/usuario/refresh",
+          "description": "Renueva el token de acceso utilizando la cookie de refresco existente.",
+          "auth": false,
+          "roles": ["Authenticated"],
+          "request": { "headers": { "Cookie": "token=<JWT_TOKEN>" } },
+          "response": { "status": 200, "example": { "success": true, "message": "Token renovado exitosamente" } }
+        },
+        {
+          "method": "POST",
+          "path": "/usuario/logout",
+          "description": "Cierra la sesión y elimina las cookies de autenticación del navegador.",
+          "auth": false,
+          "roles": ["Authenticated"],
+          "request": {},
+          "response": { "status": 200, "example": { "success": true, "message": "Sesión cerrada" } }
+        },
+        {
+          "method": "PATCH",
+          "path": "/usuarios/:id/password",
+          "description": "Permite el cambio de contraseña. Requiere la contraseña actual si no se es Admin.",
+          "auth": true,
+          "roles": ["Self", "ADMIN", "SUPERADMIN"],
+          "request": {
+            "body": {
+              "fields": {
+                "oldPassword": { "type": "string", "required": false, "desc": "Requerido si no es admin" },
+                "newPassword": { "type": "string", "required": true, "desc": "Nueva contraseña (mínimo 8 caracteres)" },
+                "confirmNewPassword": { "type": "string", "required": true, "desc": "Confirmar nueva contraseña" }
+              }
+            }
+          },
+          "response": { "status": 200, "example": { "success": true, "message": "Contraseña actualizada correctamente" } }
+        }
+      ]
+    },
+    {
+      "id": "usuarios",
+      "name": "👥 Gestión de Usuarios",
+      "icon": "users",
+      "description": "CRUD completo de usuarios y búsquedas",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/usuarios",
+          "description": "Listado de usuarios registrados con filtros de búsqueda y paginación.",
+          "auth": true,
+          "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"],
+          "request": { "query": { "page": { "type": "number", "required": false, "default": 1 }, "limit": { "type": "number", "required": false, "default": 10 }, "name": { "type": "string", "required": false }, "email": { "type": "string", "required": false } } },
+          "response": { "status": 200, "example": { "success": true, "data": [{ "persona_id": "18813772-835c-4ea1-8794-b2284d25b6cd", "nombre": "Juan", "apellido": "Pérez", "email": "juan@example.com", "rol": "VENDEDOR", "legajo": "V001", "estado": "ACTIVO" }], "pagination": { "page": 1, "limit": 10, "total": 50 } } }
+        },
+        {
+          "method": "GET",
+          "path": "/usuarios/stats",
+          "description": "Obtiene estadísticas de usuarios por rol y estado.",
+          "auth": true,
+          "roles": ["ADMIN", "SUPERADMIN"],
+          "request": {},
+          "response": { "status": 200, "example": { "success": true, "data": { "total": 50, "por_rol": { "VENDEDOR": 30, "SUPERVISOR": 5, "ADMIN": 3 }, "por_estado": { "ACTIVO": 45, "INACTIVO": 5 } } } }
+        },
+        {
+          "method": "GET",
+          "path": "/usuarios/search/email",
+          "description": "Busca un usuario por su dirección de email.",
+          "auth": true,
+          "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"],
+          "request": { "query": { "email": { "type": "string", "required": true } } },
+          "response": { "status": 200, "example": { "success": true, "data": { "persona_id": "18813772-835c-4ea1-8794-b2284d25b6cd", "nombre": "Juan", "apellido": "Pérez", "email": "juan@example.com", "rol": "VENDEDOR" } } }
+        },
+        {
+          "method": "GET",
+          "path": "/usuarios/search/legajo",
+          "description": "Busca un usuario por su número de legajo.",
+          "auth": true,
+          "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"],
+          "request": { "query": { "legajo": { "type": "string", "required": true } } },
+          "response": { "status": 200, "example": { "success": true, "data": { "persona_id": "18813772-835c-4ea1-8794-b2284d25b6cd", "nombre": "Juan", "legajo": "V001", "rol": "VENDEDOR" } } }
+        },
+        {
+          "method": "GET",
+          "path": "/usuarios/search/exa",
+          "description": "Busca un usuario por su código EXA.",
+          "auth": true,
+          "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"],
+          "request": { "query": { "exa": { "type": "string", "required": true } } },
+          "response": { "status": 200, "example": { "success": true, "data": { "persona_id": "18813772-835c-4ea1-8794-b2284d25b6cd", "nombre": "Juan", "exa": "EXA001", "rol": "VENDEDOR" } } }
+        },
+        {
+          "method": "GET",
+          "path": "/usuarios/:id",
+          "description": "Obtiene la ficha técnica completa de un usuario por su UUID.",
+          "auth": true,
+          "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"],
+          "request": {},
+          "response": { "status": 200, "example": { "success": true, "data": { "persona_id": "18813772-835c-4ea1-8794-b2284d25b6cd", "nombre": "Juan", "apellido": "Pérez", "email": "juan@example.com", "telefono": "123456789", "rol": "VENDEDOR", "legajo": "V001", "exa": "EXA001", "celula": 1, "estado": "ACTIVO" } } }
+        },
+        {
+          "method": "PUT",
+          "path": "/usuarios/:id",
+          "description": "Actualiza la información personal y de cargo de un usuario. No actualiza contraseñas.",
+          "auth": true,
+          "roles": ["BACK_OFFICE", "ADMIN", "SUPERADMIN"],
+          "request": { "body": { "fields": { "nombre": { "type": "string", "required": false }, "apellido": { "type": "string", "required": false }, "telefono": { "type": "string", "required": false }, "rol": { "type": "string", "required": false }, "legajo": { "type": "string", "required": false }, "celula": { "type": "number", "required": false } } } },
+          "response": { "status": 200, "example": { "success": true, "message": "Usuario actualizado correctamente" } }
+        },
+        {
+          "method": "PATCH",
+          "path": "/usuarios/:id/status",
+          "description": "Activa o desactiva a un usuario. Impide el login de usuarios inactivos.",
+          "auth": true,
+          "roles": ["BACK_OFFICE", "ADMIN", "SUPERADMIN"],
+          "request": { "body": { "fields": { "estado": { "type": "string", "required": true, "desc": "ACTIVO o INACTIVO" } } } },
+          "response": { "status": 200, "example": { "success": true, "message": "Estado de usuario actualizado a INACTIVO" } }
+        },
+        {
+          "method": "DELETE",
+          "path": "/usuarios/:id",
+          "description": "Elimina permanentemente a un usuario del sistema, incluyendo historial de contraseñas.",
+          "auth": true,
+          "roles": ["SUPERADMIN"],
+          "request": {},
+          "response": { "status": 200, "example": { "success": true, "message": "Usuario eliminado permanentemente" } }
+        }
+      ]
+    },
+    {
+      "id": "ventas",
+      "name": "🛒 Ventas Core",
+      "icon": "shopping-cart",
+      "description": "Gestión principal de ventas (líneas nuevas y portabilidades)",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/ventas",
+          "description": "Listado paginado de ventas con filtros.",
+          "auth": true,
+          "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"],
+          "request": { "query": { "page": { "type": "number", "required": false, "default": 1 }, "limit": { "type": "number", "required": false, "default": 10 } } },
+          "response": { "status": 200, "example": { "success": true, "data": [{ "venta_id": 1234, "sds": "SDS001", "cliente_nombre": "Juan Pérez", "vendedor_nombre": "Carlos López", "estado_actual": "CREADO_SIN_DOCU", "fecha_creacion": "2026-02-12T10:00:00Z" }], "pagination": { "page": 1, "limit": 10, "total": 150 } } }
+        },
+        {
+          "method": "GET",
+          "path": "/ventas/estadisticas",
+          "description": "Obtiene métricas consolidadas de rendimiento comercial.",
+          "auth": true,
+          "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"],
+          "request": {},
+          "response": { "status": 200, "example": { "success": true, "data": { "total_ventas": 150, "ventas_hoy": 12, "ventas_mes": 89, "por_estado": { "CREADO_SIN_DOCU": 45, "EN_PROCESO": 30, "COMPLETADO": 75 } } } }
+        },
+        {
+          "method": "GET",
+          "path": "/ventas/fechas",
+          "description": "Obtiene ventas dentro de un rango de fechas.",
+          "auth": true,
+          "roles": ["Authenticated"],
+          "request": { "query": { "start": { "type": "string", "required": true, "desc": "Fecha inicio (YYYY-MM-DD)" }, "end": { "type": "string", "required": true, "desc": "Fecha fin (YYYY-MM-DD)" } } },
+          "response": { "status": 200, "example": { "success": true, "data": [{ "venta_id": 1234, "sds": "SDS001", "fecha_creacion": "2026-02-12T10:00:00Z" }] } }
+        },
+        {
+          "method": "GET",
+          "path": "/ventas/sds/:sds",
+          "description": "Busca una venta específica por su código SDS.",
+          "auth": true,
+          "roles": ["Authenticated"],
+          "request": {},
+          "response": { "status": 200, "example": { "success": true, "data": { "venta_id": 1234, "sds": "SDS001", "sap": "SAP001", "cliente": { "nombre": "Juan", "apellido": "Pérez" }, "plan": { "nombre": "Plan 5GB" } } } }
+        },
+        {
+          "method": "GET",
+          "path": "/ventas/sap/:sap",
+          "description": "Busca una venta específica por su código SAP.",
+          "auth": true,
+          "roles": ["Authenticated"],
+          "request": {},
+          "response": { "status": 200, "example": { "success": true, "data": { "venta_id": 1234, "sds": "SDS001", "sap": "SAP001", "cliente": { "nombre": "Juan", "apellido": "Pérez" } } } }
+        },
+        {
+          "method": "GET",
+          "path": "/ventas/vendedor/:vendedor",
+          "description": "Obtiene todas las ventas de un vendedor específico.",
+          "auth": true,
+          "roles": ["Authenticated"],
+          "request": {},
+          "response": { "status": 200, "example": { "success": true, "data": [{ "venta_id": 1234, "sds": "SDS001", "cliente_nombre": "Juan Pérez", "estado_actual": "CREADO_SIN_DOCU" }] } }
+        },
+        {
+          "method": "GET",
+          "path": "/ventas/cliente/:cliente",
+          "description": "Obtiene todas las ventas de un cliente específico.",
+          "auth": true,
+          "roles": ["Authenticated"],
+          "request": {},
+          "response": { "status": 200, "example": { "success": true, "data": [{ "venta_id": 1234, "sds": "SDS001", "plan_nombre": "Plan 5GB", "estado_actual": "COMPLETADO" }] } }
+        },
+        {
+          "method": "GET",
+          "path": "/ventas/plan/:plan",
+          "description": "Obtiene todas las ventas de un plan específico.",
+          "auth": true,
+          "roles": ["Authenticated"],
+          "request": {},
+          "response": { "status": 200, "example": { "success": true, "data": [{ "venta_id": 1234, "sds": "SDS001", "cliente_nombre": "Juan Pérez" }] } }
+        },
+        {
+          "method": "GET",
+          "path": "/ventas/:id/detalle",
+          "description": "Obtiene el detalle completo de una venta con todos los datos relacionados (cliente, plan, correo, estados, etc.).",
+          "auth": true,
+          "roles": ["Authenticated"],
+          "request": {},
+          "response": { "status": 200, "example": { "success": true, "data": { "venta_id": 1234, "sds": "SDS001", "cliente": { "nombre": "Juan", "apellido": "Pérez", "documento": "12345678" }, "plan": { "nombre": "Plan 5GB", "precio": 5000 }, "correo": { "sap_id": "SAP001", "destinatario": "Juan Pérez" }, "estados": [{ "estado": "CREADO_SIN_DOCU", "fecha_creacion": "2026-02-12T10:00:00Z" }] } } }
+        },
+        {
+          "method": "GET",
+          "path": "/ventas/ui",
+          "description": "Obtiene ventas optimizadas para UI con JOINs y filtros avanzados.",
+          "auth": true,
+          "roles": ["SUPERVISOR", "BACK_OFFICE", "ADMIN", "SUPERADMIN"],
+          "request": { "query": { "page": { "type": "number", "default": 1 }, "limit": { "type": "number", "default": 10 }, "estado": { "type": "string", "required": false }, "vendedor": { "type": "string", "required": false } } },
+          "response": { "status": 200, "example": { "success": true, "data": [{ "venta_id": 1234, "sds": "SDS001", "cliente_nombre": "Juan Pérez", "vendedor_nombre": "Carlos López", "plan_nombre": "Plan 5GB", "estado_actual": "CREADO_SIN_DOCU", "fecha_creacion": "2026-02-12T10:00:00Z" }] } }
+        },
+        {
+          "method": "GET",
+          "path": "/ventas/:id",
+          "description": "Obtiene una venta por su ID.",
+          "auth": true,
+          "roles": ["Authenticated"],
+          "request": {},
+          "response": { "status": 200, "example": { "success": true, "data": { "venta_id": 1234, "sds": "SDS001", "sap": "SAP001", "tipo_venta": "PORTABILIDAD", "chip": "SIM", "cliente_id": "18813772-835c-4ea1-8794-b2284d25b6cd", "plan_id": 1, "vendedor_id": "18813772-835c-4ea1-8794-b2284d25b6cd", "fecha_creacion": "2026-02-12T10:00:00Z" } } }
+        },
+        {
+          "method": "POST",
+          "path": "/ventas",
+          "description": "Crea una nueva venta con todos los datos relacionados. Crea automáticamente el estado inicial.",
+          "auth": true,
+          "roles": ["VENDEDOR", "BACK_OFFICE"],
+          "request": { "body": { "fields": { "venta": { "type": "object", "required": true, "desc": "Datos de la venta", "fields": { "sds": { "type": "string", "required": true }, "chip": { "type": "string", "required": true, "desc": "SIM o ESIM" }, "tipo_venta": { "type": "string", "required": true, "desc": "PORTABILIDAD o LINEA_NUEVA" }, "plan_id": { "type": "number", "required": true }, "promocion_id": { "type": "number", "required": false }, "empresa_origen_id": { "type": "number", "required": false } } }, "cliente": { "type": "object", "required": true, "desc": "Datos del cliente" } } } },
+          "response": { "status": 201, "example": { "success": true, "message": "Venta creada exitosamente", "data": { "venta_id": 1234, "sds": "SDS001", "estado_inicial": "CREADO_SIN_DOCU" } } }
+        },
+        {
+          "method": "PUT",
+          "path": "/ventas/:id",
+          "description": "Actualiza una venta existente.",
+          "auth": true,
+          "roles": ["BACK_OFFICE", "ADMIN", "SUPERADMIN"],
+          "request": { "body": { "fields": { "sds": { "type": "string", "required": false }, "chip": { "type": "string", "required": false }, "plan_id": { "type": "number", "required": false }, "promocion_id": { "type": "number", "required": false } } } },
+          "response": { "status": 200, "example": { "success": true, "message": "Venta actualizada correctamente" } }
+        },
+        {
+          "method": "DELETE",
+          "path": "/ventas/:id",
+          "description": "Elimina una venta y todos sus datos relacionados.",
+          "auth": true,
+          "roles": ["ADMIN", "SUPERADMIN"],
+          "request": {},
+          "response": { "status": 200, "example": { "success": true, "message": "Venta eliminada correctamente" } }
+        }
+      ]
+    }
+  ]
+}

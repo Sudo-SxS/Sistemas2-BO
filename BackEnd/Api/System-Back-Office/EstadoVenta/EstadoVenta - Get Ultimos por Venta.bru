@@ -1,0 +1,20 @@
+meta {
+  name: EstadoVenta - Get Ultimos por Venta
+  type: http
+  seq: 5
+}
+
+get {
+  url: http://localhost:8000/estados/ultimos
+  body: none
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

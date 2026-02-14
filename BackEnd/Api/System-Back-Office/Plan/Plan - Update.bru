@@ -1,0 +1,27 @@
+meta {
+  name: Plan - Update
+  type: http
+  seq: 4
+}
+
+put {
+  url: http://localhost:8000/planes/1
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {"plan": {
+    "precio": 34.99,
+    "gigabyte": 15
+  }}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

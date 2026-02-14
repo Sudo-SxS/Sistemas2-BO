@@ -1,0 +1,19 @@
+meta {
+  name: Correos próximos a vencer (3 días)
+  type: http
+  seq: 5
+}
+
+get {
+  url: http://localhost:8000/correos/proximos-vencer?dias=3
+  body: none
+  auth: bearer
+}
+
+params:query {
+  dias: 3
+}
+
+settings {
+  encodeUrl: true
+}

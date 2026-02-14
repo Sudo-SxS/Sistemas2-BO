@@ -1,0 +1,20 @@
+meta {
+  name: Consulata email
+  type: http
+  seq: 6
+}
+
+get {
+  url: http://localhost:8000/usuarios/search/email?email=bruce.wayne@wayneenterprises.com
+  body: none
+  auth: bearer
+}
+
+params:query {
+  email: bruce.wayne@wayneenterprises.com
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

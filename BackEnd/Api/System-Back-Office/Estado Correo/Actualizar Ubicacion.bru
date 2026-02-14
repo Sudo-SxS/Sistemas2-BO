@@ -1,0 +1,27 @@
+meta {
+  name: Actualizar Ubicacion
+  type: http
+  seq: 14
+}
+
+patch {
+  url: http://localhost:8000/estados-correo/15/actualizar-ubicacion
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "ubicacion": "CENTRO DISTRIBUCIÓN CÓRDOBA"
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

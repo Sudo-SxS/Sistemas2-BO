@@ -1,0 +1,33 @@
+meta {
+  name: Venta - Get All UI
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:8000/ventas/ui?page=1&limit=50
+  body: none
+  auth: bearer
+}
+
+vars:pre {
+  token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImRjYjdhYjI4LTYxMTgtNDE1NS05ZTI5LWQwMWVhYmZkYjFmOSIsImVtYWlsIjoic2FudGkuc2FuY2hlekBwcnV2YS5jb20iLCJyb2wiOiJCQUNLX09GRklDRSIsInBlcm1pc29zIjpbIlNVUEVSQURNSU4iXSwibGVnYWpvIjoiMTExMjEiLCJleGEiOiJFWEM3NzA0MCIsImV4cCI6MTc3MDg5MDIwNH0.TluuaVgM-og84WV7j-V_Tl32m0FDU4VBSLqfvEuu_wk
+}
+
+params:query {
+  page 1
+  limit 50
+  startDate 
+  endDate 
+  search 
+}
+
+headers {
+  Authorization Bearer {{token}}
+  Content-Type application/json
+}
+
+settings {
+  encodeUrl true
+  timeout 0
+}

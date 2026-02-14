@@ -1,0 +1,21 @@
+meta {
+  name: Fecha Rango
+  type: http
+  seq: 9
+}
+
+get {
+  url: http://localhost:8000/estados-correo/search/fecha-rango?fechaInicio=YYYY-MM-DD&fechaFin=YYYY-MM-DD
+  body: none
+  auth: bearer
+}
+
+params:query {
+  fechaInicio: YYYY-MM-DD
+  fechaFin: YYYY-MM-DD
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

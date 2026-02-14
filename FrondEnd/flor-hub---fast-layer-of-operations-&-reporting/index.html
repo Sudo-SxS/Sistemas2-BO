@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>FLOR HUB</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+            rel="stylesheet"
+        >
+        <style>
+            :root {
+                --theme-primary: #4f46e5;
+                --theme-secondary: #db2777;
+                --bg-color: #f8fafc;
+                --text-primary: #0f172a;
+                --text-secondary: #475569;
+                --panel-bg: #ffffff;
+                --card-bg: #ffffff;
+                --glass-bg: #f1f5f9;
+                --border-color: #e2e8f0;
+                --chart-grid: #f1f5f9;
+            }
+
+            .dark {
+                --theme-primary: #818cf8;
+                --theme-secondary: #f472b6;
+                --bg-color: #020617;
+                --text-primary: #f8fafc;
+                --text-secondary: #94a3b8;
+                --panel-bg: rgba(15, 23, 42, 0.65);
+                --card-bg: rgba(30, 41, 59, 0.5);
+                --glass-bg: rgba(15, 23, 42, 0.4);
+                --border-color: rgba(255, 255, 255, 0.1);
+                --chart-grid: #1e293b;
+            }
+
+            body {
+                font-family: "Plus Jakarta Sans", sans-serif;
+                background-color: var(--bg-color);
+                background-image:
+                    radial-gradient(
+                        at 0% 0%,
+                        rgba(79, 70, 229, 0.15) 0px,
+                        transparent 50%
+                    ),
+                    radial-gradient(
+                    at 100% 0%,
+                    rgba(219, 39, 119, 0.15) 0px,
+                    transparent 50%
+                ),
+                    radial-gradient(
+                    at 100% 100%,
+                    rgba(147, 51, 234, 0.15) 0px,
+                    transparent 50%
+                ),
+                    radial-gradient(
+                    at 0% 100%,
+                    rgba(34, 211, 238, 0.15) 0px,
+                    transparent 50%
+                );
+                color: var(--text-primary);
+                overflow-x: hidden;
+                min-height: 100vh;
+                transition: background-color 0.5s ease, color 0.5s ease;
+            }
+
+            .dark body {
+                background-image:
+                    radial-gradient(
+                        at 0% 0%,
+                        rgba(79, 70, 229, 0.25) 0px,
+                        transparent 50%
+                    ),
+                    radial-gradient(
+                    at 100% 0%,
+                    rgba(219, 39, 119, 0.2) 0px,
+                    transparent 50%
+                ),
+                    radial-gradient(
+                    at 100% 100%,
+                    rgba(147, 51, 234, 0.2) 0px,
+                    transparent 50%
+                ),
+                    radial-gradient(
+                    at 0% 100%,
+                    rgba(34, 211, 238, 0.2) 0px,
+                    transparent 50%
+                );
+            }
+
+            .bg-blob {
+                position: fixed;
+                width: 900px;
+                height: 900px;
+                border-radius: 50%;
+                filter: blur(140px);
+                z-index: -1;
+                opacity: 0.7;
+                pointer-events: none;
+                transition: opacity 0.5s ease;
+            }
+
+            .dark .bg-blob {
+                opacity: 0.4;
+            }
+
+            .blob-1 {
+                background: linear-gradient(135deg, #6366f1, #a855f7);
+                top: -20%;
+                left: -10%;
+                animation: drift 30s infinite ease-in-out;
+            }
+
+            .blob-2 {
+                background: linear-gradient(135deg, #7c3aed, #c026d3);
+                bottom: -15%;
+                right: -10%;
+                animation: drift 35s infinite ease-in-out reverse;
+            }
+
+            .blob-3 {
+                background: linear-gradient(135deg, #4338ca, #3b82f6);
+                top: 30%;
+                right: 15%;
+                width: 700px;
+                height: 700px;
+                animation: pulse-soft 20s infinite ease-in-out;
+            }
+
+            .bento-card {
+                transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+                position: relative;
+                background: var(--card-bg);
+                backdrop-filter: blur(20px) saturate(180%);
+                -webkit-backdrop-filter: blur(20px) saturate(180%);
+                box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
+                border: 1px solid var(--border-color);
+            }
+
+            .bento-card:hover {
+                transform: translateY(-8px);
+                background: var(--card-bg);
+                border-color: var(--theme-primary);
+                box-shadow: 0 20px 40px -20px rgba(79, 70, 229, 0.3);
+            }
+
+            .glass-panel {
+                background: var(--panel-bg);
+                backdrop-filter: blur(30px) saturate(200%);
+                -webkit-backdrop-filter: blur(30px) saturate(200%);
+                border: 1px solid var(--border-color);
+                box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.15);
+            }
+
+            .glass-morph {
+                background: var(--glass-bg);
+                backdrop-filter: blur(12px) saturate(160%);
+                -webkit-backdrop-filter: blur(12px) saturate(160%);
+                border: 1px solid var(--border-color);
+            }
+
+            /* Degradados para componentes específicos */
+            .grad-indigo {
+                background: linear-gradient(135deg, #4f46e5, #6366f1);
+            }
+            .grad-fuchsia {
+                background: linear-gradient(135deg, #db2777, #ec4899);
+            }
+            .grad-emerald {
+                background: linear-gradient(135deg, #059669, #10b981);
+            }
+            .grad-amber {
+                background: linear-gradient(135deg, #d97706, #f59e0b);
+            }
+
+            /* Skeleton Animation */
+            @keyframes shimmer {
+                0% {
+                    background-position: -200% 0;
+                }
+                100% {
+                    background-position: 200% 0;
+                }
+            }
+
+            .skeleton {
+                background: linear-gradient(
+                    90deg,
+                    rgba(255, 255, 255, 0.05) 25%,
+                    rgba(255, 255, 255, 0.1) 50%,
+                    rgba(255, 255, 255, 0.05) 75%
+                );
+                background-size: 200% 100%;
+                animation: shimmer 1.5s infinite;
+            }
+
+            .dark .skeleton {
+                background: linear-gradient(
+                    90deg,
+                    rgba(30, 41, 59, 0.5) 25%,
+                    rgba(51, 65, 85, 0.5) 50%,
+                    rgba(30, 41, 59, 0.5) 75%
+                );
+            }
+            /* Animations */
+            @keyframes drift {
+                0% { transform: translate(0, 0) scale(1); }
+                33% { transform: translate(5vw, 5vh) scale(1.1); }
+                66% { transform: translate(-3vw, 8vh) scale(0.9); }
+                100% { transform: translate(0, 0) scale(1); }
+            }
+
+            @keyframes pulse-soft {
+                0% { opacity: 0.5; transform: scale(1); }
+                50% { opacity: 0.8; transform: scale(1.05); }
+                100% { opacity: 0.5; transform: scale(1); }
+            }
+        </style>
+        <script type="importmap">
+            {
+                "imports": {
+                    "react": "https://esm.sh/react@^19.2.4",
+                    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+                    "react/": "https://esm.sh/react@^19.2.4/",
+                    "@google/genai": "https://esm.sh/@google/genai@^1.40.0",
+                    "recharts": "https://esm.sh/recharts@^3.7.0"
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <div class="bg-blob blob-1"></div>
+        <div class="bg-blob blob-2"></div>
+        <div class="bg-blob blob-3"></div>
+        <div id="root"></div>
+        <script type="module" src="/index.tsx"></script>
+    </body>
+</html>

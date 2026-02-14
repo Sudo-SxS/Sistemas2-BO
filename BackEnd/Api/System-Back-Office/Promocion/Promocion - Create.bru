@@ -1,0 +1,29 @@
+meta {
+  name: Promocion - Create
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:8000/promociones
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Promo",
+    "descuento": "20%",
+    "beneficios": "Descuento especial",
+    "empresa_origen_id": 5
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

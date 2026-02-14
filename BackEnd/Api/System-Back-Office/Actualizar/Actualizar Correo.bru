@@ -1,0 +1,15 @@
+meta {
+  name: Actualizar Correo
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8000/actualizar/correo
+  body: multipartForm
+  auth: bearer
+}
+
+body:multipart-form {
+  file: @file(/home/santiagos/Downloads/DATA/ues.csv)
+}

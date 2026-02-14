@@ -1,0 +1,15 @@
+meta {
+  name: Estadísticas de correos
+  type: http
+  seq: 7
+}
+
+get {
+  url: http://localhost:8000/correos/stats
+  body: none
+  auth: bearer
+}
+
+settings {
+  encodeUrl: true
+}

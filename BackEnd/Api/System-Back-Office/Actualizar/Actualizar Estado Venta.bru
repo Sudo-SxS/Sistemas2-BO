@@ -1,0 +1,15 @@
+meta {
+  name: Actualizar Estado Venta
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8000/actualizar/estado-venta
+  body: multipartForm
+  auth: bearer
+}
+
+body:multipart-form {
+  file: @file(/home/santiagos/Downloads/DATA/Status (1).xlsx)
+}

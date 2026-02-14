@@ -1,0 +1,16 @@
+meta {
+  name: Get All IU Detallada
+  type: http
+  seq: 16
+}
+
+get {
+  url: http://localhost:8000/ventas/1/detalle
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

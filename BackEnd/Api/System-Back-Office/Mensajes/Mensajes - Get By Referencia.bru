@@ -1,0 +1,21 @@
+meta {
+  name: Mensajes - Get By Referencia
+  type: http
+  seq: 6
+}
+
+get {
+  url: http://localhost:8000/mensajes/referencia/18
+  body: none
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImRjYjdhYjI4LTYxMTgtNDE1NS05ZTI5LWQwMWVhYmZkYjFmOSIsImVtYWlsIjoic2FudGkuc2FuY2hlekBwcnV2YS5jb20iLCJyb2wiOiJCQUNLX09GRklDRSIsInBlcm1pc29zIjpbIlNVUEVSQURNSU4iXSwibGVnYWpvIjoiMTExMjEiLCJleGEiOiJFWEM3NzA0MCIsImV4cCI6MTc3MDM2ODc1M30.nhOo-zOhNfCmwfn-NTzq4Yl974lZ_fvFiwjaK5OaZBQ
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

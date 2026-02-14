@@ -1,0 +1,31 @@
+meta {
+  name: Get Ultimo Comentario
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/comentarios/venta/1/ultimo
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  ## Último Comentario
+  
+  Obtiene el comentario más reciente de una venta específica.
+  
+  ### Uso
+  Útil para mostrar el estado actual de una venta sin cargar todo el historial.
+  
+  ### Respuesta
+  Retorna el último comentario con datos del usuario:
+  - usuario_nombre
+  - usuario_apellido
+  - usuario_legajo
+  - usuario_rol
+}

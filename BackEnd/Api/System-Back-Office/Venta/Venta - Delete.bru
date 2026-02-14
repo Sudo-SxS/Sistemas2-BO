@@ -1,0 +1,19 @@
+meta {
+  name: Venta - Delete
+  type: http
+  seq: 17
+}
+
+delete {
+  url: http://localhost:8000/ventas/1
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

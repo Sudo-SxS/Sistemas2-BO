@@ -1,0 +1,30 @@
+meta {
+  name: Crear nuevo estado
+  type: http
+  seq: 11
+}
+
+post {
+  url: http://localhost:8000/estados-correo
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "sap_id": "UES5345625",
+    "estado": "ASIGNADO",
+    "descripcion": "Paquete asignado para entrega",
+    "ubicacion_actual": "CENTRO DE DISTRIBUCION CABA"
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

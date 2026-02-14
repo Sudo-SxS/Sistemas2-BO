@@ -1,0 +1,27 @@
+meta {
+  name: empresa-origen Crear
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:8000/empresa-origen
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre_empresa": "MOVISTAR",
+    "pais": "Argentina"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

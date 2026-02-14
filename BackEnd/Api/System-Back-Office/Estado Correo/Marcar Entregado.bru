@@ -1,0 +1,16 @@
+meta {
+  name: Marcar Entregado
+  type: http
+  seq: 13
+}
+
+patch {
+  url: http://localhost:8000/estados-correo/15/marcar-entregado
+  body: none
+  auth: bearer
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

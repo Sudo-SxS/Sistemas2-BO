@@ -1,0 +1,24 @@
+meta {
+  name: Actualizar Status
+  type: http
+  seq: 9
+}
+
+patch {
+  url: http://localhost:8000/usuarios/4aea94b1-dcf8-445e-b6bc-013b6b301ea1/status
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  { "estado": "SUSPENDIDO" }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

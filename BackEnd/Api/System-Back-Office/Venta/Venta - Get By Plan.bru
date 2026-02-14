@@ -1,0 +1,19 @@
+meta {
+  name: Venta - Get By Plan
+  type: http
+  seq: 14
+}
+
+get {
+  url: http://localhost:8000/ventas/plan/1
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,25 @@
+meta {
+  name: Venta - Get All
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:8000/ventas?page=1&limit=100
+  body: none
+  auth: bearer
+}
+
+params:query {
+  page: 1
+  limit: 100
+}
+
+headers {
+  Content-Type: application/json
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

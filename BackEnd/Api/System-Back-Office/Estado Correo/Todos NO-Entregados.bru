@@ -1,0 +1,16 @@
+meta {
+  name: Todos NO-Entregados
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://localhost:8000/estados-correo/no-entregados
+  body: none
+  auth: bearer
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,12 @@
+meta {
+  name: Empresa Origen - Eliminar
+  type: http
+  seq: 5
+}
+
+delete {
+  url: http://localhost:8000/empresa-origen/{{empresa_origen_id}}
+  headers {
+    Cookie: session={{session_cookie}}
+  }
+}

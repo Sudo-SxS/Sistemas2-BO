@@ -1,0 +1,37 @@
+meta {
+  name: Get Comentarios por Venta
+  type: http
+  seq: 3
+}
+
+get {
+  url: http://localhost:8000/comentarios/venta/1?page=1&limit=20
+  body: none
+  auth: bearer
+}
+
+params:query {
+  page: 1
+  limit: 20
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  ## Comentarios por Venta
+  
+  Obtiene todos los comentarios de una venta específica.
+  
+  ### Respuesta
+  Incluye datos del usuario que creó el comentario:
+  - usuario_nombre
+  - usuario_apellido
+  - usuario_legajo
+  - usuario_rol
+  
+  ### Query Params
+  - page: Número de página
+  - limit: Cantidad por página
+}

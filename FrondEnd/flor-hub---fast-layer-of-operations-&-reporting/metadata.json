@@ -1,0 +1,8 @@
+{
+  "name": "FLOR HUB - Fast Layer of Operations & Reporting",
+  "description": "A high-performance telecom sales back-office platform featuring a modern Bento Grid aesthetic, real-time analytics, and AI-driven logistics tracking.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

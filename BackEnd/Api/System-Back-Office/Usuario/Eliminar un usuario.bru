@@ -1,0 +1,16 @@
+meta {
+  name: Eliminar un usuario
+  type: http
+  seq: 10
+}
+
+delete {
+  url: http://localhost:8000/usuarios/f4ad14e4-68dc-4f54-8c81-31959fa5a013
+  body: none
+  auth: bearer
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

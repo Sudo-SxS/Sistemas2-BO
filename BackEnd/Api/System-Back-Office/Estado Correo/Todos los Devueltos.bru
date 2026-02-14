@@ -1,0 +1,16 @@
+meta {
+  name: Todos los Devueltos
+  type: http
+  seq: 5
+}
+
+get {
+  url: http://localhost:8000/estados-correo/devueltos
+  body: none
+  auth: bearer
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,43 @@
+meta {
+  name: New Usuario
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:8000/usuario/register
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "user": {
+      "nombre": "System",
+      "apellido": "BO",
+      "fecha_nacimiento": "2026-02-4",
+      "documento": "00000000",
+      "email": "system.bo@pruva.com",
+      "telefono": "0000000000",
+      "tipo_documento": "DNI",
+      "nacionalidad": "Argentina",
+      "genero": "Masculino",
+      "legajo": "00000",
+      "rol": "SUPERVISOR",
+      "permisos":["SUPERADMIN"],
+      "exa": "exc00000",
+      "password": "A_a87654321",
+      "celula": 1,
+      "estado": "ACTIVO"
+    }
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

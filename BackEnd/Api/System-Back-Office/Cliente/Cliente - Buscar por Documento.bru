@@ -1,0 +1,43 @@
+meta {
+  name: Cliente - Buscar por Documento
+  type: http
+  seq: 8
+}
+
+get {
+  url: http://localhost:8000/clientes/buscar?tipo_documento=DNI&documento=25000001
+  body: none
+  auth: bearer
+}
+
+params:query {
+  tipo_documento: DNI
+  documento: 25000001
+}
+
+headers {
+  Content-Type: application/json
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+docs {
+  Busca un cliente por tipo de documento y número de documento.
+  
+  Tipos de documento comunes:
+  - DNI
+  - PASAPORTE
+  - CUIT
+  - CUIL
+  - LC (Libreta Cívica)
+  - LE (Libreta de Enrolamiento)
+  
+  Parámetros requeridos:
+  - tipo_documento: Tipo de documento (ej: DNI)
+  - documento: Número de documento (ej: 12345678)
+  
+  Retorna 404 si el cliente no existe.
+}

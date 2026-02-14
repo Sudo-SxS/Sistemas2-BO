@@ -1,0 +1,21 @@
+meta {
+  name: Portabilidad - Update
+  type: http
+  seq: 5
+}
+
+put {
+  url: http://localhost:8000/portabilidad/2
+  body: json
+  auth {
+    bearer
+  }
+}
+
+body:json {
+  {
+    "portabilidad": {
+      "spn": "SPN456"
+    }
+  }
+}

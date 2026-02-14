@@ -1,0 +1,16 @@
+meta {
+  name: GET ID
+  type: http
+  seq: 10
+}
+
+get {
+  url: http://localhost:8000/estados-correo/15
+  body: none
+  auth: bearer
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,34 @@
+meta {
+  name: Plan - Create
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:8000/planes
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "wwew2",
+    "precio": 2500.00,
+    "gigabyte": 10,
+    "llamadas": "Ilimitadas",
+    "mensajes": "Ilimitados",
+    "beneficios": "Beneficio de prueba",
+    "whatsapp": "Si",
+    "roaming": "Internacional",
+    "empresa_origen_id": 5
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

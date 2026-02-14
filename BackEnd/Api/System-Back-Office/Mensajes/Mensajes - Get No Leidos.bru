@@ -1,0 +1,20 @@
+meta {
+  name: Mensajes - Get No Leidos
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:8000/mensajes/no-leidos
+  body: none
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

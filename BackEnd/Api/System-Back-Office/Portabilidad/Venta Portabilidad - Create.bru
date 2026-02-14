@@ -1,0 +1,52 @@
+meta {
+  name: Venta Portabilidad - Create
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8000/ventas
+  body: json
+  auth {
+    bearer
+  }
+}
+
+body:json {
+  {
+    "venta": {
+      "sds": "SDS789PT",
+      "chip": "esim",
+      "stl": "STL101PT",
+      "tipo_venta": "PORTABILIDAD",
+      "sap": "SP98765432",
+      "cliente_id": "8efc06b1-9419-4d7b-bf6f-723b2d5ff2f4",
+      "multiple": 0,
+      "plan_id": 2,
+      "promocion_id": 2
+    },
+    "portabilidad": {
+      "spn": "SPN123",
+      "empresa_origen": "Empresa Origen",
+      "mercado_origen": "Mercado Origen",
+      "numero_porta": "123456789",
+      "pin": 1234
+    }
+  }
+}
+
+docs {
+  NOTA IMPORTANTE: El vendedor_id se obtiene automáticamente del token JWT.
+  No es necesario enviarlo en el body.
+  
+  Estados automáticos según SDS/STL:
+  - Si tiene SDS y STL: Estado = CREADO_SIN_DOCU
+  - Si falta SDS o STL: Estado = PENDIENTE_DE_CARGA
+  
+  Campos de portabilidad:
+  - spn: Código SPN
+  - empresa_origen: ID de empresa (numérico)
+  - mercado_origen: PREPAGO o POSPAGO (se convierte a mayúsculas automáticamente)
+  - numero_porta: Número a portar
+  - pin: PIN de portación (opcional)
+}

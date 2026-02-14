@@ -1,0 +1,20 @@
+meta {
+  name: Buscar Por SAP
+  type: http
+  seq: 6
+}
+
+get {
+  url: http://localhost:8000/estados-correo/search/sap?sap=00219743PNU
+  body: none
+  auth: bearer
+}
+
+params:query {
+  sap: 00219743PNU
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

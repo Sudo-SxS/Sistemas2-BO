@@ -1,0 +1,20 @@
+meta {
+  name: Plan - Delete
+  type: http
+  seq: 5
+}
+
+delete {
+  url: http://localhost:8000/planes/3
+  body: none
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

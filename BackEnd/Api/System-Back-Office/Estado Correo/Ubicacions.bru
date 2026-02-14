@@ -1,0 +1,20 @@
+meta {
+  name: Ubicacions
+  type: http
+  seq: 8
+}
+
+get {
+  url: http://localhost:8000/estados-correo/search/ubicacion?ubicacion=PENDIENTE
+  body: none
+  auth: bearer
+}
+
+params:query {
+  ubicacion: PENDIENTE
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

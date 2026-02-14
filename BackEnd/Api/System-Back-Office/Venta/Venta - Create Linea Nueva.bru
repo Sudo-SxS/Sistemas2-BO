@@ -1,0 +1,44 @@
+meta {
+  name: Venta - Create Linea Nueva
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8000/ventas
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "venta": {
+      "sds": "SDS001",
+      "stl":"123123123",
+      "chip": "SIM",
+      "tipo_venta": "linea_nueva",
+      "cliente_id": "18813772-835c-4ea1-8794-b2284d25b6cd",
+      "plan_id": 1,
+      "promocion_id": 1,
+      "empresa_origen_id": 1
+    },
+    "correo":{
+    "sap_id": "SaP2133391",
+    "telefono_contacto": "3514567890",
+    "telefono_alternativo": "3517654321",
+    "destinatario": "Juan Pérez",
+    "persona_autorizada": "María",
+    "direccion": "Av. Colón",
+    "numero_casa": 1234,
+    "entre_calles": "25 de Mayo y 9 de Julio",
+    "barrio": "Centro",
+    "localidad": "CABA",
+    "departamento": "Capital",
+    "codigo_postal": 5000
+  }
+  }
+}

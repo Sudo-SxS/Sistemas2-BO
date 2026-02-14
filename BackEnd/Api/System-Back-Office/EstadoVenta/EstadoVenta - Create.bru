@@ -1,0 +1,49 @@
+meta {
+  name: EstadoVenta - Create
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:8000/estados
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "venta_id": 18,
+    "estado": "CREADO DOCU OK",
+    "descripcion": "Venta pasada a revisión por Back Office",
+    "fecha_creacion": "2026-02-02T15:00:00Z"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+docs {
+  Estados disponibles:
+  - PENDIENTE_DE_CARGA
+  - CREADO_SIN_DOCU
+  - CREADO_DOCU_OK
+  - EN_REVISION
+  - APROBADO
+  - RECHAZADO
+  - EN_TRANSPORTE
+  - ENTREGADO
+  - PENDIENTE_DE_PIN
+  - CANCELADO
+  - REPACTAR
+  
+  NOTA: El usuario_id se obtiene automáticamente del token JWT.
+  No es necesario enviarlo en el body.
+  
+  Requiere rol: BACK_OFFICE, ADMIN o SUPERADMIN
+}

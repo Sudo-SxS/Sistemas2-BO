@@ -1,0 +1,20 @@
+meta {
+  name: Mensajes - Resolver Alerta
+  type: http
+  seq: 9
+}
+
+patch {
+  url: http://localhost:8000/mensajes/1/resolver
+  body: none
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,13 @@
+meta {
+  name: Linea Nueva - Delete
+  type: http
+  seq: 6
+}
+
+delete {
+  url: http://localhost:8000/linea-nueva/1
+  body: json
+  auth {
+    bearer
+  }
+}

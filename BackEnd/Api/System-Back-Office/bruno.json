@@ -1,0 +1,22 @@
+{
+  "version": "1",
+  "name": "System-Back-Office",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ],
+  "environments": [
+    {
+      "name": "Local",
+      "variables": {
+        "base_url": "http://localhost:8000",
+        "test_email": "santiago.sanchez@pruva.com",
+        "test_password": "A_a87654321",
+        "test_user_email": "juan.perez@example.com",
+        "test_password2": "123456",
+        "test_file_path": "/path/to/test/file.xlsx"
+      }
+    }
+  ]
+}

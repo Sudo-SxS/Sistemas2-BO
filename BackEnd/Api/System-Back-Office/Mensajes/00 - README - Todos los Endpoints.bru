@@ -1,0 +1,108 @@
+meta {
+  name: 00 - README - Todos los Endpoints
+  type: http
+  seq: 0
+}
+
+get {
+  url: http://localhost:8000/mensajes
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+// ============================================
+// ENDPOINTS DE MENSAJES - REFERENCIA COMPLETA
+// ============================================
+//
+// SECUENCIA DE ARCHIVOS EN ESTA CARPETA:
+//
+// 1. Mensajes - Get Inbox
+//    GET /mensajes/inbox?page=1&limit=20
+//    Obtiene el inbox del usuario autenticado
+//
+// 2. Mensajes - Get No Leidos
+//    GET /mensajes/no-leidos
+//    Cuenta mensajes no leídos del usuario
+//
+// 3. Mensajes - Get Alertas Pendientes
+//    GET /mensajes/alertas-pendientes?page=1&limit=20
+//    Obtiene alertas pendientes (requiere SUPERVISOR/ADMIN)
+//
+// 4. Mensajes - Get By ID
+//    GET /mensajes/:id
+//    Obtiene un mensaje específico por ID
+//
+// 5. Mensajes - Get By Tipo
+//    GET /mensajes/tipo/:tipo?page=1&limit=20
+//    Filtra mensajes por tipo (ALERTA o NOTIFICACION)
+//
+// 6. Mensajes - Get By Referencia
+//    GET /mensajes/referencia/:id
+//    Obtiene alertas por referencia (ej: venta_id)
+//
+// 7. Mensajes - Crear Alerta
+//    POST /mensajes
+//    Crea una alerta con ejemplos de todos los tipos de destinatarios
+//
+// 8. Mensajes - Crear Notificación
+//    POST /mensajes
+//    Crea una notificación con ejemplos de todos los tipos de destinatarios
+//
+// 9. Mensajes - Marcar Como Leido
+//    PATCH /mensajes/:id/leido
+//    Marca un mensaje como leído
+//
+// 10. Mensajes - Resolver Alerta
+//     PATCH /mensajes/:id/resolver
+//     Resuelve una alerta (requiere SUPERVISOR/ADMIN)
+//
+// ============================================
+// TIPOS DE DESTINATARIOS DISPONIBLES:
+// ============================================
+//
+// 1. USUARIO - Un usuario específico (por UUID)
+// 2. ROL - Todos los usuarios con un rol específico
+// 3. CELULA - Todos los usuarios de una célula
+// 4. VENTA_RELACIONADA - Vendedor + Supervisor de una venta
+// 5. GLOBAL - Todos los usuarios activos
+//
+// ============================================
+// PERMISOS REQUERIDOS:
+// ============================================
+//
+// - Crear NOTIFICACION: ADMIN, BACK_OFFICE, SUPERADMIN
+// - Crear ALERTA: Sistema automático, Supervisor, Admin
+// - Resolver alertas: SUPERVISOR, ADMIN, SUPERADMIN
+// - Ver alertas pendientes: SUPERVISOR, ADMIN, SUPERADMIN
+// - Marcar como leído: Solo el destinatario
+//
+// ============================================
+// SUBTIPOS DISPONIBLES:
+// ============================================
+//
+// ALERTAS:
+// - VENTA_INCOMPLETA
+// - ERROR_PORTABILIDAD
+// - ERROR_CORREO
+// - VENTA_DUPLICADA
+// - VALIDACION_RECHAZADA
+// - TIEMPO_EXCEDIDO
+// - SISTEMA
+//
+// NOTIFICACIONES:
+// - PRECIO_ACTUALIZADO
+// - PROMOCION_NUEVA
+// - PROMOCION_FINALIZADA
+// - CAMBIO_PLAN
+// - SISTEMA_INFO
+// - MENSAJE_INTERNO
+//

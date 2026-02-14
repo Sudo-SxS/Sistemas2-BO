@@ -1,0 +1,78 @@
+meta {
+  name: Mensajes - Crear Alerta
+  type: http
+  seq: 6
+}
+
+post {
+  url: http://localhost:8000/mensajes
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImRjYjdhYjI4LTYxMTgtNDE1NS05ZTI5LWQwMWVhYmZkYjFmOSIsImVtYWlsIjoic2FudGkuc2FuY2hlekBwcnV2YS5jb20iLCJyb2wiOiJCQUNLX09GRklDRSIsInBlcm1pc29zIjpbIlNVUEVSQURNSU4iXSwibGVnYWpvIjoiMTExMjEiLCJleGEiOiJFWEM3NzA0MCIsImV4cCI6MTc3MDM2ODc1M30.nhOo-zOhNfCmwfn-NTzq4Yl974lZ_fvFiwjaK5OaZBQ
+}
+
+body:json {
+  {
+    "tipo": "ALERTA",
+    "subtipo": "VENTA_INCOMPLETA",
+    "titulo": "FALTA DOCUMENTACION VENTA 18",
+    "comentario": "La venta 18 tiene el DNI del titular sin foto. Se necesita documentación completa",
+    "destinatarios": {
+      "tipo": "VENTA_RELACIONADA"
+    },
+    "referencia_id": 18,
+    "referencia_tipo": "VENTA"
+  }
+  
+  /* 
+  EJEMPLOS DE TIPOS DE DESTINATARIOS:
+  
+  1. USUARIO específico:
+  "destinatarios": {
+    "tipo": "USUARIO",
+    "valor": "dcb7ab28-6118-4155-9e29-d01eabfdb1f9"
+  }
+  
+  2. Todos con un ROL:
+  "destinatarios": {
+    "tipo": "ROL",
+    "valor": "SUPERVISOR"
+  }
+  
+  3. Todos en una CELULA:
+  "destinatarios": {
+    "tipo": "CELULA",
+    "valor": "1"
+  }
+  
+  4. VENTA_RELACIONADA (vendedor + supervisor):
+  "destinatarios": {
+    "tipo": "VENTA_RELACIONADA"
+  },
+  "referencia_id": 18,
+  "referencia_tipo": "VENTA"
+  
+  5. Todos los usuarios (GLOBAL):
+  "destinatarios": {
+    "tipo": "GLOBAL"
+  }
+  
+  SUBTIPOS DE ALERTA disponibles:
+  - VENTA_INCOMPLETA
+  - ERROR_PORTABILIDAD
+  - ERROR_CORREO
+  - VENTA_DUPLICADA
+  - VALIDACION_RECHAZADA
+  - TIEMPO_EXCEDIDO
+  - SISTEMA
+  */
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

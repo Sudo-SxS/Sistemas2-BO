@@ -1,0 +1,19 @@
+meta {
+  name: Cliente - Delete
+  type: http
+  seq: 6
+}
+
+delete {
+  url: http://localhost:8000/clientes/uuid-valido
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

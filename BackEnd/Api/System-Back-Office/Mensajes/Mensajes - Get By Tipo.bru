@@ -1,0 +1,26 @@
+meta {
+  name: Mensajes - Get By Tipo
+  type: http
+  seq: 5
+}
+
+get {
+  url: http://localhost:8000/mensajes/tipo/ALERTA?page=1&limit=20
+  body: none
+  auth: bearer
+}
+
+params:query {
+  page: 1
+  limit: 20
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImRjYjdhYjI4LTYxMTgtNDE1NS05ZTI5LWQwMWVhYmZkYjFmOSIsImVtYWlsIjoic2FudGkuc2FuY2hlekBwcnV2YS5jb20iLCJyb2wiOiJCQUNLX09GRklDRSIsInBlcm1pc29zIjpbIlNVUEVSQURNSU4iXSwibGVnYWpvIjoiMTExMjEiLCJleGEiOiJFWEM3NzA0MCIsImV4cCI6MTc3MDM2ODc1M30.nhOo-zOhNfCmwfn-NTzq4Yl974lZ_fvFiwjaK5OaZBQ
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

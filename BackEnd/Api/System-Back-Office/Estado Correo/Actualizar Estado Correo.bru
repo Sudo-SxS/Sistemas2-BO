@@ -1,0 +1,29 @@
+meta {
+  name: Actualizar Estado Correo
+  type: http
+  seq: 12
+}
+
+put {
+  url: http://localhost:8000/estados-correo/2
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "estado": "ENTREGADO",
+    "descripcion": "Paquete entregado exitosamente al cliente",
+    "ubicacion_actual": "BUENOS AIRES - SUCURSAL CENTRAL"
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
