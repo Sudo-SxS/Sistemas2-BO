@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { ProductType, Sale } from '../types';
-import { getAllPlanes, getEmpresasOrigen, PlanResponse, EmpresaOrigenResponse } from '../services/plan';
+import { getPlanesPorEmpresa, getPromocionesPorEmpresa, getEmpresasOrigen, PlanResponse, PromocionResponse, EmpresaOrigenResponse } from '../services/plan';
 
 interface OfertaPlan {
   id: number;
@@ -12,6 +12,7 @@ interface OfertaPlan {
   oldPrice?: string;
   discount: string;
   promo: string;
+  promoId: number;
   companyName: string;
   companyId: number;
   amount: number;
@@ -21,6 +22,14 @@ interface OfertaPlan {
     services: string[];
     finePrint: string;
   };
+}
+
+interface GrupoPromocion {
+  promocionId: number;
+  promocionNombre: string;
+  descuento: number;
+  colorGrupo: string;
+  planes: OfertaPlan[];
 }
 
 const PlanDetailModal = ({ plan, onClose, companyColor }: { plan: OfertaPlan, onClose: () => void, companyColor: string }) => (
@@ -74,52 +83,118 @@ interface OfertasPageProps {
   onSell: (sale: Partial<Sale>) => void;
 }
 
-// Mapeo de colores para empresas
-const COMPANY_COLORS: Record<string, { color: string; text: string }> = {
-  'Movistar': { color: 'bg-sky-500', text: 'text-sky-500' },
-  'MOVISTAR': { color: 'bg-sky-500', text: 'text-sky-500' },
-  'Vodafone': { color: 'bg-rose-600', text: 'text-rose-600' },
-  'Orange': { color: 'bg-orange-500', text: 'text-orange-500' },
-  'Yoigo': { color: 'bg-purple-600', text: 'text-purple-600' },
-  'Personal': { color: 'bg-blue-600', text: 'text-blue-600' },
-  'Tuenti': { color: 'bg-pink-500', text: 'text-pink-500' },
-  'Claro': { color: 'bg-red-600', text: 'text-red-600' },
+// Mapeo de colores base para empresas
+const COMPANY_COLORS: Record<string, { color: string; text: string; baseColor: string }> = {
+  'Movistar': { color: 'bg-sky-500', text: 'text-sky-500', baseColor: 'sky' },
+  'MOVISTAR': { color: 'bg-sky-500', text: 'text-sky-500', baseColor: 'sky' },
+  'Vodafone': { color: 'bg-rose-600', text: 'text-rose-600', baseColor: 'rose' },
+  'Orange': { color: 'bg-orange-500', text: 'text-orange-500', baseColor: 'orange' },
+  'Yoigo': { color: 'bg-purple-600', text: 'text-purple-600', baseColor: 'purple' },
+  'Personal': { color: 'bg-blue-600', text: 'text-blue-600', baseColor: 'blue' },
+  'Tuenti': { color: 'bg-pink-500', text: 'text-pink-500', baseColor: 'pink' },
+  'Claro': { color: 'bg-red-600', text: 'text-red-600', baseColor: 'red' },
 };
+
+// Variaciones de fondo para grupos de promociones
+const COLOR_VARIATIONS = [
+  { bg: 'bg-white', border: 'border-slate-200', labelBg: 'bg-slate-100', labelText: 'text-slate-700' },
+  { bg: 'bg-slate-50', border: 'border-slate-300', labelBg: 'bg-slate-200', labelText: 'text-slate-800' },
+  { bg: 'bg-blue-50', border: 'border-blue-200', labelBg: 'bg-blue-100', labelText: 'text-blue-800' },
+  { bg: 'bg-indigo-50', border: 'border-indigo-200', labelBg: 'bg-indigo-100', labelText: 'text-indigo-800' },
+];
 
 export const OfertasPage: React.FC<OfertasPageProps> = ({ onSell }) => {
   const [offerType, setOfferType] = useState<'PORTA' | 'LN'>('PORTA');
   const [selectedOperator, setSelectedOperator] = useState<string>('');
+  const [selectedEmpresaId, setSelectedEmpresaId] = useState<number | null>(null);
   const [detailedPlan, setDetailedPlan] = useState<OfertaPlan | null>(null);
   const [planes, setPlanes] = useState<PlanResponse[]>([]);
+  const [promociones, setPromociones] = useState<PromocionResponse[]>([]);
   const [empresas, setEmpresas] = useState<EmpresaOrigenResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingPlanes, setLoadingPlanes] = useState(false);
 
-  // Cargar datos del backend
+  // Cargar empresas al inicio
   useEffect(() => {
-    const loadData = async () => {
+    const loadEmpresas = async () => {
       setLoading(true);
-      const [planesRes, empresasRes] = await Promise.all([
-        getAllPlanes(),
-        getEmpresasOrigen()
-      ]);
+      const empresasRes = await getEmpresasOrigen();
       
-      if (planesRes.success && planesRes.data) {
-        setPlanes(planesRes.data);
-      }
       if (empresasRes.success && empresasRes.data) {
         setEmpresas(empresasRes.data);
       }
       setLoading(false);
     };
-    loadData();
+    loadEmpresas();
   }, []);
 
-  // Mapear planes a formato de oferta
-  const mapearPlanAOferta = (plan: PlanResponse): OfertaPlan => {
-    const empresa = empresas.find(e => e.empresa_origen_id === plan.empresa_origen_id);
-    const esClaro = plan.empresa_origen_id === 2;
-    const discount = esClaro ? '11%' : '30%';
-    const promo = esClaro ? 'Sin permanencia' : '50% Dto x 12 meses';
+  // Filtrar empresas según tipo de oferta
+  const empresasFiltradas = useMemo(() => {
+    if (offerType === 'PORTA') {
+      return empresas.filter(e => e.empresa_origen_id !== 2);
+    } else {
+      return empresas.filter(e => e.empresa_origen_id === 2);
+    }
+  }, [empresas, offerType]);
+
+  // Seleccionar primera empresa por defecto cuando cambian las empresas filtradas
+  useEffect(() => {
+    if (empresasFiltradas.length > 0) {
+      const primeraEmpresa = empresasFiltradas[0];
+      setSelectedOperator(primeraEmpresa.nombre_empresa);
+      setSelectedEmpresaId(primeraEmpresa.empresa_origen_id);
+    } else {
+      setSelectedOperator('');
+      setSelectedEmpresaId(null);
+    }
+  }, [empresasFiltradas]);
+
+  // Cargar planes y promociones cuando cambia la empresa seleccionada
+  useEffect(() => {
+    const loadDataPorEmpresa = async () => {
+      if (!selectedEmpresaId) {
+        setPlanes([]);
+        setPromociones([]);
+        return;
+      }
+
+      setLoadingPlanes(true);
+      const [planesRes, promocionesRes] = await Promise.all([
+        getPlanesPorEmpresa(selectedEmpresaId),
+        getPromocionesPorEmpresa(selectedEmpresaId)
+      ]);
+      
+      if (planesRes.success && planesRes.data) {
+        setPlanes(planesRes.data);
+      } else {
+        setPlanes([]);
+      }
+      
+      if (promocionesRes.success && promocionesRes.data) {
+        setPromociones(promocionesRes.data);
+      } else {
+        setPromociones([]);
+      }
+      
+      setLoadingPlanes(false);
+    };
+
+    loadDataPorEmpresa();
+  }, [selectedEmpresaId]);
+
+  // Función auxiliar para crear una oferta individual con precios correctos
+  const crearOferta = useCallback((plan: PlanResponse, promocion: PromocionResponse | null, empresa: EmpresaOrigenResponse | undefined): OfertaPlan => {
+    const descuentoNum = promocion?.descuento || 0;
+    const discount = descuentoNum > 0 ? `${descuentoNum}%` : '0%';
+    const promo = promocion?.nombre || 'Sin promoción';
+    const promoId = promocion?.promocion_id || 0;
+    
+    // CORRECCIÓN: El precio en BD es el PRECIO ORIGINAL (sin descuento)
+    // Precio FINAL = precioBD * (1 - descuento/100)
+    const precioOriginal = plan.precio;
+    const precioFinal = descuentoNum > 0 
+      ? Math.round(precioOriginal * (1 - descuentoNum / 100))
+      : precioOriginal;
     
     return {
       id: plan.plan_id,
@@ -127,65 +202,68 @@ export const OfertasPage: React.FC<OfertasPageProps> = ({ onSell }) => {
       gb: `${plan.gigabyte} GB`,
       calls: plan.llamadas,
       whatsapp: plan.whatsapp?.toLowerCase().includes('ilimitado') || false,
-      price: `$${plan.precio}`,
-      oldPrice: esClaro ? undefined : `$${Math.round(plan.precio * 1.3)}`,
+      price: `$${precioFinal}`,
+      oldPrice: descuentoNum > 0 ? `$${precioOriginal}` : undefined,
       discount: discount,
       promo: promo,
+      promoId: promoId,
       companyName: empresa?.nombre_empresa || 'Claro',
       companyId: plan.empresa_origen_id,
-      amount: plan.precio,
+      amount: precioFinal,
       fullDetails: {
         roaming: plan.roaming || 'No incluido',
         sms: plan.mensajes || 'Según plan',
         services: plan.beneficios ? [plan.beneficios] : ['Servicio estándar'],
-        finePrint: plan.beneficios || 'Plan estándar con condiciones generales'
+        finePrint: promocion?.beneficios || plan.beneficios || 'Plan estándar'
       }
     };
-  };
+  }, []);
 
-  // Filtrar planes según tipo de oferta
-  const planesFiltrados = useMemo(() => {
-    if (offerType === 'PORTA') {
-      // PORTA: planes de empresas competencia (empresa_origen_id !== 2)
-      return planes.filter(p => p.empresa_origen_id !== 2);
-    } else {
-      // LN: planes de Claro (empresa_origen_id === 2)
-      return planes.filter(p => p.empresa_origen_id === 2);
-    }
-  }, [planes, offerType]);
-
-  // Agrupar planes por empresa
-  const planesPorEmpresa = useMemo(() => {
-    const agrupado: Record<string, OfertaPlan[]> = {};
-    planesFiltrados.forEach(plan => {
-      const oferta = mapearPlanAOferta(plan);
-      const empresa = empresas.find(e => e.empresa_origen_id === plan.empresa_origen_id);
-      const nombreEmpresa = empresa?.nombre_empresa || 'Otras';
+  // Agrupar planes por promoción
+  const gruposPorPromocion = useMemo((): GrupoPromocion[] => {
+    // Filtrar solo planes activos
+    const planesActivos = planes.filter(p => p.activo !== false);
+    
+    // Filtrar solo promociones activas con descuento > 0
+    const promocionesActivas = promociones.filter(p => p.activo !== false && p.descuento > 0);
+    
+    const empresa = empresas.find(e => e.empresa_origen_id === selectedEmpresaId);
+    const grupos: GrupoPromocion[] = [];
+    
+    // Crear grupos para cada promoción activa
+    promocionesActivas.forEach((promocion, index) => {
+      const planesDePromocion = planesActivos.map(plan => 
+        crearOferta(plan, promocion, empresa)
+      );
       
-      if (!agrupado[nombreEmpresa]) {
-        agrupado[nombreEmpresa] = [];
+      if (planesDePromocion.length > 0) {
+        grupos.push({
+          promocionId: promocion.promocion_id,
+          promocionNombre: promocion.nombre,
+          descuento: promocion.descuento,
+          colorGrupo: COLOR_VARIATIONS[index % COLOR_VARIATIONS.length].bg,
+          planes: planesDePromocion
+        });
       }
-      agrupado[nombreEmpresa].push(oferta);
     });
-    return agrupado;
-  }, [planesFiltrados, empresas]);
-
-  // Lista de empresas para tabs
-  const empresasDisponibles = useMemo(() => {
-    return Object.keys(planesPorEmpresa).sort();
-  }, [planesPorEmpresa]);
-
-  // Seleccionar primera empresa por defecto
-  useEffect(() => {
-    if (empresasDisponibles.length > 0 && !selectedOperator) {
-      setSelectedOperator(empresasDisponibles[0]);
+    
+    // Grupo para planes SIN promoción (solo si hay planes activos sin promoción aplicable)
+    const planesSinPromocion = planesActivos
+      .filter(plan => !promocionesActivas.some(p => p.empresa_origen_id === plan.empresa_origen_id))
+      .map(plan => crearOferta(plan, null, empresa));
+    
+    if (planesSinPromocion.length > 0) {
+      grupos.push({
+        promocionId: 0,
+        promocionNombre: 'Planes Standard',
+        descuento: 0,
+        colorGrupo: COLOR_VARIATIONS[grupos.length % COLOR_VARIATIONS.length].bg,
+        planes: planesSinPromocion
+      });
     }
-  }, [empresasDisponibles, selectedOperator]);
-
-  // Obtener planes de la empresa seleccionada
-  const currentPlans = useMemo(() => {
-    return selectedOperator ? planesPorEmpresa[selectedOperator] || [] : [];
-  }, [planesPorEmpresa, selectedOperator]);
+    
+    return grupos;
+  }, [planes, promociones, empresas, selectedEmpresaId, crearOferta]);
 
   // Obtener color de empresa
   const getCompanyColor = (nombreEmpresa: string) => {
@@ -194,7 +272,13 @@ export const OfertasPage: React.FC<OfertasPageProps> = ({ onSell }) => {
         return colors;
       }
     }
-    return { color: 'bg-slate-900', text: 'text-slate-900' };
+    return { color: 'bg-slate-900', text: 'text-slate-900', baseColor: 'slate' };
+  };
+
+  // Manejar cambio de empresa
+  const handleEmpresaChange = (empresa: EmpresaOrigenResponse) => {
+    setSelectedOperator(empresa.nombre_empresa);
+    setSelectedEmpresaId(empresa.empresa_origen_id);
   };
 
   if (loading) {
@@ -204,6 +288,8 @@ export const OfertasPage: React.FC<OfertasPageProps> = ({ onSell }) => {
       </div>
     );
   }
+
+  const companyColors = selectedOperator ? getCompanyColor(selectedOperator) : { color: 'bg-slate-900', text: 'text-slate-900', baseColor: 'slate' };
 
   return (
     <div className="p-[4vh] space-y-[3vh] animate-in fade-in duration-500">
@@ -215,13 +301,13 @@ export const OfertasPage: React.FC<OfertasPageProps> = ({ onSell }) => {
         </div>
         <div className="flex gap-[1vh] bg-white dark:bg-slate-800 p-[0.8vh] rounded-[2vh] border border-slate-200 dark:border-white/5 shadow-lg">
           <button 
-            onClick={() => { setOfferType('PORTA'); setSelectedOperator(''); }}
+            onClick={() => { setOfferType('PORTA'); }}
             className={`px-[3vh] py-[1.5vh] rounded-[1.5vh] font-black uppercase tracking-widest text-[clamp(0.7rem,1.3vh,1.1rem)] transition-all ${offerType === 'PORTA' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-indigo-600'}`}
           >
             🔄 Portabilidad
           </button>
           <button 
-            onClick={() => { setOfferType('LN'); setSelectedOperator(''); }}
+            onClick={() => { setOfferType('LN'); }}
             className={`px-[3vh] py-[1.5vh] rounded-[1.5vh] font-black uppercase tracking-widest text-[clamp(0.7rem,1.3vh,1.1rem)] transition-all ${offerType === 'LN' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-500 hover:text-purple-600'}`}
           >
             📱 Línea Nueva
@@ -229,76 +315,164 @@ export const OfertasPage: React.FC<OfertasPageProps> = ({ onSell }) => {
         </div>
       </div>
 
-      {/* Tabs de Empresas (solo para PORTA) */}
-      {offerType === 'PORTA' && empresasDisponibles.length > 0 && (
+      {/* Tabs de Empresas */}
+      {empresasFiltradas.length > 0 && (
         <div className="flex gap-[1vh] overflow-x-auto pb-[1vh]">
-          {empresasDisponibles.map(empresa => {
-            const colors = getCompanyColor(empresa);
+          {empresasFiltradas.map(empresa => {
+            const colors = getCompanyColor(empresa.nombre_empresa);
+            const isSelected = selectedOperator === empresa.nombre_empresa;
             return (
               <button
-                key={empresa}
-                onClick={() => setSelectedOperator(empresa)}
+                key={empresa.empresa_origen_id}
+                onClick={() => handleEmpresaChange(empresa)}
                 className={`flex-shrink-0 px-[2.5vh] py-[1.2vh] rounded-[1.5vh] font-black uppercase tracking-widest text-[clamp(0.65rem,1.1vh,1rem)] transition-all ${
-                  selectedOperator === empresa 
+                  isSelected
                     ? `${colors.color} text-white shadow-lg` 
                     : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/5 hover:border-indigo-300'
                 }`}
               >
-                {empresa}
+                {empresa.nombre_empresa}
               </button>
             );
           })}
         </div>
       )}
 
-      {/* Grid de Planes */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-[2.5vh]">
-        {currentPlans.map((plan, idx) => {
-          const colors = getCompanyColor(plan.companyName);
-          return (
-            <div key={idx} className="bento-card rounded-[4vh] p-[4.5vh] flex flex-col hover:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)] hover:scale-[1.03] group relative overflow-hidden transition-all duration-500 border border-white/40 dark:bg-slate-900/40 dark:border-white/5">
-              <div className="absolute top-[2vh] right-[2vh] bg-emerald-500 text-white px-[2vh] py-[1vh] rounded-full font-black uppercase tracking-widest shadow-lg animate-pulse z-20 text-[clamp(0.65rem,1.1vh,1.2rem)]">-{plan.discount} DTO</div>
-              <div className="flex justify-between items-start mb-[3.5vh] relative z-10">
-                <div className="flex-1">
-                  <span className={`px-[1.5vh] py-[0.6vh] rounded-[1vh] font-black text-white uppercase text-[clamp(0.6rem,1vh,1.2rem)] ${colors.color}`}>{plan.companyName}</span>
-                  <h4 className="font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-tight italic mt-[1.5vh] text-[clamp(1.5rem,3.2vh,3rem)]">{plan.name}</h4>
+      {/* Loading de planes */}
+      {loadingPlanes && (
+        <div className="p-[4vh] flex items-center justify-center">
+          <div className="animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full"></div>
+        </div>
+      )}
+
+      {/* Grupos de Promociones */}
+      {!loadingPlanes && (
+        <div className="space-y-[4vh]">
+          {gruposPorPromocion.map((grupo, grupoIndex) => {
+            const colorVar = COLOR_VARIATIONS[grupoIndex % COLOR_VARIATIONS.length];
+            return (
+              <div 
+                key={grupo.promocionId} 
+                className={`rounded-[3vh] p-[3vh] border-2 ${colorVar.border} ${colorVar.bg} dark:bg-slate-800/50 dark:border-slate-700`}
+              >
+                {/* Header del grupo de promoción */}
+                <div className="flex items-center justify-between mb-[3vh]">
+                  <div className={`px-[3vh] py-[1.5vh] rounded-[2vh] ${colorVar.labelBg} ${colorVar.labelText} dark:bg-slate-700 dark:text-white`}>
+                    <span className="font-black uppercase tracking-widest text-[clamp(0.8rem,1.4vh,1.2rem)]">
+                      {grupo.descuento > 0 ? `${grupo.promocionNombre} (-${grupo.descuento}%)` : grupo.promocionNombre}
+                    </span>
+                  </div>
+                  <span className="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-[clamp(0.7rem,1.2vh,1rem)]">
+                    {grupo.planes.length} {grupo.planes.length === 1 ? 'plan' : 'planes'}
+                  </span>
                 </div>
-                <div className="text-right">
-                  <p className={`font-black ${colors.text} dark:text-white italic tracking-tighter leading-none text-[clamp(2rem,4.5vh,4.5rem)]`}>{plan.price}</p>
-                  {plan.oldPrice && <p className="text-slate-400 line-through font-bold text-[clamp(0.9rem,1.6vh,1.8rem)]">{plan.oldPrice}</p>}
-                </div>
-              </div>
-              <div className={`p-[3vh] rounded-[2.5vh] ${colors.color} text-white shadow-xl relative overflow-hidden mb-[3.5vh]`}>
-                <p className="font-black leading-snug text-[clamp(0.9rem,1.6vh,1.8rem)]">{plan.promo}</p>
-                <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rotate-45 translate-x-10 -translate-y-10 group-hover:translate-x-full transition-transform duration-1000"></div>
-              </div>
-              <div className="grid grid-cols-2 gap-[2vh] mt-auto relative z-10">
-                <button onClick={() => setDetailedPlan(plan)} className="py-[2.2vh] rounded-[2vh] bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-white/5 text-slate-600 dark:text-slate-300 font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-white/5 hover:border-indigo-100 transition-all active:scale-95 text-[clamp(0.8rem,1.4vh,1.5rem)] shadow-sm">Ficha</button>
-                <button 
-                  onClick={() => onSell({ 
-                    plan: plan.name, 
-                    amount: plan.amount, 
-                    promotion: plan.promo, 
-                    productType: offerType === 'PORTA' ? ProductType.PORTABILITY : ProductType.NEW_LINE, 
-                    originCompany: plan.companyName,
-                    plan_id: plan.id,
-                    empresa_origen_id: plan.companyId
+
+                {/* Grid de Planes dentro del grupo */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-[2.5vh]">
+                  {grupo.planes.map((plan, idx) => {
+                    const colors = getCompanyColor(plan.companyName);
+                    return (
+                      <div 
+                        key={`${plan.id}-${idx}`} 
+                        className="bg-white dark:bg-slate-900 rounded-[3vh] p-[3.5vh] flex flex-col hover:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)] hover:scale-[1.02] group relative overflow-hidden transition-all duration-300 border border-slate-200 dark:border-white/10"
+                      >
+                        {/* Badge de descuento */}
+                        {plan.discount !== '0%' && (
+                          <div className="absolute top-[2vh] right-[2vh] bg-emerald-500 text-white px-[2vh] py-[1vh] rounded-full font-black uppercase tracking-widest shadow-lg z-20 text-[clamp(0.65rem,1.1vh,1.2rem)]">
+                            -{plan.discount}
+                          </div>
+                        )}
+                        
+                        {/* Header de la tarjeta */}
+                        <div className="flex justify-between items-start mb-[2.5vh] relative z-10">
+                          <div className="flex-1">
+                            <span className={`px-[1.5vh] py-[0.6vh] rounded-[1vh] font-black text-white uppercase text-[clamp(0.6rem,1vh,1.2rem)] ${colors.color}`}>
+                              {plan.companyName}
+                            </span>
+                            <h4 className="font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-tight italic mt-[1.5vh] text-[clamp(1.3rem,2.8vh,2.5rem)]">
+                              {plan.name}
+                            </h4>
+                          </div>
+                          <div className="text-right">
+                            <p className={`font-black ${colors.text} dark:text-white italic tracking-tighter leading-none text-[clamp(1.8rem,4vh,4rem)]`}>
+                              {plan.price}
+                            </p>
+                            {plan.oldPrice && (
+                              <p className="text-slate-400 line-through font-bold text-[clamp(0.85rem,1.5vh,1.6rem)]">
+                                {plan.oldPrice}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Detalles del plan */}
+                        <div className={`p-[2.5vh] rounded-[2vh] ${colors.color} text-white shadow-lg relative overflow-hidden mb-[2.5vh]`}>
+                          <p className="font-black leading-snug text-[clamp(0.85rem,1.5vh,1.6rem)]">{plan.promo}</p>
+                          <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rotate-45 translate-x-8 -translate-y-8 group-hover:translate-x-full transition-transform duration-1000"></div>
+                        </div>
+
+                        {/* GB y llamadas */}
+                        <div className="flex gap-[2vh] mb-[2.5vh]">
+                          <div className="flex-1 text-center p-[1.5vh] bg-slate-100 dark:bg-slate-800 rounded-[1.5vh]">
+                            <p className="font-black text-slate-900 dark:text-white text-[clamp(1.2rem,2.5vh,2rem)]">{plan.gb}</p>
+                            <p className="font-bold text-slate-500 dark:text-slate-400 uppercase text-[clamp(0.6rem,1vh,0.9rem)]">Datos</p>
+                          </div>
+                          <div className="flex-1 text-center p-[1.5vh] bg-slate-100 dark:bg-slate-800 rounded-[1.5vh]">
+                            <p className="font-black text-slate-900 dark:text-white text-[clamp(1rem,2vh,1.5rem)]">{plan.calls}</p>
+                            <p className="font-bold text-slate-500 dark:text-slate-400 uppercase text-[clamp(0.6rem,1vh,0.9rem)]">Llamadas</p>
+                          </div>
+                        </div>
+
+                        {/* Botones */}
+                        <div className="grid grid-cols-2 gap-[2vh] mt-auto relative z-10">
+                          <button 
+                            onClick={() => setDetailedPlan(plan)} 
+                            className="py-[2vh] rounded-[2vh] bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-white/5 hover:border-indigo-200 transition-all active:scale-95 text-[clamp(0.75rem,1.3vh,1.4rem)] shadow-sm"
+                          >
+                            Ficha
+                          </button>
+                          <button 
+                            onClick={() => onSell({ 
+                              plan: plan.name, 
+                              amount: plan.amount, 
+                              promotion: plan.promo, 
+                              productType: offerType === 'PORTA' ? ProductType.PORTABILITY : ProductType.NEW_LINE, 
+                              originCompany: plan.companyName,
+                              plan_id: plan.id,
+                              empresa_origen_id: plan.companyId
+                            })}
+                            className="py-[2vh] rounded-[2vh] bg-slate-900 dark:bg-indigo-600 text-white font-black uppercase tracking-widest hover:bg-indigo-600 dark:hover:bg-indigo-500 transition-all active:scale-95 text-[clamp(0.75rem,1.3vh,1.4rem)] shadow-xl"
+                          >
+                            Vender
+                          </button>
+                        </div>
+                      </div>
+                    );
                   })}
-                  className="py-[2.2vh] rounded-[2vh] bg-slate-900 dark:bg-indigo-600 text-white font-black uppercase tracking-widest hover:bg-indigo-600 dark:hover:bg-indigo-500 transition-all active:scale-95 text-[clamp(0.8rem,1.4vh,1.5rem)] shadow-xl"
-                >
-                  Vender
-                </button>
+                </div>
               </div>
+            );
+          })}
+          
+          {gruposPorPromocion.length === 0 && (
+            <div className="p-[6vh] text-center glass-panel rounded-[3vh] dark:bg-slate-900/40 dark:border-white/5">
+              <p className="font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-[clamp(0.8rem,1.5vh,1rem)]">
+                {selectedEmpresaId 
+                  ? 'No hay ofertas configuradas para esta empresa.' 
+                  : 'Seleccione una empresa para ver las ofertas.'}
+              </p>
             </div>
-          );
-        })}
-        {currentPlans.length === 0 && (
-          <div className="col-span-full p-[6vh] text-center glass-panel rounded-[3vh] dark:bg-slate-900/40 dark:border-white/5">
-            <p className="font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-[clamp(0.8rem,1.5vh,1rem)]">No hay ofertas configuradas para esta categoría.</p>
-          </div>
-        )}
-      </div>
-      {detailedPlan && <PlanDetailModal plan={detailedPlan} onClose={() => setDetailedPlan(null)} companyColor={getCompanyColor(detailedPlan.companyName).color} />}
+          )}
+        </div>
+      )}
+      
+      {detailedPlan && (
+        <PlanDetailModal 
+          plan={detailedPlan} 
+          onClose={() => setDetailedPlan(null)} 
+          companyColor={getCompanyColor(detailedPlan.companyName).color} 
+        />
+      )}
     </div>
   );
 };

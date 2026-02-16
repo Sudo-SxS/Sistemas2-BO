@@ -60,11 +60,11 @@ export class PlanPostgreSQL implements PlanModelDB {
   }
 
   async add({ input }: { input: PlanCreate }): Promise<Plan> {
-    const { nombre, precio, gigabyte, llamadas, mensajes, beneficios, whatsapp, roaming, empresa_origen_id } = input;
+    const { nombre, precio, gigabyte, llamadas, mensajes, beneficios, whatsapp, roaming, empresa_origen_id, activo } = input;
 
     const result = await this.safeQuery<Plan[]>(
-      `INSERT INTO plan (nombre, precio, gigabyte, llamadas, mensajes, beneficios, whatsapp, roaming, fecha_creacion, empresa_origen_id) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+      `INSERT INTO plan (nombre, precio, gigabyte, llamadas, mensajes, beneficios, whatsapp, roaming, fecha_creacion, empresa_origen_id, activo) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
        RETURNING *`,
       [
         nombre,
@@ -77,6 +77,7 @@ export class PlanPostgreSQL implements PlanModelDB {
         roaming || "",
         new Date(),
         empresa_origen_id,
+        activo !== undefined ? activo : true,
       ],
     );
 
@@ -129,6 +130,10 @@ export class PlanPostgreSQL implements PlanModelDB {
     if (input.empresa_origen_id !== undefined) {
       fields.push(`empresa_origen_id = $${paramIndex++}`);
       values.push(input.empresa_origen_id);
+    }
+    if (input.activo !== undefined) {
+      fields.push(`activo = $${paramIndex++}`);
+      values.push(input.activo);
     }
 
     if (fields.length === 0) return undefined;

@@ -17,6 +17,7 @@ export interface PlanResponse {
   empresa_origen_id: number;
   fecha_duracion?: string;
   promocion_id?: number;
+  activo?: boolean;
 }
 
 export interface PromocionResponse {
@@ -26,6 +27,7 @@ export interface PromocionResponse {
   beneficios?: string;
   empresa_origen_id: number;
   fecha_terminacion?: string;
+  activo?: boolean;
 }
 
 export interface EmpresaOrigenResponse {
@@ -83,7 +85,7 @@ export const getPlanPorId = async (
 // Obtener TODOS los planes (sin filtro de empresa) - para LINEA_NUEVA
 export const getAllPlanes = async (): Promise<{ success: boolean; data?: PlanResponse[]; message?: string }> => {
   try {
-    const response = await api.get<PlanResponse[]>('/planes');
+    const response = await api.get<PlanResponse[]>('/planes?limit=1000');
     return { success: true, data: response.data };
   } catch (error: any) {
     return { success: false, message: error.message || 'Error al obtener todos los planes' };
@@ -93,7 +95,7 @@ export const getAllPlanes = async (): Promise<{ success: boolean; data?: PlanRes
 // Obtener TODAS las promociones (sin filtro de empresa) - para LINEA_NUEVA
 export const getAllPromociones = async (): Promise<{ success: boolean; data?: PromocionResponse[]; message?: string }> => {
   try {
-    const response = await api.get<PromocionResponse[]>('/promociones');
+    const response = await api.get<PromocionResponse[]>('/promociones?limit=1000');
     return { success: true, data: response.data };
   } catch (error: any) {
     return { success: false, message: error.message || 'Error al obtener todas las promociones' };

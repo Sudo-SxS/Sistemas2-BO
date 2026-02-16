@@ -15,11 +15,13 @@ headers {
 }
 
 body:json {
-  {
-    "descuento": "25%",
+  {"promocion": {
+    "descuento": 25,
     "beneficios": "Descuento actualizado",
-    "empresa_origen_id": {{empresa_origen_id}}
-  }
+    "empresa_origen_id": {{empresa_origen_id}},
+    "fecha_terminacion": "22/03/2026",
+    "activo": false
+  }}
 }
 
 settings {

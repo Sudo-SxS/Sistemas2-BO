@@ -237,8 +237,8 @@ export class ClientePostgreSQL implements ClienteModelDB {
         await client.queryObject(
           `INSERT INTO persona (
             persona_id, nombre, apellido, fecha_nacimiento, documento,
-            email, telefono, tipo_documento, nacionalidad, genero, creado_en
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+            email, telefono, telefono_alternativo, tipo_documento, nacionalidad, genero, creado_en
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
           [
             persona_id,
             input.nombre,
@@ -247,6 +247,7 @@ export class ClientePostgreSQL implements ClienteModelDB {
             input.documento,
             input.email,
             input.telefono || null,
+            input.telefono_alternativo || null,
             input.tipo_documento,
             input.nacionalidad,
             input.genero,

@@ -2,8 +2,142 @@ import React, { useState } from 'react';
 import { SaleDetail, SaleStatus, LogisticStatus, Genero, TipoDocumento } from '../types';
 import { useVentaDetalle } from '../hooks/useVentaDetalle';
 import { getClienteById } from '../services/clientes';
+import { VentaDetalleCompletoResponse } from '../services/ventas';
 import { SUPERVISORES_MOCK } from '../mocks/supervisores';
 import { EMPRESAS_ORIGEN_MOCK } from '../mocks/empresasOrigen';
+
+// Función para mapear datos del backend al formato del componente
+const mapBackendToSaleDetail = (data: VentaDetalleCompletoResponse) => {
+  // Calcular precio con descuento
+  const precioBase = data.plan?.precio || 0;
+  const descuento = data.promocion?.descuento || 0;
+  const precioFinal = descuento > 0 ? Math.round(precioBase * (1 - descuento / 100)) : precioBase;
+
+  return {
+    // Datos de venta
+    id: `V-${data.venta.venta_id}`,
+    sap: data.venta.sap,
+    sds: data.venta.sds,
+    stl: data.venta.stl,
+    chip: data.venta.chip,
+    tipoVenta: data.venta.tipo_venta,
+    fechaCreacion: data.venta.fecha_creacion,
+    prioridad: 'MEDIA',
+    
+    // Cliente
+    cliente: data.cliente ? {
+      nombre: data.cliente.nombre,
+      apellido: data.cliente.apellido,
+      documento: data.cliente.documento,
+      email: data.cliente.email,
+      telefono: data.cliente.telefono,
+      tipoDocumento: data.cliente.tipoDocumento || 'DNI',
+      genero: data.cliente.genero || 'MASCULINO',
+      fechaNacimiento: data.cliente.fechaNacimiento,
+      nacionalidad: data.cliente.nacionalidad || 'Argentina',
+    } : null,
+    
+    // Vendedor
+    vendedor: data.vendedor ? {
+      nombre: data.vendedor.nombre,
+      apellido: data.vendedor.apellido,
+      email: data.vendedor.email,
+      telefono: data.vendedor.telefono,
+      legajo: data.vendedor.legajo,
+      exa: data.vendedor.exa,
+      celula: data.vendedor.celula,
+    } : null,
+    
+    // Supervisor
+    supervisor: data.supervisor ? {
+      id: data.supervisor.id,
+      nombre: data.supervisor.nombre,
+      apellido: data.supervisor.apellido,
+      legajo: data.supervisor.legajo,
+      email: data.supervisor.email,
+    } : null,
+    
+    // Plan
+    plan: data.plan ? {
+      nombre: data.plan.nombre,
+      precio: data.plan.precio,
+      gigabyte: data.plan.gigabyte || '0',
+      llamadas: data.plan.llamadas || '0',
+      mensajes: data.plan.mensajes || '0',
+      whatsapp: data.plan.whatsapp || 'Ilimitado',
+      beneficios: data.plan.descripcion || '',
+    } : null,
+    
+    // Precio final con descuento
+    precioFinal: precioFinal,
+    precioBase: precioBase,
+    descuento: descuento,
+    
+    // Promoción
+    promocion: data.promocion ? {
+      nombre: data.promocion.nombre,
+      beneficios: data.promocion.beneficios,
+      descuento: data.promocion.descuento,
+    } : null,
+    
+    // Empresa origen
+    empresa_origen: data.empresa_origen?.nombre,
+    
+    // Estados
+    estadoVentaActual: data.estado_actual?.estado,
+    estadoCorreoActual: data.correo_estado?.estado,
+    
+    // Historial
+    historialEstadosVenta: data.historial_estados?.map(e => ({
+      estado: e.estado,
+      descripcion: e.descripcion,
+      fecha: e.fecha_creacion,
+    })) || [],
+    
+    historialEstadosCorreo: data.historial_correo?.map(e => ({
+      estado: e.estado,
+      descripcion: e.descripcion,
+      ubicacionActual: e.ubicacion_actual,
+      fecha: e.fecha_creacion,
+    })) || [],
+    
+    // Correo
+    correo: data.correo ? {
+      sapId: data.correo.sap_id,
+      destinatario: data.correo.destinatario,
+      telefonoContacto: data.correo.telefono_contacto,
+      telefonoAlternativo: data.correo.telefono_alternativo,
+      direccion: data.correo.direccion,
+      numeroCasa: data.correo.numero_casa,
+      piso: data.correo.piso,
+      departamentoNumero: data.correo.departamento_numero,
+      entreCalles: data.correo.entre_calles,
+      barrio: data.correo.barrio,
+      localidad: data.correo.localidad,
+      departamento: data.correo.departamento,
+      codigoPostal: data.correo.codigo_postal,
+      geolocalizacion: data.correo.geolocalizacion,
+      comentarioCartero: data.correo.comentario_cartero,
+      fechaLimite: data.correo.fecha_limite,
+    } : null,
+    
+    // Portabilidad
+    portabilidad: data.portabilidad ? {
+      numeroPortar: data.portabilidad.numero_portar,
+      operadorOrigen: data.portabilidad.operador_origen_nombre,
+      mercadoOrigen: data.portabilidad.mercado_origen,
+      spn: data.portabilidad.spn,
+      pin: data.portabilidad.pin,
+      fechaPortacion: data.portabilidad.fecha_portacion,
+    } : null,
+    
+    // Línea nueva
+    lineaNueva: data.linea_nueva ? {
+      estado: data.linea_nueva.estado,
+      numeroAsignado: data.linea_nueva.numero_asignado,
+    } : null,
+  };
+};
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -72,7 +206,7 @@ export const SaleModal: React.FC<SaleModalProps> = ({ sale, onClose, onUpdate })
   // Sincronizar datos editados cuando cargan los detalles
   React.useEffect(() => {
     if (ventaDetalle && !editedData) {
-      setEditedData(ventaDetalle as any);
+      setEditedData(mapBackendToSaleDetail(ventaDetalle));
     }
   }, [ventaDetalle, editedData]);
   
@@ -161,7 +295,33 @@ export const SaleModal: React.FC<SaleModalProps> = ({ sale, onClose, onUpdate })
     options?: { value: string; label: string }[];
     readonly?: boolean;
   }) => {
-    const displayValue = (value !== null && value !== undefined && String(value).trim() !== '') ? value : 'S/D';
+    // Función para formatear fechas ISO a dd/mm/aa
+    const formatearFecha = (valor: string): string => {
+      if (!valor || typeof valor !== 'string') return valor;
+      if (valor.match(/^\d{4}-\d{2}-\d{2}/)) {
+        try {
+          const fecha = new Date(valor);
+          if (!isNaN(fecha.getTime())) {
+            return fecha.toLocaleDateString('es-AR', {
+              day: '2-digit',
+              month: '2-digit',
+              year: '2-digit'
+            });
+          }
+        } catch {
+          return valor;
+        }
+      }
+      return valor;
+    };
+
+    const displayValue = (value: any) => {
+      if (value === null || value === undefined) return 'S/D';
+      if (typeof value === 'object') return 'S/D';
+      const strValue = String(value).trim();
+      if (!strValue) return 'S/D';
+      return formatearFecha(strValue);
+    };
     
     if (!isEditing || readonly) {
       return (
@@ -170,7 +330,7 @@ export const SaleModal: React.FC<SaleModalProps> = ({ sale, onClose, onUpdate })
             {label}
           </label>
           <div className="font-extrabold text-slate-800 dark:text-white text-[clamp(0.8rem,1.4vh,1.6rem)] tracking-tight">
-            {displayValue}
+            {displayValue(value)}
           </div>
         </div>
       );
@@ -420,9 +580,23 @@ export const SaleModal: React.FC<SaleModalProps> = ({ sale, onClose, onUpdate })
               <p className="text-indigo-600 dark:text-indigo-400 font-black tracking-widest uppercase text-[clamp(0.6rem,1.1vh,1.3rem)] mt-2">Cobertura Nacional 5G</p>
             </div>
             <div className="flex flex-col items-end">
-              <span className="font-black text-slate-900 dark:text-white text-[clamp(2.5rem,5.5vh,6rem)] leading-none tracking-tighter">
-                ${(editedData?.plan?.precio ?? 0).toLocaleString()}
-              </span>
+              {editedData?.descuento && editedData.descuento > 0 ? (
+                <>
+                  <span className="font-black text-slate-400 dark:text-slate-500 line-through text-xl">
+                    ${(editedData?.precioBase ?? 0).toLocaleString()}
+                  </span>
+                  <span className="font-black text-green-600 dark:text-green-400 text-[clamp(2.5rem,5.5vh,6rem)] leading-none tracking-tighter">
+                    ${(editedData?.precioFinal ?? 0).toLocaleString()}
+                  </span>
+                  <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold mt-1">
+                    {editedData.descuento}% OFF
+                  </span>
+                </>
+              ) : (
+                <span className="font-black text-slate-900 dark:text-white text-[clamp(2.5rem,5.5vh,6rem)] leading-none tracking-tighter">
+                  ${(editedData?.plan?.precio ?? 0).toLocaleString()}
+                </span>
+              )}
               <span className="font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] text-[clamp(0.7rem,1.2vh,1.4rem)] mt-2">Final por Mes</span>
             </div>
           </div>
@@ -759,7 +933,7 @@ export const SaleModal: React.FC<SaleModalProps> = ({ sale, onClose, onUpdate })
               {renderTabButton('venta', '📋', 'Información General')}
               {renderTabButton('cliente', '👤', 'Ficha del Cliente')}
               {renderTabButton('plan', '📱', 'Plan & Servicios')}
-              {renderTabButton('correo', '📮', 'Logística & Entrega')}
+              {editedData?.chip !== 'ESIM' && renderTabButton('correo', '📮', 'Logística & Entrega')}
               {renderTabButton('estados', '📊', 'Trazabilidad')}
             </div>
 
@@ -768,7 +942,7 @@ export const SaleModal: React.FC<SaleModalProps> = ({ sale, onClose, onUpdate })
               {activeTab === 'venta' && <TabVenta />}
               {activeTab === 'cliente' && <TabCliente />}
               {activeTab === 'plan' && <TabPlan />}
-              {activeTab === 'correo' && <TabCorreo />}
+              {activeTab === 'correo' && editedData?.chip !== 'ESIM' && <TabCorreo />}
               {activeTab === 'estados' && <TabEstados />}
             </div>
 

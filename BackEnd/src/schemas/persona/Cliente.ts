@@ -13,9 +13,10 @@ export const ClienteCreateSchema = z.object({
   documento: z.string().min(1).max(30),
   email: z.string().email().transform((val) => val.toLowerCase()),
   telefono: z.string().max(20).optional(),
+  telefono_alternativo: z.string().max(20).optional(),
   tipo_documento: z.string().max(45).transform(val => val.toUpperCase()),
   nacionalidad: z.string().max(45).transform(val => val.toUpperCase()),
-  genero: z.enum(["MASCULINO", "FEMENINO", "OTRO", "PREFERO NO DECIR"]),
+  genero: z.enum(["MASCULINO", "FEMENINO", "OTRO", "PREFIERO NO DECIR"]),
 });
 
 export const ClienteUpdateSchema = z.object({
@@ -26,9 +27,10 @@ export const ClienteUpdateSchema = z.object({
   documento: z.string().min(1).max(30).optional(),
   email: z.string().email().transform((val) => val.toLowerCase()).optional(),
   telefono: z.string().max(20).optional(),
+  telefono_alternativo: z.string().max(20).optional(),
   tipo_documento: z.string().max(45).transform(val => val.toUpperCase()).optional(),
   nacionalidad: z.string().max(45).transform(val => val.toUpperCase()).optional(),
-  genero: z.enum(["MASCULINO", "FEMENINO", "OTRO", "PREFERO NO DECIR"]).optional(),
+  genero: z.enum(["MASCULINO", "FEMENINO", "OTRO", "PREFIERO NO DECIR"]).optional(),
 }).strict();
 
 // Para respuestas con datos completos
@@ -38,6 +40,7 @@ export const ClienteResponseSchema = ClienteSchema.extend({
   email: z.string().email(),
   documento: z.string(),
   telefono: z.string().optional(),
+  telefono_alternativo: z.string().optional(),
   fecha_nacimiento: z.coerce.date(),
 });
 

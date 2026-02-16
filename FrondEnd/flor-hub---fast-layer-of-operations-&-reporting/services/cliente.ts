@@ -12,6 +12,7 @@ export interface ClienteResponse {
   tipo_documento: string;
   email: string;
   telefono?: string;
+  telefono_alternativo?: string;
   fecha_nacimiento: string;
   genero: string;
   nacionalidad: string;
@@ -24,8 +25,9 @@ export interface ClienteCreate {
   tipo_documento: string;
   email: string;
   telefono?: string;
+  telefono_alternativo?: string;
   fecha_nacimiento: string;
-  genero: 'MASCULINO' | 'FEMENINO' | 'OTRO' | 'PREFERO NO DECIR';
+  genero: 'MASCULINO' | 'FEMENINO' | 'OTRO' | 'PREFIERO NO DECIR';
   nacionalidad: string;
 }
 

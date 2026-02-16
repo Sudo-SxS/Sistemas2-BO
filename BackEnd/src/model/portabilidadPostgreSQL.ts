@@ -56,8 +56,8 @@ export class PortabilidadPostgreSQL implements PortabilidadModelDB {
 
   async add({ input }: { input: PortabilidadCreate }): Promise<Portabilidad> {
     await this.safeQuery(
-      `INSERT INTO portabilidad (venta_id, spn, empresa_origen, mercado_origen, numero_portar, pin, fecha_portacion) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      `INSERT INTO portabilidad (venta_id, spn, empresa_origen, mercado_origen, numero_portar, pin, fecha_vencimiento_pin, fecha_portacion) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [
         input.venta,
         input.spn,
@@ -65,6 +65,7 @@ export class PortabilidadPostgreSQL implements PortabilidadModelDB {
         input.mercado_origen,
         input.numero_porta,
         input.pin?.toString() || null,
+        input.fecha_vencimiento_pin || null,
         input.fecha_portacion || null,
       ],
     );
@@ -98,6 +99,10 @@ export class PortabilidadPostgreSQL implements PortabilidadModelDB {
     if (input.pin !== undefined) {
       fields.push(`pin = $${paramIndex++}`);
       values.push(input.pin);
+    }
+    if (input.fecha_vencimiento_pin !== undefined) {
+      fields.push(`fecha_vencimiento_pin = $${paramIndex++}`);
+      values.push(input.fecha_vencimiento_pin);
     }
 
     if (fields.length === 0) return undefined;

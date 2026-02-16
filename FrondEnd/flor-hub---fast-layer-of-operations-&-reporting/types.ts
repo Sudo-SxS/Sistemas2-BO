@@ -105,9 +105,16 @@ export interface Sale {
   // Campos adicionales para SaleFormModal
   chip?: 'SIM' | 'ESIM';
   sds?: string | null;
+  stl?: string | null;
   plan_id?: number;
   promocion_id?: number | null;
   empresa_origen_id?: number;
+  // Campos de portabilidad
+  spn?: string;
+  numero_portar?: string;
+  pin?: string | null;
+  fecha_vencimiento_pin?: string | null;
+  mercado_origen?: 'PREPAGO' | 'POSPAGO';
 }
 
 // Nueva interfaz completa para detalles de venta

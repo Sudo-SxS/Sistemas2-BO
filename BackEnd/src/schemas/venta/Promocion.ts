@@ -9,6 +9,7 @@ export const PromocionSchema = z.object({
   fecha_creacion: z.coerce.date().optional().default(() => new Date()),
   descuento: z.number().int().min(0).max(100).optional().default(0),
   fecha_terminacion: z.coerce.date().nullable().optional(),
+  activo: z.boolean().default(true),
 });
 
 export const PromocionCreateSchema = PromocionSchema.omit({

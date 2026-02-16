@@ -1,0 +1,25 @@
+meta {
+  name: Crear Célula
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:8000/celulas
+  body: json
+  auth: bearer
+}
+
+body:json {
+  {
+    "id_celula": 100,
+    "empresa": 1,
+    "nombre": "Célula Test",
+    "tipo_cuenta": "PREPAGO"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

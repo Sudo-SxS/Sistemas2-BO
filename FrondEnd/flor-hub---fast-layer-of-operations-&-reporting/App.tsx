@@ -13,11 +13,13 @@ import { NominaModal } from './components/NominaModal';
 import { FilterBar } from './components/FilterBar';
 import { GestionPage } from './pages/GestionPage';
 import { SeguimientoPage } from './pages/SeguimientoPage';
+import { api } from './services/api';
 import { ReportesPage } from './pages/ReportesPage';
 import { OfertasPage } from './pages/OfertasPage';
 import { KPICards } from './components/KPICards';
 import { CommandPalette } from './components/CommandPalette';
 import { ToastContainer } from './components/ToastContainer';
+import { ToastProvider } from './contexts/ToastContext';
 
 import { AppTab, Sale, SaleStatus, ProductType, LogisticStatus, LineStatus } from './types';
 
@@ -128,7 +130,58 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [filters, setFilters] = useState({ status: 'TODOS', logisticStatus: 'TODOS', productType: 'TODOS', originMarket: 'TODOS', advisor: 'TODOS', plan: 'TODOS', promotion: 'TODOS' });
+  const [filters, setFilters] = useState({ 
+    status: 'TODOS', 
+    logisticStatus: 'TODOS', 
+    productType: 'TODOS', 
+    originMarket: 'TODOS', 
+    advisor: 'TODOS', 
+    plan: 'TODOS', 
+    promotion: 'TODOS',
+    empresaOrigen: 'TODOS',
+    correoStatus: 'TODOS',
+    celula: 'TODOS'
+  });
+
+  // Datos para filtros avanzados
+  const [planesData, setPlanesData] = useState<any[]>([]);
+  const [promocionesData, setPromocionesData] = useState<any[]>([]);
+  const [empresasOrigenData, setEmpresasOrigenData] = useState<any[]>([]);
+  const [celulasData, setCelulasData] = useState<number[]>([]);
+
+  // Cargar datos para filtros avanzados
+  useEffect(() => {
+    const fetchFilterData = async () => {
+      if (!isAuthenticated) return;
+      
+      try {
+        // Obtener empresas origen
+        const empresasRes = await api.get('/empresa-origen');
+        if (empresasRes.success && empresasRes.data) {
+          setEmpresasOrigenData(empresasRes.data);
+        }
+
+        // Obtener planes
+        const planesRes = await api.get('/planes');
+        if (planesRes.success && planesRes.data) {
+          setPlanesData(planesRes.data);
+        }
+
+        // Obtener promociones
+        const promoRes = await api.get('/promociones');
+        if (promoRes.success && promoRes.data) {
+          setPromocionesData(promoRes.data);
+        }
+
+        // Células disponibles (1-10)
+        setCelulasData([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+      } catch (error) {
+        console.error('Error cargando datos de filtros:', error);
+      }
+    };
+
+    fetchFilterData();
+  }, [isAuthenticated, authUser]);
 
   // Estado de Interfaz
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -293,7 +346,7 @@ export default function App() {
   console.log('🔍 [APP] Renderizando con estados:', { isAuthChecking, isAuthenticated, user: authUser });
 
   return (
-    <>
+    <ToastProvider>
       {/* Mostrar loading mientras autentica */}
       {isAuthChecking && (
         <div className="min-h-screen flex items-center justify-center bg-slate-900">
@@ -383,6 +436,10 @@ export default function App() {
                 filters={filters} 
                 setFilters={setFilters}
                 uniqueAdvisors={uniqueAdvisors}
+                planes={planesData}
+                promociones={promocionesData}
+                empresasOrigen={empresasOrigenData}
+                celulas={celulasData}
               />
             )}
 
@@ -507,7 +564,10 @@ export default function App() {
               onSubmit={(sale) => {
                 console.log('✅ [VENTA_REGISTRADA]', sale);
                 setCreatingSale(null);
-              }} 
+              }}
+              onVentaCreada={() => {
+                refetch();
+              }}
             />
           )}
 
@@ -554,6 +614,6 @@ export default function App() {
           )}
         </div>
       )}
-    </>
+    </ToastProvider>
   );
 }

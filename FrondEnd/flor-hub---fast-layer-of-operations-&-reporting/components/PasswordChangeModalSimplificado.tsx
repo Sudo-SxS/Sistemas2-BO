@@ -1,4 +1,4 @@
-import React, { useState, useCallback, Component } from 'react';
+import React, { useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../services/api';
 import { buildPasswordChangeUrl } from '../utils/userHelpers';
@@ -9,34 +9,17 @@ interface PasswordChangeModalProps {
   onSuccess: () => void;
 }
 
-const getPasswordStrength = (password: string): { score: number, feedback: string, color: string } => {
-  let score = 0;
-  let feedback = '';
-  let color = 'bg-slate-200';
-
-  if (!password) return { score: 0, feedback: '', color: 'bg-slate-200' };
-
-  if (password.length < 8) {
-    score = 1;
-    feedback = 'Muy corta';
-    color = 'bg-rose-500';
-  } else if (password.length < 12) {
-    score = 2;
-    feedback = 'Débil';
-    color = 'bg-orange-500';
-  } else {
-    score = 3;
-    feedback = 'Buena';
-    color = 'bg-emerald-500';
-  }
-
-  if (/[A-Z]/.test(password) && /[0-9]/.test(password) && /[^A-Za-z0-9]/.test(password) && password.length >= 12) {
-    score = 4;
-    feedback = 'Excelente';
-    color = 'bg-emerald-600';
-  }
-
-  return { score, feedback, color };
+// Validaciones individuales de requisitos
+const checkPasswordRequirements = (password: string, currentPassword: string) => {
+  return {
+    minLength: password.length >= 8,
+    maxLength: password.length <= 100,
+    hasUppercase: /[A-Z]/.test(password),
+    hasLowercase: /[a-z]/.test(password),
+    hasNumber: /\d/.test(password),
+    hasSpecial: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+    isDifferent: password !== currentPassword && password.length > 0,
+  };
 };
 
 export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClose, onSuccess }) => {
@@ -51,7 +34,10 @@ export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClos
   const { user } = useAuthCheck();
   const userId = user?.id || localStorage.getItem('userId');
   
-  const strength = getPasswordStrength(formData.passwordNueva);
+  // Verificar requisitos de la contraseña
+  const requirements = checkPasswordRequirements(formData.passwordNueva, formData.passwordActual);
+  const allRequirementsMet = Object.values(requirements).every(req => req);
+  const passwordsMatch = formData.passwordNueva === formData.passwordNuevaConfirmacion && formData.passwordNueva.length > 0;
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -75,8 +61,8 @@ export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClos
       return;
     }
 
-    if (strength.score < 2) {
-      setError('La contraseña es demasiado débil.');
+    if (!allRequirementsMet) {
+      setError('La contraseña no cumple con todos los requisitos.');
       setIsLoading(false);
       return;
     }
@@ -115,13 +101,15 @@ export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClos
         setError('No tienes permisos para realizar esta acción');
       } else if (err.message?.includes('404')) {
         setError('Usuario no encontrado');
+      } else if (err.message?.includes('diferente')) {
+        setError('La nueva contraseña debe ser diferente a la actual');
       } else {
         setError('Error de conexión. Intenta nuevamente.');
       }
     } finally {
       setIsLoading(false);
     }
-  }, [userId, formData, strength.score, onClose, onSuccess]);
+  }, [userId, formData, allRequirementsMet, onClose, onSuccess]);
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-[2vw]">
@@ -132,7 +120,7 @@ export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClos
       />
 
       {/* FLUID CONTAINER: Scale based on VP width/height */}
-      <div className="relative bg-white dark:bg-slate-900 rounded-[clamp(1rem,3vh,2rem)] shadow-2xl w-[90vw] md:w-[50vw] lg:w-[40vw] xl:w-[30vw] overflow-hidden animate-in zoom-in-95 duration-300 border dark:border-white/5">
+      <div className="relative bg-white dark:bg-slate-900 rounded-[clamp(1rem,3vh,2rem)] shadow-2xl w-[90vw] md:w-[50vw] lg:w-[40vw] xl:w-[35vw] overflow-hidden animate-in zoom-in-95 duration-300 border dark:border-white/5">
         
         {/* FLUID HEADER: Height based on VH */}
         <div className="absolute top-0 left-0 right-0 h-[15vh] bg-gradient-to-br from-indigo-600 to-purple-700 transition-all">
@@ -175,42 +163,101 @@ export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClos
             )}
 
             <div className="space-y-[2vh]">
-              {/* Inputs Fluidos */}
-              {['passwordActual', 'passwordNueva', 'passwordNuevaConfirmacion'].map((field, idx) => (
-                <div className="group" key={field}>
-                  <label className="block font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider mb-[0.8vh] ml-[0.5vh] text-[clamp(0.65rem,1.2vh,0.8rem)]">
-                    {field === 'passwordActual' ? 'Contraseña Actual' : field === 'passwordNueva' ? 'Nueva Contraseña' : 'Confirmar Contraseña'}
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="password"
-                      value={(formData as any)[field]}
-                      onChange={(e) => handleInputChange(field, e.target.value)}
-                      className="w-full px-[2vh] h-[6vh] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[1.5vh] text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium text-[clamp(0.85rem,1.8vh,1rem)]"
-                      placeholder="••••••••••••"
-                      required
-                    />
-                    {/* Iconos o indicadores */}
-                    {field === 'passwordNuevaConfirmacion' && formData.passwordNuevaConfirmacion && formData.passwordNueva === formData.passwordNuevaConfirmacion && (
-                       <div className="absolute inset-y-0 right-[2vh] flex items-center text-emerald-500 animate-in zoom-in">
-                          <svg className="w-[2.5vh] h-[2.5vh]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>
-                       </div>
-                    )}
-                  </div>
-                  {/* Strength Meter para passwordNueva */}
-                  {field === 'passwordNueva' && formData.passwordNueva && (
-                    <div className="flex items-center gap-[1vh] px-[0.5vh] mt-[0.5vh]">
-                      <div className="flex-1 h-[0.5vh] bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full ${strength.color} transition-all duration-300`} 
-                          style={{ width: `${(strength.score / 4) * 100}%` }}
-                        ></div>
-                      </div>
-                      <span className="font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-[clamp(0.6rem,1.1vh,0.75rem)]">{strength.feedback}</span>
+              {/* Contraseña Actual */}
+              <div className="group">
+                <label className="block font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider mb-[0.8vh] ml-[0.5vh] text-[clamp(0.65rem,1.2vh,0.8rem)]">
+                  Contraseña Actual
+                </label>
+                <input
+                  type="password"
+                  value={formData.passwordActual}
+                  onChange={(e) => handleInputChange('passwordActual', e.target.value)}
+                  className="w-full px-[2vh] h-[6vh] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[1.5vh] text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium text-[clamp(0.85rem,1.8vh,1rem)]"
+                  placeholder="••••••••••••"
+                  required
+                />
+              </div>
+
+              {/* Nueva Contraseña */}
+              <div className="group">
+                <label className="block font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider mb-[0.8vh] ml-[0.5vh] text-[clamp(0.65rem,1.2vh,0.8rem)]">
+                  Nueva Contraseña
+                </label>
+                <input
+                  type="password"
+                  value={formData.passwordNueva}
+                  onChange={(e) => handleInputChange('passwordNueva', e.target.value)}
+                  className="w-full px-[2vh] h-[6vh] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[1.5vh] text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium text-[clamp(0.85rem,1.8vh,1rem)]"
+                  placeholder="••••••••••••"
+                  required
+                />
+                
+                {/* Lista de Requisitos */}
+                <div className="mt-[1.5vh] bg-slate-50 dark:bg-slate-800/50 rounded-[1vh] p-[1.5vh] border border-slate-100 dark:border-slate-700/50">
+                  <p className="text-[clamp(0.65rem,1.2vh,0.8rem)] font-semibold text-slate-600 dark:text-slate-400 mb-[1vh]">
+                    La contraseña debe cumplir con:
+                  </p>
+                  <ul className="space-y-[0.5vh] text-[clamp(0.6rem,1.1vh,0.75rem)]">
+                    <li className={`flex items-center gap-[1vh] transition-colors ${requirements.minLength ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                      <span className="text-[clamp(0.7rem,1.3vh,0.9rem)]">{requirements.minLength ? '✓' : '○'}</span>
+                      <span>Mínimo 8 caracteres</span>
+                    </li>
+                    <li className={`flex items-center gap-[1vh] transition-colors ${requirements.maxLength ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                      <span className="text-[clamp(0.7rem,1.3vh,0.9rem)]">{requirements.maxLength ? '✓' : '○'}</span>
+                      <span>Máximo 100 caracteres</span>
+                    </li>
+                    <li className={`flex items-center gap-[1vh] transition-colors ${requirements.hasUppercase ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                      <span className="text-[clamp(0.7rem,1.3vh,0.9rem)]">{requirements.hasUppercase ? '✓' : '○'}</span>
+                      <span>Al menos una mayúscula (A-Z)</span>
+                    </li>
+                    <li className={`flex items-center gap-[1vh] transition-colors ${requirements.hasLowercase ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                      <span className="text-[clamp(0.7rem,1.3vh,0.9rem)]">{requirements.hasLowercase ? '✓' : '○'}</span>
+                      <span>Al menos una minúscula (a-z)</span>
+                    </li>
+                    <li className={`flex items-center gap-[1vh] transition-colors ${requirements.hasNumber ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                      <span className="text-[clamp(0.7rem,1.3vh,0.9rem)]">{requirements.hasNumber ? '✓' : '○'}</span>
+                      <span>Al menos un número (0-9)</span>
+                    </li>
+                    <li className={`flex items-center gap-[1vh] transition-colors ${requirements.hasSpecial ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                      <span className="text-[clamp(0.7rem,1.3vh,0.9rem)]">{requirements.hasSpecial ? '✓' : '○'}</span>
+                      <span>Al menos un carácter especial (!@#$...)</span>
+                    </li>
+                    <li className={`flex items-center gap-[1vh] transition-colors ${requirements.isDifferent ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                      <span className="text-[clamp(0.7rem,1.3vh,0.9rem)]">{requirements.isDifferent ? '✓' : '○'}</span>
+                      <span>Debe ser diferente a la contraseña actual</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Confirmar Contraseña */}
+              <div className="group">
+                <label className="block font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider mb-[0.8vh] ml-[0.5vh] text-[clamp(0.65rem,1.2vh,0.8rem)]">
+                  Confirmar Contraseña
+                </label>
+                <div className="relative">
+                  <input
+                    type="password"
+                    value={formData.passwordNuevaConfirmacion}
+                    onChange={(e) => handleInputChange('passwordNuevaConfirmacion', e.target.value)}
+                    className="w-full px-[2vh] h-[6vh] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[1.5vh] text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium text-[clamp(0.85rem,1.8vh,1rem)]"
+                    placeholder="••••••••••••"
+                    required
+                  />
+                  {formData.passwordNuevaConfirmacion && passwordsMatch && (
+                    <div className="absolute inset-y-0 right-[2vh] flex items-center text-emerald-500 animate-in zoom-in">
+                      <svg className="w-[2.5vh] h-[2.5vh]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/>
+                      </svg>
                     </div>
                   )}
                 </div>
-              ))}
+                {formData.passwordNuevaConfirmacion && !passwordsMatch && (
+                  <p className="mt-[0.5vh] text-[clamp(0.6rem,1.1vh,0.75rem)] text-rose-500 dark:text-rose-400">
+                    Las contraseñas no coinciden
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="pt-[2vh] flex gap-[2vh]">
@@ -223,7 +270,7 @@ export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClos
               </button>
               <button
                 type="submit"
-                disabled={isLoading || strength.score < 2 || formData.passwordNueva !== formData.passwordNuevaConfirmacion}
+                disabled={isLoading || !allRequirementsMet || !passwordsMatch || !formData.passwordActual}
                 className="flex-[2] h-[6.5vh] bg-indigo-600 text-white rounded-[1.5vh] hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold uppercase tracking-wide shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:-translate-y-0.5 text-[clamp(0.7rem,1.4vh,0.9rem)]"
               >
                 {isLoading ? (
@@ -235,7 +282,7 @@ export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClos
                     Procesando
                   </span>
                 ) : (
-                  'Actualizar'
+                  'Actualizar Contraseña'
                 )}
               </button>
             </div>

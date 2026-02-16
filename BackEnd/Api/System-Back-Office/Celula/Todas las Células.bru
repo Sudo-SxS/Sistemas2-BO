@@ -1,0 +1,21 @@
+meta {
+  name: Todas las Células
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:8000/celulas?page=1&limit=10
+  body: none
+  auth: bearer
+}
+
+params:query {
+  page: 1
+  limit: 10
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

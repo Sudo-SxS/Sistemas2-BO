@@ -1,47 +1,8 @@
-import React, { useState, useEffect } from 'react';
-
-export interface Toast {
-  id: string;
-  title: string;
-  message: string;
-  type: 'success' | 'info' | 'warning' | 'error';
-  timestamp: Date;
-}
+import React from 'react';
+import { useToast } from '../contexts/ToastContext';
 
 export const ToastContainer: React.FC = () => {
-  const [toasts, setToasts] = useState<Toast[]>([]);
-
-  // Simulation of real-time updates for back-office
-  useEffect(() => {
-    const simulateUpdate = () => {
-      const types: Toast['type'][] = ['success', 'info', 'warning'];
-      const messages = [
-        { title: '📦 Logística', text: 'Pedido V-11024 ha sido despachado.' },
-        { title: '🔑 PIN Activado', text: 'Portabilidad exitosa para el DNI 8821.' },
-        { title: '🚨 Alerta', text: 'Nueva venta rechazada en auditoría.' }
-      ];
-      
-      const randomMsg = messages[Math.floor(Math.random() * messages.length)];
-      
-      const newToast: Toast = {
-        id: Math.random().toString(36).substr(2, 9),
-        title: randomMsg.title,
-        message: randomMsg.text,
-        type: types[Math.floor(Math.random() * types.length)],
-        timestamp: new Date()
-      };
-
-      setToasts(prev => [newToast, ...prev].slice(0, 3));
-      
-      // Remove automatically after 5s
-      setTimeout(() => {
-        setToasts(prev => prev.filter(t => t.id !== newToast.id));
-      }, 5000);
-    };
-
-    const interval = setInterval(simulateUpdate, 15000); // Evitar spam, cada 15s
-    return () => clearInterval(interval);
-  }, []);
+  const { toasts, removeToast } = useToast();
 
   return (
     <div className="fixed top-[12vh] right-[2vw] z-[1000] flex flex-col gap-[1.5vh] max-w-[400px]">
@@ -53,10 +14,13 @@ export const ToastContainer: React.FC = () => {
           <div className="flex items-start gap-[1.5vh] relative z-10">
             <div className={`w-[5vh] h-[5vh] rounded-[1.5vh] flex items-center justify-center shrink-0 ${
               toast.type === 'success' ? 'bg-emerald-500/20 text-emerald-600' :
+              toast.type === 'error' ? 'bg-red-500/20 text-red-600' :
               toast.type === 'warning' ? 'bg-amber-500/20 text-amber-600' :
               'bg-indigo-500/20 text-indigo-600'
             }`}>
-              {toast.type === 'success' ? '✅' : toast.type === 'warning' ? '⚠️' : '🔔'}
+              {toast.type === 'success' ? '✅' : 
+               toast.type === 'error' ? '❌' : 
+               toast.type === 'warning' ? '⚠️' : '🔔'}
             </div>
             <div>
               <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-tight text-[clamp(0.8rem,1.4vh,1.8rem)]">{toast.title}</h4>
@@ -65,7 +29,7 @@ export const ToastContainer: React.FC = () => {
           </div>
           
           <button 
-            onClick={() => setToasts(prev => prev.filter(t => t.id !== toast.id))}
+            onClick={() => removeToast(toast.id)}
             className="absolute top-[1.5vh] right-[1.5vh] text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
           >
             <svg className="w-[2vh] h-[2vh]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path></svg>

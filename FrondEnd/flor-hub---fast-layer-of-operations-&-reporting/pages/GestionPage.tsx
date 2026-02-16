@@ -42,7 +42,7 @@ export const GestionPage: React.FC<GestionPageProps> = ({
 
   // Altura base de SaleCard (12vh)
   const ITEM_HEIGHT = window.innerHeight * 0.12;
-  const GAP = window.innerHeight * 0.008;
+  const GAP = window.innerHeight * 0.015;
 
   return (
     <div className="animate-in fade-in duration-700 pb-[10vh]">

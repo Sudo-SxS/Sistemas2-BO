@@ -15,6 +15,7 @@ export const PlanSchema = z.object({
   empresa_origen_id: z.number().int().positive(),
   fecha_duracion: z.coerce.date().nullable().optional(),
   promocion_id: z.number().int().positive().nullable().optional(),
+  activo: z.boolean().default(true),
 });
 
 export const PlanCreateSchema = PlanSchema.omit({

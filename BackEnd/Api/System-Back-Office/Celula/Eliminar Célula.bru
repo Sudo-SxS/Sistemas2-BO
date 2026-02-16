@@ -1,0 +1,16 @@
+meta {
+  name: Eliminar Célula
+  type: http
+  seq: 6
+}
+
+delete {
+  url: http://localhost:8000/celulas/100
+  body: none
+  auth: bearer
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

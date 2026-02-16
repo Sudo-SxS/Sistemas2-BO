@@ -1,0 +1,23 @@
+meta {
+  name: Actualizar Célula
+  type: http
+  seq: 5
+}
+
+put {
+  url: http://localhost:8000/celulas/100
+  body: json
+  auth: bearer
+}
+
+body:json {
+  {
+    "nombre": "Célula Test Actualizada",
+    "tipo_cuenta": "POSPAGO"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

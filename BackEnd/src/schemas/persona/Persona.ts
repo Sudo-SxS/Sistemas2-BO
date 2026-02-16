@@ -9,9 +9,10 @@ export const PersonaSchema = z.object({
   email: z.string().email().max(255).transform(val => val.toLowerCase()),
   creado_en: z.coerce.date().default(() => new Date()),
   telefono: z.string().max(20).nullable().optional(),
+  telefono_alternativo: z.string().max(20).nullable().optional(),
   tipo_documento: z.string().max(45).transform(val => val.toUpperCase()),
   nacionalidad: z.string().max(45).transform(val => val.toUpperCase()),
-  genero: z.string().transform(val => val.toUpperCase()).pipe(z.enum(["MASCULINO", "FEMENINO", "OTRO", "PREFERO NO DECIR"])),
+  genero: z.string().transform(val => val.toUpperCase()).pipe(z.enum(["MASCULINO", "FEMENINO", "OTRO", "PREFIERO NO DECIR"])),
 });
 
 export const PersonaCreateSchema = PersonaSchema.omit({

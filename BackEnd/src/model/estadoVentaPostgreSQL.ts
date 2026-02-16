@@ -13,6 +13,23 @@ import {
 import { PostgresClient } from "../database/PostgreSQL.ts";
 import { logger } from "../Utils/logger.ts";
 
+function convertBigIntToNumber(obj: any): any {
+  if (typeof obj === 'bigint') {
+    return Number(obj);
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(convertBigIntToNumber);
+  }
+  if (obj !== null && typeof obj === 'object') {
+    const converted: any = {};
+    for (const key in obj) {
+      converted[key] = convertBigIntToNumber(obj[key]);
+    }
+    return converted;
+  }
+  return obj;
+}
+
 export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
   connection: PostgresClient;
 
@@ -26,7 +43,7 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
   private logSuccess(message: string, details?: any): void {
     const isDev = Deno.env.get("MODO") === "development";
     if (isDev) {
-      logger.info(`${message} ${details ? JSON.stringify(details) : ""}`);
+      logger.info(`${message} ${details ? JSON.stringify(convertBigIntToNumber(details)) : ""}`);
     } else {
       logger.info(message);
     }
@@ -35,7 +52,7 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
   private logWarning(message: string, details?: any): void {
     const isDev = Deno.env.get("MODO") === "development";
     if (isDev) {
-      logger.warn(`${message} ${details ? JSON.stringify(details) : ""}`);
+      logger.warn(`${message} ${details ? JSON.stringify(convertBigIntToNumber(details)) : ""}`);
     } else {
       logger.warn(message);
     }
@@ -44,7 +61,7 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
   private logError(message: string, error?: any): void {
     const isDev = Deno.env.get("MODO") === "development";
     if (isDev) {
-      logger.error(`${message} ${error ? JSON.stringify(error) : ""}`);
+      logger.error(`${message} ${error ? JSON.stringify(convertBigIntToNumber(error)) : ""}`);
     } else {
       logger.error(message);
     }

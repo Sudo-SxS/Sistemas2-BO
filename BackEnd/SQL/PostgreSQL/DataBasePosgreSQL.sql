@@ -78,7 +78,7 @@ CREATE TABLE public.estado (
   CONSTRAINT fk_estado_venta FOREIGN KEY (venta_id) REFERENCES public.venta(venta_id)
 );
 CREATE TABLE public.estado_correo (
-  estado_correo_id bigint NOT NULL,
+  estado_correo_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   sap_id character varying NOT NULL,
   estado character varying NOT NULL,
   descripcion character varying,
@@ -150,6 +150,7 @@ CREATE TABLE public.persona (
   email character varying NOT NULL,
   telefono character varying,
   creado_en timestamp without time zone DEFAULT now(),
+  telefono_alternativo character varying,
   CONSTRAINT persona_pkey PRIMARY KEY (persona_id)
 );
 CREATE TABLE public.plan (
@@ -162,10 +163,11 @@ CREATE TABLE public.plan (
   roaming character varying NOT NULL,
   beneficios character varying,
   precio integer NOT NULL,
-  fecha_creacion timestamp without time zone DEFAULT now(),
+  fecha_creacion timestamp without time zone NOT NULL DEFAULT now(),
   empresa_origen_id integer NOT NULL,
   fecha_duracion date,
   promocion_id integer,
+  activo boolean NOT NULL DEFAULT true,
   CONSTRAINT plan_pkey PRIMARY KEY (plan_id),
   CONSTRAINT fk_plan_empresa_origen FOREIGN KEY (empresa_origen_id) REFERENCES public.empresa_origen(empresa_origen_id),
   CONSTRAINT plan_promocion_id_fkey FOREIGN KEY (promocion_id) REFERENCES public.promocion(promocion_id)
@@ -178,6 +180,7 @@ CREATE TABLE public.portabilidad (
   numero_portar character varying NOT NULL,
   pin character varying,
   fecha_portacion timestamp without time zone,
+  fecha_vencimiento_pin date,
   CONSTRAINT portabilidad_pkey PRIMARY KEY (venta_id),
   CONSTRAINT fk_portabilidad_venta FOREIGN KEY (venta_id) REFERENCES public.venta(venta_id)
 );
@@ -188,7 +191,8 @@ CREATE TABLE public.promocion (
   fecha_creacion timestamp without time zone NOT NULL DEFAULT now(),
   empresa_origen_id integer NOT NULL,
   fecha_terminacion date,
-  descuento integer DEFAULT 0,
+  descuento integer NOT NULL DEFAULT 0,
+  activo boolean NOT NULL DEFAULT true,
   CONSTRAINT promocion_pkey PRIMARY KEY (promocion_id),
   CONSTRAINT fk_promocion_empresa_origen FOREIGN KEY (empresa_origen_id) REFERENCES public.empresa_origen(empresa_origen_id)
 );
@@ -216,8 +220,8 @@ CREATE TABLE public.vendedor (
   CONSTRAINT fk_vendedor_usuario FOREIGN KEY (usuario_id) REFERENCES public.usuario(persona_id)
 );
 CREATE TABLE public.venta (
-  venta_id bigint NOT NULL,
-  sds character varying NOT NULL,
+  venta_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  sds character varying,
   chip text DEFAULT 'SIM'::text CHECK (chip = ANY (ARRAY['SIM'::text, 'ESIM'::text])),
   stl character varying,
   tipo_venta text NOT NULL CHECK (tipo_venta = ANY (ARRAY['PORTABILIDAD'::text, 'LINEA_NUEVA'::text])),
@@ -226,7 +230,7 @@ CREATE TABLE public.venta (
   vendedor_id uuid NOT NULL,
   multiple integer DEFAULT 0,
   plan_id integer NOT NULL,
-  promocion_id integer NOT NULL,
+  promocion_id integer,
   fecha_creacion timestamp without time zone DEFAULT now(),
   empresa_origen_id integer NOT NULL,
   CONSTRAINT venta_pkey PRIMARY KEY (venta_id),

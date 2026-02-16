@@ -4,6 +4,8 @@ import { Sale, ProductType, OriginMarket } from '../types';
 import { clienteService, ClienteCreate, ClienteResponse } from '../services/cliente';
 import { getPlanesPorEmpresa, getPromocionesPorEmpresa, getEmpresasOrigen, getAllPlanes, getAllPromociones, PlanResponse, PromocionResponse, EmpresaOrigenResponse } from '../services/plan';
 import { verificarSAP, crearCorreo, CorreoCreate } from '../services/correo';
+import { createVenta } from '../services/ventas';
+import { useToast } from '../contexts/ToastContext';
 
 // Schema de validación por fase
 const Fase1Schema = z.object({
@@ -13,6 +15,7 @@ const Fase1Schema = z.object({
   apellido: z.string().optional(),
   email: z.string().email().optional(),
   telefono: z.string().optional(),
+  telefono_alternativo: z.string().optional(),
   fecha_nacimiento: z.string().optional(),
   genero: z.string().optional(),
   nacionalidad: z.string().optional(),
@@ -24,17 +27,31 @@ const Fase2Schema = z.object({
   plan_id: z.number().positive('Seleccione un plan'),
   promocion_id: z.number().optional(),
   chip: z.enum(['SIM', 'ESIM']),
+  sds: z.string().optional(),
+  stl: z.string().optional(),
+  // Campos de portabilidad
+  spn: z.string().optional(),
+  numero_portar: z.string().optional(),
+  pin: z.string().optional(),
+  fecha_vencimiento_pin: z.string().optional(),
+  mercado_origen: z.enum(['PREPAGO', 'POSPAGO']).optional(),
 });
 
 const Fase3Schema = z.object({
-  sap_id: z.string().min(1, 'SAP requerido'),
+  sap_id: z.string().optional(),
   numero: z.string().min(8, 'Teléfono inválido'),
   tipo: z.enum(['RESIDENCIAL', 'EMPRESARIAL']).optional(),
   direccion: z.string().optional(),
+  numero_casa: z.string().optional(),
+  entre_calles: z.string().optional(),
+  barrio: z.string().optional(),
   localidad: z.string().optional(),
+  departamento: z.string().optional(),
   provincia: z.string().optional(),
   codigo_postal: z.string().optional(),
+  geolocalizacion: z.string().optional(),
   estado_entrega: z.string().optional(),
+  telefono_alternativo: z.string().optional(),
 });
 
 type Fase1Data = z.infer<typeof Fase1Schema>;
@@ -44,12 +61,14 @@ type Fase3Data = z.infer<typeof Fase3Schema>;
 interface SaleFormModalProps {
   onClose: () => void;
   onSubmit: (sale: Partial<Sale>) => void;
+  onVentaCreada?: () => void;
   initialData?: Partial<Sale>;
 }
 
 type Fase = 1 | 2 | 3;
 
-export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit, initialData }) => {
+export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit, onVentaCreada, initialData }) => {
+  const { addToast } = useToast();
   const [fase, setFase] = useState<Fase>(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +81,7 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
     apellido: '',
     email: '',
     telefono: '',
+    telefono_alternativo: '',
     fecha_nacimiento: '',
     genero: '',
     nacionalidad: '',
@@ -74,6 +94,13 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
     plan_id: initialData?.plan_id || 0,
     promocion_id: initialData?.promocion_id || undefined,
     chip: 'SIM',
+    sds: '',
+    stl: '',
+    spn: '',
+    numero_portar: '',
+    pin: '',
+    fecha_vencimiento_pin: '',
+    mercado_origen: undefined,
   });
 
   // Datos de fase 3 - Correo (solo si chip = SIM)
@@ -82,10 +109,16 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
     numero: '',
     tipo: 'RESIDENCIAL',
     direccion: '',
+    numero_casa: '',
+    entre_calles: '',
+    barrio: '',
     localidad: '',
+    departamento: '',
     provincia: '',
     codigo_postal: '',
+    geolocalizacion: '',
     estado_entrega: '',
+    telefono_alternativo: '',
   });
 
   // Datos cargados del backend
@@ -107,7 +140,6 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
     setIsLoading(true);
     
     if (fase2.tipo_venta === 'LINEA_NUEVA') {
-      // LINEA_NUEVA: cargar todos los planes y promociones disponibles
       getAllPlanes().then(res => {
         if (res.success && res.data) {
           const sortedPlanes = res.data.sort((a, b) => a.precio - b.precio);
@@ -123,7 +155,6 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
         }
       });
     } else if (fase2.tipo_venta === 'PORTABILIDAD' && fase2.empresa_origen_id > 0) {
-      // PORTABILIDAD: cargar planes y promociones de la empresa seleccionada
       getPlanesPorEmpresa(fase2.empresa_origen_id).then(res => {
         if (res.success && res.data) {
           const sortedPlanes = res.data.sort((a, b) => a.precio - b.precio);
@@ -139,7 +170,6 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
         }
       });
     } else {
-      // Limpiar si no hay empresa seleccionada en portabilidad
       setPlanes([]);
       setPromociones([]);
       setIsLoading(false);
@@ -185,8 +215,9 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
       tipo_documento: fase1.tipo_documento,
       email: fase1.email!.toLowerCase(),
       telefono: fase1.telefono,
+      telefono_alternativo: fase1.telefono_alternativo,
       fecha_nacimiento: fase1.fecha_nacimiento!,
-      genero: fase1.genero as 'MASCULINO' | 'FEMENINO' | 'OTRO' | 'PREFERO NO DECIR',
+      genero: fase1.genero as 'MASCULINO' | 'FEMENINO' | 'OTRO' | 'PREFIERO NO DECIR',
       nacionalidad: fase1.nacionalidad!.toUpperCase(),
     };
 
@@ -196,8 +227,18 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
     if (res.success && res.data) {
       setClienteEncontrado(res.data);
       setError(null);
+      addToast({
+        type: 'success',
+        title: 'Cliente Creado',
+        message: `${res.data.nombre} ${res.data.apellido} ha sido registrado exitosamente.`
+      });
     } else {
       setError(res.message || 'Error al crear cliente');
+      addToast({
+        type: 'error',
+        title: 'Error',
+        message: res.message || 'No se pudo crear el cliente.'
+      });
     }
     setIsLoading(false);
   };
@@ -217,19 +258,44 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
     setIsLoading(false);
   };
 
-  // Navegación entre fases
+  // Validación para crear cliente (cuando NO existe)
+  const puedeCrearCliente = () => {
+    return !clienteEncontrado && 
+           fase1.nombre && 
+           fase1.apellido && 
+           fase1.email && 
+           fase1.documento &&
+           fase1.tipo_documento &&
+           fase1.fecha_nacimiento && 
+           fase1.genero && 
+           fase1.nacionalidad;
+  };
+
+  // Validación para pasar a fase 2 (cuando existe cliente)
   const puedePasarFase1 = () => {
-    return !!clienteEncontrado && fase1.nombre && fase1.apellido && fase1.email;
+    return !!clienteEncontrado;
   };
 
   const puedePasarFase2 = () => {
-    if (fase2.tipo_venta === 'PORTABILIDAD' && fase2.empresa_origen_id === 0) return false;
-    return fase2.plan_id > 0;
+    // Plan es obligatorio siempre
+    if (fase2.plan_id === 0) return false;
+    
+    // Para PORTABILIDAD: validar campos adicionales
+    if (fase2.tipo_venta === 'PORTABILIDAD') {
+      if (fase2.empresa_origen_id === 0) return false;
+      if (!fase2.spn) return false;
+      if (!fase2.numero_portar) return false;
+      if (!fase2.mercado_origen) return false;
+    }
+    
+    return true;
   };
 
   const puedePasarFase3 = () => {
     if (fase2.chip === 'ESIM') return true;
-    return sapVerificado && fase3.numero;
+    // SAP es opcional para SIM, pero si se ingresa debe estar verificado
+    if (fase3.sap_id && !sapVerificado) return false;
+    return fase3.numero && fase3.numero.length >= 8;
   };
 
   // Enviar formulario
@@ -239,58 +305,105 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
       return;
     }
 
+    setIsLoading(true);
+
     const empresa = empresas.find(e => e.empresa_origen_id === fase2.empresa_origen_id);
     const plan = planes.find(p => p.plan_id === fase2.plan_id);
     const promocion = promociones.find(p => p.promocion_id === fase2.promocion_id);
     
-    // Para LINEA_NUEVA, si no hay empresa seleccionada, usar la primera disponible
     const empresaParaVenta = fase2.tipo_venta === 'LINEA_NUEVA' && empresas.length > 0 
       ? empresas[0] 
       : empresa;
 
-    // Calcular precio con descuento
-    // const descuentoNum = promocion?.descuento ? parseFloat(promocion.descuento) : 0;
-    // const precioFinal = plan ? plan.precio - descuentoNum : 0;
-    const precioFinal = plan ? plan.precio : 0;
+    const descuentoNum = promocion?.descuento || 0;
+    const precioBase = plan ? plan.precio : 0;
+    const precioFinal = descuentoNum > 0 
+      ? Math.round(precioBase * (1 - descuentoNum / 100))
+      : precioBase;
 
-    const saleData: Partial<Sale> = {
-      customerName: `${fase1.nombre} ${fase1.apellido}`.trim(),
-      dni: fase1.documento,
-      phoneNumber: fase1.telefono,
-      productType: fase2.tipo_venta as ProductType,
-      originMarket: empresaParaVenta?.nombre_empresa as OriginMarket,
-      plan: plan?.nombre || '',
-      promotion: promocion ? `${promocion.nombre} (${promocion.descuento ? `-$${promocion.descuento}` : ''})` : '',
-      amount: precioFinal,
-      chip: fase2.chip,
-      sds: fase2.chip === 'ESIM' ? null : fase3.sap_id.toUpperCase(),
-      plan_id: fase2.plan_id,
-      promocion_id: fase2.promocion_id,
-      empresa_origen_id: empresaParaVenta?.empresa_origen_id,
+    // Preparar payload para el backend
+    const ventaPayload: any = {
+      venta: {
+        sds: fase2.sds?.toUpperCase() || null,
+        chip: fase2.chip,
+        stl: fase2.chip === 'ESIM' ? null : (fase2.stl?.toUpperCase() || null),
+        tipo_venta: fase2.tipo_venta,
+        sap: null, // Se llena automático desde backend si se crea correo
+        cliente_id: clienteEncontrado.persona_id,
+        plan_id: fase2.plan_id,
+        promocion_id: fase2.promocion_id || null,
+        empresa_origen_id: empresaParaVenta?.empresa_origen_id || 0,
+      }
     };
 
-    // Crear correo si es SIM
-    if (fase2.chip === 'SIM' && sapVerificado) {
-      const correoData: CorreoCreate = {
-        sap_id: fase3.sap_id.toUpperCase(),
-        numero: fase3.numero,
-        tipo: fase3.tipo || 'RESIDENCIAL',
-        direccion: fase3.direccion,
-        localidad: fase3.localidad,
-        provincia: fase3.provincia,
-        codigo_postal: fase3.codigo_postal,
-        estado_entrega: fase3.estado_entrega,
+    // Agregar correo solo si es SIM
+    if (fase2.chip === 'SIM') {
+      ventaPayload.correo = {
+        sap_id: fase3.sap_id?.toUpperCase() || '',
+        telefono_contacto: fase3.numero,
+        telefono_alternativo: fase3.telefono_alternativo || null,
+        destinatario: `${fase1.nombre} ${fase1.apellido}`,
+        persona_autorizada: null,
+        direccion: fase3.direccion || '',
+        numero_casa: fase3.numero_casa ? Number(fase3.numero_casa) : 0,
+        entre_calles: fase3.entre_calles || null,
+        barrio: fase3.barrio || null,
+        localidad: fase3.localidad || null,
+        departamento: fase3.departamento || null,
+        codigo_postal: fase3.codigo_postal ? Number(fase3.codigo_postal) : null,
+        geolocalizacion: fase3.geolocalizacion || null,
+        estado_entrega: fase3.estado_entrega || null,
       };
-      await crearCorreo(correoData);
     }
 
-    onSubmit(saleData);
+    // Agregar portabilidad solo si es PORTABILIDAD
+    if (fase2.tipo_venta === 'PORTABILIDAD') {
+      ventaPayload.portabilidad = {
+        spn: fase2.spn?.toUpperCase() || '',
+        empresa_origen: empresaParaVenta?.empresa_origen_id || 0,
+        mercado_origen: fase2.mercado_origen || '',
+        numero_porta: fase2.numero_portar || '',
+        pin: fase2.pin?.toUpperCase() || null,
+        fecha_vencimiento_pin: fase2.fecha_vencimiento_pin || null,
+      };
+    }
+
+    try {
+      // Llamar al endpoint de crear venta
+      const response = await createVenta(ventaPayload);
+      
+      if (response) {
+        // Éxito
+        addToast({
+          type: 'success',
+          title: 'Venta Creada Exitosamente',
+          message: `Venta ${response.venta_id || ''} registrada correctamente.`
+        });
+
+        // Refrescar lista de ventas
+        if (onVentaCreada) {
+          onVentaCreada();
+        }
+
+        // Cerrar modal
+        onClose();
+      }
+    } catch (error: any) {
+      console.error('Error al crear venta:', error);
+      addToast({
+        type: 'error',
+        title: 'Error al Crear Venta',
+        message: error.message || 'Ocurrió un error al registrar la venta.'
+      });
+      setError(error.message || 'Error al crear venta');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Clases UI reutilizables
   const inputClass = "w-full border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 font-bold outline-none focus:ring-4 focus:ring-indigo-50 dark:focus:ring-indigo-900/30 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm";
   const labelClass = "block font-black text-slate-500 dark:text-slate-400 uppercase text-xs mb-1 ml-1";
-  const errorClass = "text-red-500 text-xs font-bold ml-1";
   const sectionTitleClass = "font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-xs border-b border-slate-200 dark:border-slate-800 pb-2 mb-4";
 
   return (
@@ -325,9 +438,9 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
                   : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
               }`}
             >
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full mr-2 text-xs ${
+              <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full mr-2 text-xs ${
                 fase > tab.n ? 'bg-green-500 text-white' : fase === tab.n ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
-              }">
+              }`}>
                 {fase > tab.n ? '✓' : tab.n}
               </span>
               {tab.t}
@@ -357,10 +470,8 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
                     className={inputClass}
                   >
                     <option value="DNI">DNI</option>
-                    <option value="NIE">NIE</option>
-                    <option value="PASAPORTE">Pasaporte</option>
                     <option value="CUIL">CUIL</option>
-                    <option value="CUIT">CUIT</option>
+                    <option value="PASAPORTE">Pasaporte</option>
                   </select>
                 </div>
                 <div className="col-span-2">
@@ -435,6 +546,16 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
                       />
                     </div>
                     <div>
+                      <label className={labelClass}>Teléfono Alternativo</label>
+                      <input
+                        type="tel"
+                        value={fase1.telefono_alternativo}
+                        onChange={e => setFase1(prev => ({ ...prev, telefono_alternativo: e.target.value }))}
+                        className={inputClass}
+                        placeholder="3517654321"
+                      />
+                    </div>
+                    <div>
                       <label className={labelClass}>Fecha Nacimiento *</label>
                       <input
                         type="date"
@@ -470,7 +591,7 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
                   </div>
                   <button
                     onClick={handleCrearCliente}
-                    disabled={!puedePasarFase1() || isLoading}
+                    disabled={!puedeCrearCliente() || isLoading}
                     className="mt-4 w-full bg-green-600 hover:bg-green-700 disabled:bg-slate-300 text-white font-bold py-3 rounded-xl transition-all"
                   >
                     {isLoading ? 'Creando...' : 'Crear Cliente'}
@@ -487,7 +608,16 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
               <div className="grid grid-cols-2 gap-4">
                 <button
                   onClick={() => {
-                    setFase2(prev => ({ ...prev, tipo_venta: 'LINEA_NUEVA', empresa_origen_id: 0 }));
+                    setFase2(prev => ({ 
+                      ...prev, 
+                      tipo_venta: 'LINEA_NUEVA', 
+                      empresa_origen_id: 0,
+                      spn: '',
+                      numero_portar: '',
+                      pin: '',
+                      fecha_vencimiento_pin: '',
+                      mercado_origen: undefined,
+                    }));
                     setPlanes([]);
                     setPromociones([]);
                   }}
@@ -501,7 +631,11 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
                   <div className="text-xs text-slate-500 mt-1">Activación de línea nueva</div>
                 </button>
                 <button
-                  onClick={() => setFase2(prev => ({ ...prev, tipo_venta: 'PORTABILIDAD' }))}
+                  onClick={() => setFase2(prev => ({ 
+                    ...prev, 
+                    tipo_venta: 'PORTABILIDAD',
+                    empresa_origen_id: 0,
+                  }))}
                   className={`p-4 rounded-xl border-2 transition-all ${
                     fase2.tipo_venta === 'PORTABILIDAD'
                       ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30'
@@ -511,6 +645,32 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
                   <div className="font-black text-lg text-slate-900 dark:text-white">🔄 Portabilidad</div>
                   <div className="text-xs text-slate-500 mt-1">Trae tu número a Claro</div>
                 </button>
+              </div>
+
+              {/* Campos SDS y STL */}
+              <div className={sectionTitleClass}>Datos de Venta</div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelClass}>SDS</label>
+                  <input
+                    type="text"
+                    value={fase2.sds}
+                    onChange={e => setFase2(prev => ({ ...prev, sds: e.target.value }))}
+                    className={`${inputClass} uppercase`}
+                    placeholder="SDS001"
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>STL {fase2.chip === 'ESIM' && <span className="text-amber-500 text-xs">(No aplica para eSIM)</span>}</label>
+                  <input
+                    type="text"
+                    value={fase2.stl}
+                    onChange={e => setFase2(prev => ({ ...prev, stl: e.target.value }))}
+                    className={`${inputClass} uppercase ${fase2.chip === 'ESIM' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    placeholder="STL001"
+                    disabled={fase2.chip === 'ESIM'}
+                  />
+                </div>
               </div>
 
               <div className={sectionTitleClass}>Empresa y Plan</div>
@@ -532,7 +692,7 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
                     className={inputClass}
                   >
                     <option value="">Seleccionar empresa...</option>
-                    {empresas.map(e => (
+                    {empresas.filter(e => e.empresa_origen_id !== 2).map(e => (
                       <option key={e.empresa_origen_id} value={e.empresa_origen_id}>
                         {e.nombre_empresa} ({e.pais})
                       </option>
@@ -584,79 +744,125 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
 
               {/* Resumen del Plan Seleccionado */}
               {fase2.plan_id > 0 && (
-                <div>
-                  <label className={labelClass}>Resumen del Plan</label>
-                  <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 text-sm space-y-1">
-                    {(() => {
-                      const selectedPlan = planes.find(p => p.plan_id === fase2.plan_id);
-                      const selectedPromo = promociones.find(p => p.promocion_id === fase2.promocion_id);
-                      
-                      // Calcular descuento (puede ser porcentaje o monto fijo)
-                      const descuentoNum = selectedPromo?.descuento ? Number(selectedPromo.descuento) : 0;
-                      const precioBase = selectedPlan ? selectedPlan.precio : 0;
-                      let precioConDescuento = precioBase;
-                      
-                      // Si el descuento es porcentaje (menor a 100), aplicar como porcentaje
-                      if (descuentoNum > 0 && descuentoNum <= 100) {
-                        precioConDescuento = precioBase - (precioBase * descuentoNum / 100);
-                      } else if (descuentoNum > 100) {
-                        // Si es mayor a 100, es un monto fijo
-                        precioConDescuento = precioBase - descuentoNum;
-                      }
-                      
-                      if (!selectedPlan) {
-                        return <div className="text-slate-500">Seleccionar un plan</div>;
-                      }
-                      
-                      return (
-                        <>
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Plan:</span>
-                            <span className="font-bold">{selectedPlan.nombre}</span>
-                          </div>
-                          {selectedPromo && (
-                            <div className="flex justify-between">
-                              <span className="text-slate-600">Promoción:</span>
-                              <span className="font-bold text-green-600">{selectedPromo.nombre}</span>
-                            </div>
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+                  {(() => {
+                    const selectedPlan = planes.find(p => p.plan_id === fase2.plan_id);
+                    const selectedPromo = promociones.find(p => p.promocion_id === fase2.promocion_id);
+                    
+                    if (!selectedPlan) return null;
+                    
+                    const precioBase = selectedPlan.precio;
+                    const descuento = selectedPromo?.descuento || 0;
+                    const precioFinal = descuento > 0 
+                      ? Math.round(precioBase * (1 - descuento / 100))
+                      : precioBase;
+                    
+                    // Concatenar beneficios
+                    const beneficiosPlan = selectedPlan.beneficios || '';
+                    const beneficiosPromo = selectedPromo?.beneficios || '';
+                    const todosBeneficios = [beneficiosPlan, beneficiosPromo].filter(b => b).join(' • ');
+                    
+                    return (
+                      <>
+                        <div className="font-black text-slate-700 dark:text-slate-200 text-lg mb-3">
+                          {selectedPlan.nombre}
+                        </div>
+                        
+                        <div className="flex items-center gap-3 mb-3">
+                          {descuento > 0 ? (
+                            <>
+                              <span className="text-slate-400 line-through font-bold text-lg">
+                                ${precioBase.toLocaleString('es-AR')}
+                              </span>
+                              <span className="text-green-600 font-black text-2xl">
+                                ${precioFinal.toLocaleString('es-AR')}
+                              </span>
+                              <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                                -{descuento}% OFF
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-slate-900 dark:text-white font-black text-2xl">
+                              ${precioBase.toLocaleString('es-AR')}
+                            </span>
                           )}
-                          <div className="flex justify-between items-center">
-                            <span className="text-slate-600">Precio:</span>
-                            {selectedPromo && descuentoNum > 0 ? (
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-slate-400 line-through">${precioBase.toLocaleString('es-AR')}</span>
-                                <span className="font-bold text-green-600">${precioConDescuento.toLocaleString('es-AR')}</span>
-                              </div>
-                            ) : (
-                              <span className="font-bold">${precioBase.toLocaleString('es-AR')}</span>
-                            )}
+                        </div>
+                        
+                        <div className="flex gap-4 text-sm text-slate-600 dark:text-slate-300 mb-3">
+                          <span>📊 {selectedPlan.gigabyte} GB</span>
+                          <span>📞 {selectedPlan.llamadas}</span>
+                          <span>💬 {selectedPlan.mensajes}</span>
+                        </div>
+                        
+                        {todosBeneficios && (
+                          <div className="text-sm text-slate-500 dark:text-slate-400">
+                            <span className="font-bold">🎁 Beneficios:</span> {todosBeneficios}
                           </div>
-                          <div className="mt-2 text-xs space-y-1">
-                            <div className="flex justify-between">
-                              <span className="text-slate-500">Gigas:</span>
-                              <span>{selectedPlan.gigabyte} GB</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-slate-500">Llamadas:</span>
-                              <span>{selectedPlan.llamadas}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-slate-500">Mensajes:</span>
-                              <span>{selectedPlan.mensajes}</span>
-                            </div>
-                            {(selectedPlan.whatsapp || selectedPlan.roaming || selectedPlan.beneficios) && (
-                              <div className="mt-1 text-slate-500">
-                                {selectedPlan.whatsapp && <span>✓ WhatsApp {selectedPlan.whatsapp === 'Ilimitado' ? 'Ilimitado' : selectedPlan.whatsapp}</span>}
-                                {selectedPlan.roaming && <span>✓ Roaming {selectedPlan.roaming}</span>}
-                                {selectedPlan.beneficios && <span>✓ {selectedPlan.beneficios}</span>}
-                              </div>
-                            )}
-                          </div>
-                        </>
-                      );
-                    })()}
-                  </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
+              )}
+
+              {/* Campos de Portabilidad */}
+              {fase2.tipo_venta === 'PORTABILIDAD' && (
+                <>
+                  <div className={sectionTitleClass}>Datos de Portabilidad</div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>SPN *</label>
+                      <input
+                        type="text"
+                        value={fase2.spn}
+                        onChange={e => setFase2(prev => ({ ...prev, spn: e.target.value }))}
+                        className={`${inputClass} uppercase`}
+                        placeholder="SPN123456"
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Número a Portar *</label>
+                      <input
+                        type="text"
+                        value={fase2.numero_portar}
+                        onChange={e => setFase2(prev => ({ ...prev, numero_portar: e.target.value }))}
+                        className={inputClass}
+                        placeholder="3511234567"
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>PIN</label>
+                      <input
+                        type="text"
+                        value={fase2.pin}
+                        onChange={e => setFase2(prev => ({ ...prev, pin: e.target.value }))}
+                        className={inputClass}
+                        placeholder="1234"
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Fecha Vencimiento PIN</label>
+                      <input
+                        type="date"
+                        value={fase2.fecha_vencimiento_pin}
+                        onChange={e => setFase2(prev => ({ ...prev, fecha_vencimiento_pin: e.target.value }))}
+                        className={inputClass}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className={labelClass}>Mercado Origen *</label>
+                      <select
+                        value={fase2.mercado_origen || ''}
+                        onChange={e => setFase2(prev => ({ ...prev, mercado_origen: e.target.value as 'PREPAGO' | 'POSPAGO' }))}
+                        className={inputClass}
+                      >
+                        <option value="">Seleccionar...</option>
+                        <option value="PREPAGO">Prepago</option>
+                        <option value="POSPAGO">Pospago</option>
+                      </select>
+                    </div>
+                  </div>
+                </>
               )}
 
               <div className={sectionTitleClass}>Tipo de Chip</div>
@@ -695,7 +901,7 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
                   <div className={sectionTitleClass}>Datos del Correo SIM</div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className={labelClass}>SAP ID *</label>
+                      <label className={labelClass}>SAP ID</label>
                       <input
                         type="text"
                         value={fase3.sap_id}
@@ -724,6 +930,16 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
                         onChange={e => setFase3(prev => ({ ...prev, numero: e.target.value }))}
                         className={inputClass}
                         placeholder="600000000"
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Teléfono Alternativo</label>
+                      <input
+                        type="tel"
+                        value={fase3.telefono_alternativo}
+                        onChange={e => setFase3(prev => ({ ...prev, telefono_alternativo: e.target.value }))}
+                        className={inputClass}
+                        placeholder="3511234567"
                       />
                     </div>
                     <div>
@@ -757,6 +973,66 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
                         placeholder="Buenos Aires"
                       />
                     </div>
+                    <div>
+                      <label className={labelClass}>Departamento</label>
+                      <input
+                        type="text"
+                        value={fase3.departamento}
+                        onChange={e => setFase3(prev => ({ ...prev, departamento: e.target.value }))}
+                        className={inputClass}
+                        placeholder="Capital"
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Código Postal</label>
+                      <input
+                        type="text"
+                        value={fase3.codigo_postal}
+                        onChange={e => setFase3(prev => ({ ...prev, codigo_postal: e.target.value }))}
+                        className={inputClass}
+                        placeholder="5000"
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Número de Casa</label>
+                      <input
+                        type="text"
+                        value={fase3.numero_casa}
+                        onChange={e => setFase3(prev => ({ ...prev, numero_casa: e.target.value }))}
+                        className={inputClass}
+                        placeholder="1234"
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Barrio</label>
+                      <input
+                        type="text"
+                        value={fase3.barrio}
+                        onChange={e => setFase3(prev => ({ ...prev, barrio: e.target.value }))}
+                        className={inputClass}
+                        placeholder="Centro"
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Entre Calles</label>
+                      <input
+                        type="text"
+                        value={fase3.entre_calles}
+                        onChange={e => setFase3(prev => ({ ...prev, entre_calles: e.target.value }))}
+                        className={inputClass}
+                        placeholder="Entre calle A y B"
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Geolocalización</label>
+                      <input
+                        type="text"
+                        value={fase3.geolocalizacion}
+                        onChange={e => setFase3(prev => ({ ...prev, geolocalizacion: e.target.value }))}
+                        className={inputClass}
+                        placeholder="-34.6037, -58.3816"
+                      />
+                    </div>
                   </div>
                 </>
               ) : (
@@ -768,31 +1044,156 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
               )}
 
               <div className={sectionTitleClass}>Resumen de la Venta</div>
-              <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Cliente:</span>
-                  <span className="font-bold">{clienteEncontrado?.nombre} {clienteEncontrado?.apellido}</span>
+              <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 space-y-4 text-sm">
+                {/* Datos del Cliente */}
+                <div>
+                  <div className="font-black text-indigo-600 dark:text-indigo-400 text-xs uppercase mb-2">👤 Cliente</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-slate-500">Nombre:</span>
+                      <span className="font-bold ml-2">{clienteEncontrado?.nombre} {clienteEncontrado?.apellido}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">DNI:</span>
+                      <span className="font-bold ml-2">{clienteEncontrado?.documento}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Tel:</span>
+                      <span className="font-bold ml-2">{clienteEncontrado?.telefono || fase1.telefono}</span>
+                    </div>
+                    {(clienteEncontrado?.telefono_alternativo || fase1.telefono_alternativo) && (
+                      <div>
+                        <span className="text-slate-500">Tel Alt:</span>
+                        <span className="font-bold ml-2">{clienteEncontrado?.telefono_alternativo || fase1.telefono_alternativo}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">DNI:</span>
-                  <span className="font-bold">{clienteEncontrado?.documento}</span>
+
+                {/* Datos del Plan */}
+                {(() => {
+                  const selectedPlan = planes.find(p => p.plan_id === fase2.plan_id);
+                  const selectedPromo = promociones.find(p => p.promocion_id === fase2.promocion_id);
+                  if (!selectedPlan) return null;
+                  
+                  const precioBase = selectedPlan.precio;
+                  const descuento = selectedPromo?.descuento || 0;
+                  const precioFinal = descuento > 0 ? Math.round(precioBase * (1 - descuento / 100)) : precioBase;
+                  const beneficios = [selectedPlan.beneficios, selectedPromo?.beneficios].filter(b => b).join(' • ');
+                  
+                  return (
+                    <div>
+                      <div className="font-black text-indigo-600 dark:text-indigo-400 text-xs uppercase mb-2">📱 Plan</div>
+                      <div className="font-bold text-base mb-1">{selectedPlan.nombre}</div>
+                      <div className="flex items-center gap-2 mb-2">
+                        {descuento > 0 ? (
+                          <>
+                            <span className="text-slate-400 line-through">${precioBase.toLocaleString('es-AR')}</span>
+                            <span className="text-green-600 font-bold">${precioFinal.toLocaleString('es-AR')}</span>
+                            <span className="bg-green-500 text-white px-2 py-0.5 rounded-full text-xs">-{descuento}%</span>
+                          </>
+                        ) : (
+                          <span className="text-slate-900 dark:text-white font-bold">${precioBase.toLocaleString('es-AR')}</span>
+                        )}
+                      </div>
+                      <div className="text-xs text-slate-500 mb-1">
+                        {selectedPlan.gigabyte} GB | {selectedPlan.llamadas} | {selectedPlan.mensajes}
+                      </div>
+                      {beneficios && (
+                        <div className="text-xs text-slate-500">
+                          <span className="font-bold">🎁 Beneficios:</span> {beneficios}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Datos de Venta */}
+                <div>
+                  <div className="font-black text-indigo-600 dark:text-indigo-400 text-xs uppercase mb-2">📋 Datos de Venta</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-slate-500">Tipo:</span>
+                      <span className="font-bold ml-2">{fase2.tipo_venta}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Chip:</span>
+                      <span className="font-bold ml-2">{fase2.chip}</span>
+                    </div>
+                    {fase2.sds && (
+                      <div>
+                        <span className="text-slate-500">SDS:</span>
+                        <span className="font-bold ml-2">{fase2.sds}</span>
+                      </div>
+                    )}
+                    {fase2.stl && (
+                      <div>
+                        <span className="text-slate-500">STL:</span>
+                        <span className="font-bold ml-2">{fase2.stl}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Tipo:</span>
-                  <span className="font-bold">{fase2.tipo_venta}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Plan:</span>
-                  <span className="font-bold">{planes.find(p => p.plan_id === fase2.plan_id)?.nombre}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Precio:</span>
-                  <span className="font-bold text-green-600">${planes.find(p => p.plan_id === fase2.plan_id)?.precio}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Chip:</span>
-                  <span className="font-bold">{fase2.chip}</span>
-                </div>
+
+                {/* Datos de Portabilidad */}
+                {fase2.tipo_venta === 'PORTABILIDAD' && (
+                  <div>
+                    <div className="font-black text-indigo-600 dark:text-indigo-400 text-xs uppercase mb-2">🔄 Portabilidad</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {fase2.spn && (
+                        <div>
+                          <span className="text-slate-500">SPN:</span>
+                          <span className="font-bold ml-2">{fase2.spn}</span>
+                        </div>
+                      )}
+                      {fase2.numero_portar && (
+                        <div>
+                          <span className="text-slate-500">Número:</span>
+                          <span className="font-bold ml-2">{fase2.numero_portar}</span>
+                        </div>
+                      )}
+                      {fase2.mercado_origen && (
+                        <div>
+                          <span className="text-slate-500">Mercado:</span>
+                          <span className="font-bold ml-2">{fase2.mercado_origen}</span>
+                        </div>
+                      )}
+                      {fase2.pin && (
+                        <div>
+                          <span className="text-slate-500">PIN:</span>
+                          <span className="font-bold ml-2">{fase2.pin}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Datos de Correo */}
+                {fase2.chip === 'SIM' && (
+                  <div>
+                    <div className="font-black text-indigo-600 dark:text-indigo-400 text-xs uppercase mb-2">📦 Correo</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {fase3.sap_id && (
+                        <div>
+                          <span className="text-slate-500">SAP:</span>
+                          <span className="font-bold ml-2">{fase3.sap_id}</span>
+                        </div>
+                      )}
+                      {fase3.numero && (
+                        <div>
+                          <span className="text-slate-500">Contacto:</span>
+                          <span className="font-bold ml-2">{fase3.numero}</span>
+                        </div>
+                      )}
+                      {fase3.telefono_alternativo && (
+                        <div>
+                          <span className="text-slate-500">Tel Alt:</span>
+                          <span className="font-bold ml-2">{fase3.telefono_alternativo}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

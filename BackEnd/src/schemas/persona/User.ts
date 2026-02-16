@@ -63,6 +63,7 @@ export const UsuarioSchema = UsuarioBaseSchema.merge(
     documento: true,
     tipo_documento: true,
     telefono: true,
+    telefono_alternativo: true,
     fecha_nacimiento: true,
     nacionalidad: true,
     genero: true,

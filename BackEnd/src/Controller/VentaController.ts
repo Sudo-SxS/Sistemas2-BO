@@ -431,6 +431,14 @@ export class VentaController {
         };
       }
 
+      if (ventaData.chip === "ESIM" && ventaData.stl) {
+        logger.debug("Validación fallida: ESIM con STL");
+        return {
+          success: false,
+          message: "Para chip ESIM, no se permite asignar un número STL",
+        };
+      }
+
       if (ventaData.chip === "SIM" && (!request.correo || !ventaData.sap)) {
         logger.debug("Validación fallida: SIM sin correo o SAP");
         return {
@@ -709,7 +717,7 @@ export class VentaController {
       const portaData = {
         venta: venta.venta_id,
         spn: portabilidad.spn,
-        empresa_origen: venta.empresa_origen_id,
+        empresa_origen: portabilidad.empresa_origen,
         mercado_origen: portabilidad.mercado_origen,
         numero_porta: portabilidad.numero_porta,
         pin: portabilidad.pin ?? null,

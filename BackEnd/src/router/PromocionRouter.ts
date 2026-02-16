@@ -101,6 +101,15 @@ export function promocionRouter(promocionModel: PromocionModelDB, userModel: Use
         logger.debug('POST /promociones');
 
         const body = await ctx.request.body.json();
+        
+        // Transformar fecha de formato latino (22/03/2026) a ISO (2026-03-22) si es necesario
+        if (body.fecha_terminacion && typeof body.fecha_terminacion === 'string' && body.fecha_terminacion.includes('/')) {
+          const parts = body.fecha_terminacion.split('/');
+          if (parts.length === 3) {
+            body.fecha_terminacion = `${parts[2]}-${parts[1]}-${parts[0]}`;
+          }
+        }
+        
         const result = PromocionCreateSchema.safeParse(body);
 
         if (!result.success) {
@@ -148,6 +157,15 @@ export function promocionRouter(promocionModel: PromocionModelDB, userModel: Use
       try {
         const { id } = ctx.params;
         const body = await ctx.request.body.json();
+        
+        // Transformar fecha de formato latino (22/03/2026) a ISO (2026-03-22) si es necesario
+        if (body.promocion?.fecha_terminacion && typeof body.promocion.fecha_terminacion === 'string' && body.promocion.fecha_terminacion.includes('/')) {
+          const parts = body.promocion.fecha_terminacion.split('/');
+          if (parts.length === 3) {
+            body.promocion.fecha_terminacion = `${parts[2]}-${parts[1]}-${parts[0]}`;
+          }
+        }
+        
         const result = PromocionUpdateSchema.safeParse(body.promocion);
 
         if (!result.success) {

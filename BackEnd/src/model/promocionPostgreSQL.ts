@@ -70,11 +70,11 @@ export class PromocionPostgreSQL implements PromocionModelDB {
   }
 
   async add({ input }: { input: PromocionCreate }): Promise<Promocion> {
-    const { nombre, beneficios, empresa_origen_id, descuento } = input;
+    const { nombre, beneficios, empresa_origen_id, descuento, fecha_terminacion, activo } = input;
 
     const result = await this.safeQuery<Promocion[]>(
-      `INSERT INTO promocion (nombre, beneficios, fecha_creacion, empresa_origen_id, descuento)
-       VALUES ($1, $2, $3, $4, $5) 
+      `INSERT INTO promocion (nombre, beneficios, fecha_creacion, empresa_origen_id, descuento, fecha_terminacion, activo)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) 
        RETURNING *`,
       [
         nombre,
@@ -82,6 +82,8 @@ export class PromocionPostgreSQL implements PromocionModelDB {
         new Date(),
         empresa_origen_id,
         descuento ?? 0,
+        fecha_terminacion || null,
+        activo !== undefined ? activo : true,
       ],
     );
 
@@ -114,6 +116,14 @@ export class PromocionPostgreSQL implements PromocionModelDB {
     if (input.empresa_origen_id !== undefined) {
       fields.push(`empresa_origen_id = $${paramIndex++}`);
       values.push(input.empresa_origen_id);
+    }
+    if (input.fecha_terminacion !== undefined) {
+      fields.push(`fecha_terminacion = $${paramIndex++}`);
+      values.push(input.fecha_terminacion);
+    }
+    if (input.activo !== undefined) {
+      fields.push(`activo = $${paramIndex++}`);
+      values.push(input.activo);
     }
 
     if (fields.length === 0) return undefined;

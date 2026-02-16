@@ -578,6 +578,17 @@ export class VentaPostgreSQL implements VentaModelDB {
 
     const venta = ventaResult.rows[0] as any;
 
+    // Función para transformar fechas a strings
+    const transformarFecha = (fecha: any): string | null => {
+      if (!fecha) return null;
+      if (fecha instanceof Date) return fecha.toISOString();
+      return fecha;
+    };
+
+    // Transformar fechas a strings
+    venta.fecha_creacion = transformarFecha(venta.fecha_creacion);
+    venta.cliente_fecha_nacimiento = transformarFecha(venta.cliente_fecha_nacimiento);
+
     // Queries paralelas para datos relacionados
     const [
       estadosVenta,
@@ -697,13 +708,20 @@ export class VentaPostgreSQL implements VentaModelDB {
         estado: venta.correo_estado_actual,
         ubicacion: venta.correo_ubicacion,
       } : null,
-      portabilidad: portabilidad.rows && portabilidad.rows.length > 0 ? portabilidad.rows[0] : null,
-      linea_nueva: lineaNueva.rows && lineaNueva.rows.length > 0 ? lineaNueva.rows[0] : null,
+      portabilidad: portabilidad.rows && portabilidad.rows.length > 0 ? {
+        ...portabilidad.rows[0],
+        fecha_portacion: transformarFecha(portabilidad.rows[0]?.fecha_portacion),
+        fecha_vencimiento_pin: transformarFecha(portabilidad.rows[0]?.fecha_vencimiento_pin),
+      } : null,
+      linea_nueva: lineaNueva.rows && lineaNueva.rows.length > 0 ? {
+        ...lineaNueva.rows[0],
+        fecha_activacion: transformarFecha(lineaNueva.rows[0]?.fecha_activacion),
+      } : null,
       historial_estados: (estadosVenta.rows || []).map((e: any) => ({
         estado_id: e.estado_id,
         estado: e.estado,
         descripcion: e.descripcion,
-        fecha_creacion: e.fecha_creacion,
+        fecha_creacion: transformarFecha(e.fecha_creacion),
         usuario_id: e.usuario_id,
       })),
       historial_correo: (estadosCorreo.rows || []).map((e: any) => ({
@@ -711,17 +729,21 @@ export class VentaPostgreSQL implements VentaModelDB {
         estado: e.estado,
         descripcion: e.descripcion,
         ubicacion_actual: e.ubicacion_actual,
-        fecha_creacion: e.fecha_creacion,
+        fecha_creacion: transformarFecha(e.fecha_creacion),
       })),
       comentarios: (comentarios.rows || []).map((c: any) => ({
         comentario_id: c.comentario_id,
         titulo: c.titulo,
         comentario: c.comentario,
         tipo: c.tipo_comentario,
-        fecha: c.fecha_creacion,
+        fecha: transformarFecha(c.fecha_creacion),
         author: `${c.autor_nombre} ${c.autor_apellido}`,
       })),
-      correo: correo.rows && correo.rows.length > 0 ? correo.rows[0] : null,
+      correo: correo.rows && correo.rows.length > 0 ? {
+        ...correo.rows[0],
+        fecha_creacion: transformarFecha(correo.rows[0]?.fecha_creacion),
+        fecha_limite: transformarFecha(correo.rows[0]?.fecha_limite),
+      } : null,
     });
   }
 }

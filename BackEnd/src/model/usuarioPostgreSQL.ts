@@ -430,9 +430,9 @@ export class UsuarioPostgreSQL implements UserModelDB {
         await client.queryObject(
           `INSERT INTO persona (
             persona_id, nombre, apellido, fecha_nacimiento,
-            documento, email, creado_en, telefono,
+            documento, email, creado_en, telefono, telefono_alternativo,
             tipo_documento, nacionalidad, genero
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
           [
             personaId,
             input.nombre,
@@ -442,6 +442,7 @@ export class UsuarioPostgreSQL implements UserModelDB {
             input.email.toLowerCase(),
             now,
             input.telefono ?? null,
+            input.telefono_alternativo ?? null,
             input.tipo_documento,
             input.nacionalidad,
             input.genero ?? "OTRO",
