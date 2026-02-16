@@ -70,9 +70,11 @@ export function authRouter(userModel: UserModelDB) {
         await ctx.cookies.set("token", newToken.token, cookieOptions);
 
         ctx.response.status = 200;
-        ctx.response.body = isProduction
-          ? { success: true, message: "Autenticación exitosa" }
-          : { success: true, data: newToken, message: "Autenticación exitosa" };
+        ctx.response.body = {
+          success: true,
+          data: newToken,
+          message: "Autenticación exitosa"
+        };
       } catch (error) {
         logger.error("POST /usuario/login:", error);
         ctx.response.status = 401;
@@ -235,13 +237,21 @@ export function authRouter(userModel: UserModelDB) {
   // POST /usuario/refresh
   router.post("/usuario/refresh", async (ctx: ContextWithParams) => {
     try {
-      const token = await ctx.cookies.get("token");
+      // Leer token de cookies o header Authorization
+      let token = await ctx.cookies.get("token");
+
+      if (!token) {
+        const authHeader = ctx.request.headers.get("Authorization");
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+          token = authHeader.substring(7);
+        }
+      }
 
       if (!token) {
         ctx.response.status = 401;
         ctx.response.body = {
           success: false,
-          message: "No autorizado: token no presente en cookies",
+          message: "No autorizado: token no presente",
         };
         return;
       }
@@ -259,13 +269,11 @@ export function authRouter(userModel: UserModelDB) {
       await ctx.cookies.set("token", newToken, cookieOptions);
 
       ctx.response.status = 200;
-      ctx.response.body = isProduction
-        ? { success: true, message: "Token refrescado exitosamente" }
-        : {
-          success: true,
-          token: newToken,
-          message: "Token refrescado exitosamente",
-        };
+      ctx.response.body = {
+        success: true,
+        token: newToken,
+        message: "Token refrescado exitosamente",
+      };
     } catch (error) {
       logger.error("POST /usuario/refresh:", error);
       ctx.response.status = 401;

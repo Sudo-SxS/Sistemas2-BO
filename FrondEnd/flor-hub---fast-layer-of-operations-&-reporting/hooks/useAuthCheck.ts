@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../services/api';
+import { tokenStorage } from '../services/tokenStorage';
 
 export interface VerifiedUser {
   id: string;
@@ -36,19 +37,33 @@ export const useAuthCheck = (): UseAuthCheckReturn => {
     isVerifying.current = true;
 
     try {
+      // Verificar si hay token en sessionStorage primero
+      if (!tokenStorage.hasToken()) {
+        setIsAuthenticated(false);
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+
       const verify1 = await api.get<VerifiedUser>('/usuario/verify');
-      
+
       if (verify1.success && verify1.payload) {
         setUser(verify1.payload);
         setIsAuthenticated(true);
         return;
       }
 
-      const refresh = await api.post<{ success: boolean }>('/usuario/refresh', {});
-      
+      // Intentar refresh si el token expiró
+      const refresh = await api.post<{ success: boolean; token?: string }>('/usuario/refresh', {});
+
       if (refresh.success) {
+        // Guardar nuevo token si se devuelve
+        if (refresh.token) {
+          tokenStorage.setToken(refresh.token);
+        }
+
         const verify2 = await api.get<VerifiedUser>('/usuario/verify');
-        
+
         if (verify2.success && verify2.payload) {
           setUser(verify2.payload);
           setIsAuthenticated(true);
@@ -56,9 +71,12 @@ export const useAuthCheck = (): UseAuthCheckReturn => {
         }
       }
 
+      // Si todo falla, limpiar token y estado
+      tokenStorage.removeToken();
       setIsAuthenticated(false);
       setUser(null);
     } catch (err) {
+      tokenStorage.removeToken();
       setIsAuthenticated(false);
       setUser(null);
     } finally {

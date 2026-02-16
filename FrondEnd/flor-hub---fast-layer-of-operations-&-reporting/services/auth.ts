@@ -1,7 +1,9 @@
 // services/auth.ts
-// Servicio de autenticación - Cookies httpOnly manejadas automáticamente por el backend
+// Servicio de autenticación - Token JWT manejado por el frontend en sessionStorage
+// El backend devuelve el token en el body, NO en cookies
 
 import { api } from './api';
+import { tokenStorage } from './tokenStorage';
 
 interface LoginCredentials {
   user: {
@@ -11,6 +13,7 @@ interface LoginCredentials {
 }
 
 interface AuthData {
+  token: string;  // JWT token devuelto por el backend
   user: {
     id: string;
     email: string;
@@ -21,13 +24,13 @@ interface AuthData {
     rol: string;
     permisos: string[];
   };
-  // El token ya no viene en el body, está en la cookie httpOnly
 }
 
-// Respuesta del login ahora devuelve user directamente
+// Respuesta del login incluye token y user
 interface AuthResponse {
   success: boolean;
   user?: AuthData['user'];
+  token?: string;
   message?: string;
 }
 
@@ -39,21 +42,32 @@ export const login = async (email: string, password: string): Promise<AuthRespon
       password
     }
   };
-  
+
   const response = await api.post<AuthData>('/usuario/login', credentials);
-  
-  // El token se guarda automáticamente en cookie httpOnly por el backend
-  return response;
+
+  // Guardar token en sessionStorage si existe
+  if (response.success && response.data?.token) {
+    tokenStorage.setToken(response.data.token);
+  }
+
+  return {
+    success: response.success,
+    user: response.data?.user,
+    token: response.data?.token,
+    message: response.message
+  };
 };
 
 // Logout
 export const logout = async (): Promise<void> => {
   try {
-    // Llamar al endpoint de logout del backend para eliminar la cookie
+    // Llamar al endpoint de logout del backend
     await api.post('/usuario/logout', {});
   } catch (error) {
     console.error('Error al cerrar sesión:', error);
   } finally {
+    // Limpiar token de sessionStorage
+    tokenStorage.removeToken();
     // Redirigir a login independientemente del resultado
     window.location.href = '/login';
   }

@@ -1,6 +1,8 @@
 // services/api.ts
 // Configuración base y cliente HTTP para la API
-// ✅ OPTIMIZADO: Las cookies httpOnly se envían automáticamente con credentials: 'include'
+// Token JWT se envía en header Authorization, manejado por tokenStorage
+
+import { tokenStorage } from './tokenStorage';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT || '30000');
@@ -44,12 +46,24 @@ async function tryRefreshToken(): Promise<boolean> {
   try {
     const response = await fetch(`${API_URL}/usuario/refresh`, {
       method: 'POST',
-      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
+        // Enviar token actual para refresh
+        ...(tokenStorage.hasToken() && {
+          'Authorization': `Bearer ${tokenStorage.getToken()}`
+        }),
       },
     });
-    return response.ok;
+
+    if (response.ok) {
+      const data = await response.json();
+      // Guardar nuevo token si se devuelve
+      if (data.token) {
+        tokenStorage.setToken(data.token);
+      }
+      return true;
+    }
+    return false;
   } catch (error) {
     return false;
   }
@@ -90,9 +104,12 @@ async function apiRequest<T>(
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      // Agregar Authorization header si hay token
+      ...(tokenStorage.hasToken() && {
+        'Authorization': `Bearer ${tokenStorage.getToken()}`
+      }),
       ...options.headers,
     },
-    credentials: 'include',
   };
   
   // Timeout handling
