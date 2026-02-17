@@ -140,24 +140,31 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
     setIsLoading(true);
     
     if (fase2.tipo_venta === 'LINEA_NUEVA') {
-      getAllPlanes().then(res => {
+      // Usar empresa_origen_id = 2 (Claro/Interna) para Línea Nueva, igual que en OfferPage
+      getPlanesPorEmpresa(2).then(res => {
         if (res.success && res.data) {
-          const sortedPlanes = res.data.sort((a, b) => a.precio - b.precio);
+          // Filtrar inactivos y ordenar por precio
+          const filteredPlanes = res.data.filter(p => p.activo !== false);
+          const sortedPlanes = filteredPlanes.sort((a, b) => a.precio - b.precio);
           setPlanes(sortedPlanes);
         }
         setIsLoading(false);
       });
       
-      getAllPromociones().then(res => {
+      getPromocionesPorEmpresa(2).then(res => {
         if (res.success && res.data) {
-          const sortedPromociones = res.data.sort((a, b) => a.nombre.localeCompare(b.nombre));
+          // Filtrar inactivas y sin descuento, ordenar por nombre
+          const filteredPromociones = res.data.filter(p => p.activo !== false && p.descuento > 0);
+          const sortedPromociones = filteredPromociones.sort((a, b) => a.nombre.localeCompare(b.nombre));
           setPromociones(sortedPromociones);
         }
       });
     } else if (fase2.tipo_venta === 'PORTABILIDAD' && fase2.empresa_origen_id > 0) {
       getPlanesPorEmpresa(fase2.empresa_origen_id).then(res => {
         if (res.success && res.data) {
-          const sortedPlanes = res.data.sort((a, b) => a.precio - b.precio);
+          // Filtrar inactivos y ordenar por precio
+          const filteredPlanes = res.data.filter(p => p.activo !== false);
+          const sortedPlanes = filteredPlanes.sort((a, b) => a.precio - b.precio);
           setPlanes(sortedPlanes);
         }
         setIsLoading(false);
@@ -165,7 +172,9 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
       
       getPromocionesPorEmpresa(fase2.empresa_origen_id).then(res => {
         if (res.success && res.data) {
-          const sortedPromociones = res.data.sort((a, b) => a.nombre.localeCompare(b.nombre));
+          // Filtrar inactivas y sin descuento, ordenar por nombre
+          const filteredPromociones = res.data.filter(p => p.activo !== false && p.descuento > 0);
+          const sortedPromociones = filteredPromociones.sort((a, b) => a.nombre.localeCompare(b.nombre));
           setPromociones(sortedPromociones);
         }
       });

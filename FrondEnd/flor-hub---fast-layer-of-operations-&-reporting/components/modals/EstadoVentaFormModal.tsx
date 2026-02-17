@@ -1,32 +1,10 @@
 import React, { useState } from 'react';
 import { z } from 'zod';
-import { Sale } from '../../types';
-
-// Estados de venta según el schema
-const ESTADOS_VENTA = [
-  'PENDIENTE DE CARGA',
-  'CREADO SIN DOCU',
-  'CREADO DOCU OK',
-  'EN TRANSPORTE',
-  'ENTREGADO',
-  'REPACTAR',
-  'ACTIVADO NRO CLARO',
-  'ACTIVADO NRO PORTADO',
-  'AGENDADO',
-  'APROBADO ABD',
-  'CANCELADO',
-  'CREADO',
-  'EVALUANDO DONANTE',
-  'PENDIENTE CARGA PIN',
-  'PIN INGRESADO',
-  'RECHAZADO ABD',
-  'RECHAZADO DONANTE',
-  'SPN CANCELADA',
-] as const;
+import { Sale, SaleStatus } from '../../types';
 
 // Schema Zod para validación
 const EstadoVentaFormSchema = z.object({
-  estado: z.enum(ESTADOS_VENTA),
+  estado: z.nativeEnum(SaleStatus),
   descripcion: z.string().max(75, 'Máximo 75 caracteres').optional(),
 });
 
@@ -44,7 +22,7 @@ export const EstadoVentaFormModal: React.FC<EstadoVentaFormModalProps> = ({
   onSubmit 
 }) => {
   const [formData, setFormData] = useState<EstadoVentaFormData>({
-    estado: 'PENDIENTE DE CARGA',
+    estado: SaleStatus.INICIAL,
     descripcion: '',
   });
 
@@ -156,7 +134,7 @@ export const EstadoVentaFormModal: React.FC<EstadoVentaFormModalProps> = ({
                 onChange={e => handleChange('estado', e.target.value)}
                 className={getSelectClass('estado')}
               >
-                {ESTADOS_VENTA.map(estado => (
+                {Object.values(SaleStatus).map(estado => (
                   <option key={estado} value={estado}>
                     {estado}
                   </option>

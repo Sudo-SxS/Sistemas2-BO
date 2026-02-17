@@ -101,27 +101,27 @@ export const CommentModal: React.FC<CommentModalProps> = ({ ventaId, customerNam
       <div 
         className="w-full max-w-4xl h-[85vh] sm:h-[80vh] lg:max-w-6xl lg:h-[85vh] bg-white dark:bg-slate-900 shadow-[0_30px_100px_rgba(0,0,0,0.3)] flex flex-col animate-in zoom-in-95 duration-500 rounded-2xl lg:rounded-[2vh] overflow-hidden border border-white/50 dark:border-white/5"
       >
-        <div className="relative p-4 sm:p-6 lg:p-[4vh] bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-900 dark:via-slate-900 dark:to-black text-white shrink-0 flex-shrink-0">
+        <div className="relative p-4 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-900 dark:via-slate-900 dark:to-black text-white shrink-0 flex-shrink-0">
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
           
           <div className="relative z-10 flex justify-between items-center gap-4">
-            <div className="flex items-center gap-3 lg:gap-[3vh]">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-[8vh] lg:h-[8vh] bg-white/10 rounded-xl sm:rounded-2xl lg:rounded-[2.5vh] flex items-center justify-center text-2xl sm:text-3xl lg:text-[4vh] shadow-inner border border-white/10">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-xl shadow-inner border border-white/10">
                 💬
               </div>
               <div>
-                <h3 className="text-lg sm:text-xl lg:text-[clamp(1.2rem,3vh,3.5rem)] font-black italic tracking-tighter uppercase leading-tight">Bitácora de Eventos</h3>
-                <div className="flex items-center gap-2 lg:gap-[1.5vh] mt-1 lg:mt-[0.5vh]">
-                  <span className="w-2 h-2 lg:w-[1.2vh] lg:h-[1.2vh] rounded-full bg-emerald-400 animate-pulse"></span>
-                  <p className="text-xs sm:text-sm lg:text-[clamp(0.6rem,1.1vh,1.3rem)] font-black uppercase tracking-[0.2em] text-indigo-200 dark:text-indigo-300">Expediente V-{ventaId} • {customerName}</p>
+                <h3 className="text-lg font-black italic tracking-tighter uppercase leading-none">Bitácora de Eventos</h3>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-200 dark:text-indigo-300">Expediente V-{ventaId} • {customerName}</p>
                 </div>
               </div>
             </div>
             <button 
               onClick={onClose}
-              className="p-2 sm:p-3 lg:p-[2vh] hover:bg-white/10 rounded-xl lg:rounded-[2.5vh] transition-all group bg-white/5 border border-white/10"
+              className="p-2 hover:bg-white/10 rounded-xl transition-all group bg-white/5 border border-white/10"
             >
-              <svg className="w-6 h-6 lg:w-[3vh] lg:h-[3vh] group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path>
               </svg>
             </button>

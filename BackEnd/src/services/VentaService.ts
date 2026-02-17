@@ -80,35 +80,22 @@ export class VentaService {
       if (estadoVentaModel) {
         const estadoInicial = (input.sds && input.stl)
           ? "CREADO_SIN_DOCU"
-          : "PENDIENTE_DE_CARGA";
+          : "INICIAL";
 
         await estadoVentaModel.add({
           input: {
             venta_id: newVenta.venta_id,
             estado: estadoInicial as
-              | "PENDIENTE DE CARGA"
-              | "CREADO SIN DOCU"
+              | "INICIAL"
+              | "CREADO_SIN_DOCU"
               | "CREADO DOCU OK"
-              | "EN TRANSPORTE"
-              | "ENTREGADO"
-              | "REPACTAR"
-              | "ACTIVADO NRO CLARO"
+              | "EN_TRANSPORTE"
+              | "CREADO DOCU OK"
               | "ACTIVADO NRO PORTADO"
-              | "AGENDADO"
-              | "APROBADO ABD"
-              | "CANCELADO"
-              | "CREADO"
-              | "EVALUANDO DONANTE"
-              | "PENDIENTE CARGA PIN"
-              | "PIN INGRESADO"
-              | "RECHAZADO ABD"
-              | "RECHAZADO DONANTE"
-              | "SPN CANCELADA",
+              | "CANCELADO",
             descripcion: estadoInicial === "CREADO_SIN_DOCU"
               ? "Venta creada con STL y SDS"
               : "Venta pendiente de cargar STL y/o SDS",
-            fecha_creacion: new Date(),
-            usuario_id: usuarioId,
           },
         });
 

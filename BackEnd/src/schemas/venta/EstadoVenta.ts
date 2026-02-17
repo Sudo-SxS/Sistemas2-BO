@@ -34,7 +34,6 @@ export const EstadoVentaSchema = z.object({
 export const EstadoVentaCreateSchema = EstadoVentaSchema.omit({
   estado_id: true,
   fecha_creacion: true,
-  usuario_id: true,
 });
 
 export const EstadoVentaUpdateSchema = EstadoVentaSchema.omit({

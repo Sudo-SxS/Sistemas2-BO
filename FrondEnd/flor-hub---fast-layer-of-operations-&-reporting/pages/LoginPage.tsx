@@ -46,7 +46,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, error }) => {
             <Logo size="md" className="!w-full !h-full" />
           </div>
           <div className="flex items-baseline gap-[1vw] justify-center">
-            <h1 className="text-[clamp(1.5rem,6vmin,10rem)] font-black tracking-tighter text-slate-900 uppercase italic leading-none">FLOR</h1>
+            <h1 className="text-[clamp(1.5rem,6vmin,10rem)] font-black tracking-tighter text-white uppercase italic leading-none">FLOR</h1>
             <h1 className="text-[clamp(1.5rem,6vmin,10rem)] font-black tracking-tighter text-indigo-600 uppercase italic leading-none">HUB</h1>
           </div>
           <p className="text-[clamp(8px,1.3vmin,20px)] font-black text-slate-400 uppercase tracking-[0.4em] mt-[0.5vmin] opacity-80">

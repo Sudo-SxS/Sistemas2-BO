@@ -90,17 +90,22 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
 
   return (
     <div 
-      className="absolute top-24 right-0 w-full lg:w-[1100px] glass-panel rounded-[40px] shadow-[0_60px_120px_-20px_rgba(0,0,0,0.5)] z-[200] border border-slate-200 dark:border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-500"
+      className="absolute top-24 right-0 w-full lg:w-[1100px] glass-panel rounded-2xl lg:rounded-[2vh] shadow-[0_60px_120px_-20px_rgba(0,0,0,0.5)] z-[200] border border-slate-200 dark:border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-500"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="p-8 bg-gradient-to-r from-indigo-500 to-purple-500 dark:from-indigo-900 dark:via-slate-900 dark:to-black text-white flex justify-between items-center relative overflow-hidden">
+      <div className="px-8 py-5 bg-gradient-to-r from-indigo-500 to-purple-500 dark:from-indigo-900 dark:via-slate-900 dark:to-black text-white flex justify-between items-center relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-5 pointer-events-none"></div>
-        <div className="relative z-10">
-          <h3 className="text-xl font-black italic tracking-tighter uppercase">Panel de Inteligencia de Filtros</h3>
-          <p className="text-[10px] font-black text-indigo-200 dark:text-indigo-400 uppercase tracking-[0.2em] mt-1">Refina tu búsqueda operacional</p>
+        <div className="relative z-10 flex items-center gap-5">
+          <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-xl shadow-inner border border-white/10 backdrop-blur-sm">
+            🔍
+          </div>
+          <div>
+            <h3 className="text-lg font-black italic tracking-tighter uppercase leading-none">Panel de Filtros</h3>
+            <p className="text-[10px] font-black text-indigo-200 dark:text-indigo-400 uppercase tracking-[0.2em] mt-1">Inteligencia Operacional</p>
+          </div>
         </div>
-        <button onClick={onClose} className="relative z-10 w-10 h-10 rounded-2xl bg-white/10 hover:bg-white/40 transition-all group flex items-center justify-center">
-           <svg className="w-5 h-5 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+        <button onClick={onClose} className="relative z-10 w-9 h-9 rounded-xl bg-white/10 hover:bg-white/40 transition-all group flex items-center justify-center border border-white/10 hover:border-white/20">
+           <svg className="w-5 h-5 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
       </div>
 

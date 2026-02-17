@@ -146,7 +146,7 @@ export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClos
       <div className="relative bg-white dark:bg-slate-900 rounded-[clamp(1rem,3vh,2rem)] shadow-2xl w-[90vw] md:w-[50vw] lg:w-[40vw] xl:w-[35vw] overflow-hidden animate-in zoom-in-95 duration-300 border dark:border-white/5">
         
         {/* FLUID HEADER: Height based on VH */}
-        <div className="absolute top-0 left-0 right-0 h-[15vh] bg-gradient-to-br from-indigo-600 to-purple-700 transition-all">
+        <div className="absolute top-0 left-0 right-0 h-[10vh] bg-gradient-to-br from-indigo-600 to-purple-700 transition-all">
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
           <button 
             onClick={onClose}
@@ -159,19 +159,19 @@ export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClos
         </div>
 
         {/* FLUID CONTENT: Padding based on VP */}
-        <div className="pt-[10vh] px-[5vw] pb-[4vh] relative z-10 transition-all">
+        <div className="pt-[8vh] px-[5vw] pb-[4vh] relative z-10 transition-all">
           
           {/* FLUID ICON */}
-          <div className="w-[10vh] h-[10vh] mx-auto bg-white dark:bg-slate-800 rounded-[2vh] shadow-xl p-[1vh] flex items-center justify-center mb-[3vh] transition-all border dark:border-white/5">
+          <div className="w-[8vh] h-[8vh] mx-auto bg-white dark:bg-slate-800 rounded-[2vh] shadow-xl p-[1vh] flex items-center justify-center mb-[3vh] transition-all border dark:border-white/5">
             <div className="w-full h-full bg-indigo-50 dark:bg-indigo-900/20 rounded-[1.5vh] flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-              <svg className="w-[5vh] h-[5vh] transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-[4vh] h-[4vh] transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
               </svg>
             </div>
           </div>
 
-          <div className="text-center mb-[3vh]">
-            <h3 className="font-black text-slate-800 dark:text-white mb-[1vh] text-[clamp(1.2rem,2.5vh,1.5rem)] leading-none">Actualizar Contraseña</h3>
+          <div className="text-center mb-[2vh]">
+            <h3 className="font-black text-slate-800 dark:text-white mb-[0.5vh] text-[clamp(1.2rem,2.5vh,1.5rem)] leading-none">Actualizar Contraseña</h3>
             <p className="text-slate-500 dark:text-slate-400 font-medium text-[clamp(0.75rem,1.5vh,1rem)]">Mantén tu cuenta segura.</p>
           </div>
 
@@ -195,7 +195,7 @@ export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClos
                   type="password"
                   value={formData.passwordActual}
                   onChange={(e) => handleInputChange('passwordActual', e.target.value)}
-                  className="w-full px-[2vh] h-[6vh] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[1.5vh] text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium text-[clamp(0.85rem,1.8vh,1rem)]"
+                  className="w-full px-[2vh] h-[5vh] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[1.5vh] text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium text-[clamp(0.85rem,1.8vh,1rem)]"
                   placeholder="••••••••••••"
                   required
                 />
@@ -210,7 +210,7 @@ export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClos
                   type="password"
                   value={formData.passwordNueva}
                   onChange={(e) => handleInputChange('passwordNueva', e.target.value)}
-                  className="w-full px-[2vh] h-[6vh] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[1.5vh] text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium text-[clamp(0.85rem,1.8vh,1rem)]"
+                  className="w-full px-[2vh] h-[5vh] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[1.5vh] text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium text-[clamp(0.85rem,1.8vh,1rem)]"
                   placeholder="••••••••••••"
                   required
                 />
@@ -263,7 +263,7 @@ export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClos
                     type="password"
                     value={formData.passwordNuevaConfirmacion}
                     onChange={(e) => handleInputChange('passwordNuevaConfirmacion', e.target.value)}
-                    className="w-full px-[2vh] h-[6vh] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[1.5vh] text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium text-[clamp(0.85rem,1.8vh,1rem)]"
+                    className="w-full px-[2vh] h-[5vh] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[1.5vh] text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium text-[clamp(0.85rem,1.8vh,1rem)]"
                     placeholder="••••••••••••"
                     required
                   />
@@ -287,14 +287,14 @@ export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClos
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 h-[6.5vh] border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-[1.5vh] hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-bold uppercase tracking-wide text-[clamp(0.7rem,1.4vh,0.9rem)]"
+                className="flex-1 h-[5vh] border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-[1.5vh] hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-bold uppercase tracking-wide text-[clamp(0.7rem,1.4vh,0.9rem)]"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={isLoading || !allRequirementsMet || !passwordsMatch || !formData.passwordActual}
-                className="flex-[2] h-[6.5vh] bg-indigo-600 text-white rounded-[1.5vh] hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold uppercase tracking-wide shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:-translate-y-0.5 text-[clamp(0.7rem,1.4vh,0.9rem)]"
+                className="flex-[2] h-[5vh] bg-indigo-600 text-white rounded-[1.5vh] hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold uppercase tracking-wide shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:-translate-y-0.5 text-[clamp(0.7rem,1.4vh,0.9rem)]"
               >
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-[1vh]">

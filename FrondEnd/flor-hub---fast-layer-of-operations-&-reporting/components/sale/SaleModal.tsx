@@ -867,7 +867,7 @@ export const SaleModal = ({ sale, onClose, onUpdate, onUpdateStatus, onUpdateLog
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-[2vw] bg-slate-950/60 backdrop-blur-xl animate-in fade-in duration-500">
-      <div className="w-full max-w-[95vw] h-[92vh] bg-[#f8fafc] dark:bg-slate-900 rounded-[5vh] shadow-2xl flex flex-col overflow-hidden border border-white/20">
+      <div className="w-full max-w-[95vw] h-[92vh] bg-[#f8fafc] dark:bg-slate-900 rounded-2xl lg:rounded-[2vh] shadow-2xl flex flex-col overflow-hidden border border-white/20 relative group/modal">
         <React.Fragment>
           {isLoadingDetalle || !editedData ? (
             <div className="flex-1 flex flex-col items-center justify-center bg-white dark:bg-slate-900 gap-[3vh]">
@@ -877,13 +877,19 @@ export const SaleModal = ({ sale, onClose, onUpdate, onUpdateStatus, onUpdateLog
           ) : (
             <>
               {/* Header */}
-              <div className="p-[5vh] bg-indigo-800 text-white flex justify-between items-center shrink-0">
-                <div>
-                  <h3 className="font-black text-[clamp(1.8rem,4.5vh,4.5rem)] uppercase italic">VENTA {editedData.id}</h3>
-                  <p className="font-bold uppercase opacity-80 mt-2">{editedData.cliente.nombre} {editedData.cliente.apellido} | DNI: {editedData.cliente.documento}</p>
+              <div className="px-8 py-5 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-900 dark:via-slate-900 dark:to-black text-white flex justify-between items-center shrink-0 relative overflow-hidden">
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 pointer-events-none"></div>
+                <div className="relative z-10 flex items-center gap-6">
+                  <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-white/10 backdrop-blur-sm">
+                    📂
+                  </div>
+                  <div>
+                    <h3 className="font-black text-2xl uppercase italic leading-none tracking-tighter">VENTA {editedData.id}</h3>
+                    <p className="text-xs font-bold uppercase opacity-80 mt-1 tracking-widest">{editedData.cliente.nombre} {editedData.cliente.apellido} | DNI: {editedData.cliente.documento}</p>
+                  </div>
                 </div>
-                <button onClick={onClose} className="p-[2.2vh] bg-white/10 hover:bg-rose-500 rounded-[2.5vh] transition-all">
-                  <svg className="w-[3.5vh] h-[3.5vh]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <button onClick={onClose} className="relative z-10 p-2 bg-white/10 hover:bg-rose-500 rounded-xl transition-all border border-white/10 hover:border-white/20">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
               </div>
 
@@ -897,7 +903,7 @@ export const SaleModal = ({ sale, onClose, onUpdate, onUpdateStatus, onUpdateLog
               </div>
 
               {/* Content */}
-              <div className="flex-1 overflow-y-auto p-8 bg-white/50 dark:bg-slate-900/50 no-scrollbar">
+              <div className="flex-1 overflow-y-auto p-8 bg-white/50 dark:bg-slate-900/50 no-scrollbar pb-24">
                 {activeTab === 'venta' && <TabVenta editedData={editedData} isEditing={isEditing} onEdit={handleEdit} />}
                 {activeTab === 'cliente' && <TabCliente editedData={editedData} />}
                 {activeTab === 'plan' && <TabPlan editedData={editedData} isEditing={isEditing} onEdit={handleEdit} />}
@@ -911,19 +917,35 @@ export const SaleModal = ({ sale, onClose, onUpdate, onUpdateStatus, onUpdateLog
                 )}
               </div>
 
-              {/* Footer */}
-              <div className="p-[4vh] bg-white/80 dark:bg-slate-900/80 border-t border-slate-200/50 flex justify-between items-center shrink-0">
-                <button onClick={() => setIsEditing(!isEditing)} className={`px-[5vh] py-[2.5vh] rounded-[2.5vh] font-black uppercase tracking-widest transition-all ${isEditing ? 'bg-slate-200 text-slate-500' : 'bg-indigo-50 text-indigo-600'}`}>
-                  {isEditing ? '❌ Descartar' : '✏️ Editar'}
-                </button>
-                <div className="flex gap-[2.5vh]">
-                  {isEditing && (
-                    <button onClick={handleSave} disabled={!hasChanges} className={`px-[6vh] py-[2.5vh] rounded-[2.5vh] font-black uppercase tracking-widest ${hasChanges ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-400'}`}>
-                      💾 Guardar
+              {/* Floating Action Buttons */}
+              <div className="absolute bottom-6 right-6 flex flex-col gap-3 z-50">
+                {isEditing ? (
+                  <>
+                    <button 
+                      onClick={handleSave} 
+                      disabled={!hasChanges}
+                      className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-110 ${hasChanges ? 'bg-emerald-500 text-white shadow-emerald-500/30' : 'bg-slate-300 text-slate-500 cursor-not-allowed'}`}
+                      title="Guardar Cambios"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg>
                     </button>
-                  )}
-                  {/* El botón de actualizar ahora se maneja internamente en TabEstados */}
-                </div>
+                    <button 
+                      onClick={() => { setIsEditing(false); setHasChanges(false); setEditedData(ventaDetalle ? mapBackendToSaleDetail(ventaDetalle) : null); }} 
+                      className="w-14 h-14 bg-white dark:bg-slate-800 text-rose-500 rounded-full flex items-center justify-center shadow-lg hover:bg-rose-50 dark:hover:bg-slate-700 transition-all hover:scale-110"
+                      title="Cancelar Edición"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                  </>
+                ) : (
+                  <button 
+                    onClick={() => setIsEditing(true)} 
+                    className="w-16 h-16 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-xl shadow-indigo-600/30 hover:bg-indigo-700 transition-all hover:scale-110 hover:rotate-90"
+                    title="Editar Venta"
+                  >
+                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                  </button>
+                )}
               </div>
             </>
           )}
