@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AppTab } from '../types';
+import { AppTab } from '../../types';
 
 interface CommandPaletteProps {
   onClose: () => void;

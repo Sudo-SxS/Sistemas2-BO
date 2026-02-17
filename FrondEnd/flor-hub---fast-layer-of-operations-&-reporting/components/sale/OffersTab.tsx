@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ProductType, Sale } from '../types';
+import { ProductType, Sale } from '../../types';
 
 const PlanDetailModal = ({ plan, onClose, companyColor }: { plan: any, onClose: () => void, companyColor: string }) => (
   <div className="fixed inset-0 z-[200] flex items-center justify-center p-[2vh] bg-slate-900/60 dark:bg-black/70 backdrop-blur-md animate-in fade-in duration-300">
@@ -64,29 +64,37 @@ export const OffersTab: React.FC<OffersTabProps> = ({ onSell }) => {
     { id: 'YOI', name: 'Yoigo', logo: 'Y', color: 'bg-purple-600', text: 'text-purple-600' }
   ];
 
+  // Mapeo de códigos de empresa a IDs numéricos (mock - en producción vendrían del backend)
+  const COMPANY_ID_MAP: Record<string, number> = {
+    'MOV': 1,
+    'VOD': 2,
+    'ORA': 3,
+    'YOI': 4
+  };
+
   const OFFERS_DATA: Record<string, { PORTA: any[], LN: any[] }> = {
     'MOV': {
       PORTA: [
-        { name: 'Ilimitada Plus 5G+', gb: 'Ilimitados', calls: 'Ilimitadas', whatsapp: true, price: '31.95€', oldPrice: '45.00€', discount: '30%', promo: '50% Dto x 12 meses', companyName: 'Movistar', companyId: 'MOV', amount: 31.95, fullDetails: { roaming: 'EU, UK, Islandia', sms: 'Ilimitados', services: ['MultiSIM', 'Seguro'], finePrint: 'Tarifa líder para portabilidades premium.' } },
-        { name: 'Plan Avanzado 30GB', gb: '30 GB', calls: 'Ilimitadas', whatsapp: true, price: '19.95€', oldPrice: '25.95€', discount: '23%', promo: 'Segunda línea 50% dto', companyName: 'Movistar', companyId: 'MOV', amount: 19.95, fullDetails: { roaming: 'EU', sms: '50 SMS/mes', services: ['Antivirus'], finePrint: 'Ideal para ahorro.' } }
+        { id: 101, name: 'Ilimitada Plus 5G+', gb: 'Ilimitados', calls: 'Ilimitadas', whatsapp: true, price: '31.95€', oldPrice: '45.00€', discount: '30%', promo: '50% Dto x 12 meses', promocion_id: 1001, companyName: 'Movistar', companyId: 'MOV', amount: 31.95, fullDetails: { roaming: 'EU, UK, Islandia', sms: 'Ilimitados', services: ['MultiSIM', 'Seguro'], finePrint: 'Tarifa líder para portabilidades premium.' } },
+        { id: 102, name: 'Plan Avanzado 30GB', gb: '30 GB', calls: 'Ilimitadas', whatsapp: true, price: '19.95€', oldPrice: '25.95€', discount: '23%', promo: 'Segunda línea 50% dto', promocion_id: 1002, companyName: 'Movistar', companyId: 'MOV', amount: 19.95, fullDetails: { roaming: 'EU', sms: '50 SMS/mes', services: ['Antivirus'], finePrint: 'Ideal para ahorro.' } }
       ],
-      LN: [{ name: 'LN Ilimitada 5G', gb: 'Ilimitados', calls: 'Ilimitadas', whatsapp: true, price: '39.95€', oldPrice: '45.00€', discount: '11%', promo: 'Sin permanencia', companyName: 'Movistar', companyId: 'MOV', amount: 39.95, fullDetails: { roaming: 'EU', sms: 'Ilimitados', services: ['SIM VIP'], finePrint: 'Para altas nuevas.' } }]
+      LN: [{ id: 103, name: 'LN Ilimitada 5G', gb: 'Ilimitados', calls: 'Ilimitadas', whatsapp: true, price: '39.95€', oldPrice: '45.00€', discount: '11%', promo: 'Sin permanencia', promocion_id: 1003, companyName: 'Movistar', companyId: 'MOV', amount: 39.95, fullDetails: { roaming: 'EU', sms: 'Ilimitados', services: ['SIM VIP'], finePrint: 'Para altas nuevas.' } }]
     },
     'VOD': {
       PORTA: [
-        { name: 'Vodafone Ilimitada Max', gb: 'Ilimitados', calls: 'Ilimitadas', whatsapp: true, price: '35.60€', oldPrice: '42.00€', discount: '15%', promo: 'Súper descuento x 24 meses', companyName: 'Vodafone', companyId: 'VOD', amount: 35.60, fullDetails: { roaming: 'EU, USA', sms: 'Ilimitados', services: ['OneNumber'], finePrint: 'Velocidad 5G real.' } }
+        { id: 201, name: 'Vodafone Ilimitada Max', gb: 'Ilimitados', calls: 'Ilimitadas', whatsapp: true, price: '35.60€', oldPrice: '42.00€', discount: '15%', promo: 'Súper descuento x 24 meses', promocion_id: 2001, companyName: 'Vodafone', companyId: 'VOD', amount: 35.60, fullDetails: { roaming: 'EU, USA', sms: 'Ilimitados', services: ['OneNumber'], finePrint: 'Velocidad 5G real.' } }
       ],
       LN: []
     },
     'ORA': {
       PORTA: [
-        { name: 'Go Max Cine y Series', gb: 'Ilimitados', calls: 'Ilimitadas', whatsapp: true, price: '37.00€', oldPrice: '40.00€', discount: '8%', promo: 'Bono TV Gratis', companyName: 'Orange', companyId: 'ORA', amount: 37.00, fullDetails: { roaming: 'EU', sms: 'Ilimitados', services: ['Orange TV'], finePrint: 'Entretenimiento total.' } }
+        { id: 301, name: 'Go Max Cine y Series', gb: 'Ilimitados', calls: 'Ilimitadas', whatsapp: true, price: '37.00€', oldPrice: '40.00€', discount: '8%', promo: 'Bono TV Gratis', promocion_id: 3001, companyName: 'Orange', companyId: 'ORA', amount: 37.00, fullDetails: { roaming: 'EU', sms: 'Ilimitados', services: ['Orange TV'], finePrint: 'Entretenimiento total.' } }
       ],
       LN: []
     },
     'YOI': {
       PORTA: [
-        { name: 'La Sinfín Ilimitada', gb: 'Ilimitados', calls: 'Ilimitadas', whatsapp: true, price: '25.00€', oldPrice: '32.00€', discount: '22%', promo: 'Precio para siempre', companyName: 'Yoigo', companyId: 'YOI', amount: 25.00, fullDetails: { roaming: 'EU', sms: 'Ilimitados', services: ['Agile TV'], finePrint: 'Transparencia total.' } }
+        { id: 401, name: 'La Sinfín Ilimitada', gb: 'Ilimitados', calls: 'Ilimitadas', whatsapp: true, price: '25.00€', oldPrice: '32.00€', discount: '22%', promo: 'Precio para siempre', promocion_id: 4001, companyName: 'Yoigo', companyId: 'YOI', amount: 25.00, fullDetails: { roaming: 'EU', sms: 'Ilimitados', services: ['Agile TV'], finePrint: 'Transparencia total.' } }
       ],
       LN: []
     }
@@ -154,8 +162,17 @@ export const OffersTab: React.FC<OffersTabProps> = ({ onSell }) => {
                     </div>
                     <div className="grid grid-cols-2 gap-[1vh] mt-auto relative z-10">
                     <button onClick={() => setDetailedPlan(plan)} className="py-[1.5vh] rounded-[1.5vh] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-200 font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95 text-[clamp(0.6rem,1vh,0.8rem)]">Ficha</button>
-                    <button 
-                        onClick={() => onSell({ plan: plan.name, amount: plan.amount, promotion: plan.promo, productType: offerType === 'PORTA' ? ProductType.PORTABILITY : ProductType.NEW_LINE, originCompany: plan.companyName })}
+                    <button
+                        onClick={() => onSell({
+                          plan: plan.name,
+                          plan_id: plan.id,
+                          amount: plan.amount,
+                          promotion: plan.promo,
+                          promocion_id: plan.promocion_id,
+                          productType: offerType === 'PORTA' ? ProductType.PORTABILITY : ProductType.NEW_LINE,
+                          originCompany: plan.companyName,
+                          empresa_origen_id: COMPANY_ID_MAP[plan.companyId]
+                        })}
                         className="py-[1.5vh] rounded-[1.5vh] bg-slate-900 dark:bg-indigo-600 text-white font-black uppercase tracking-widest hover:bg-indigo-600 dark:hover:bg-indigo-700 transition-all active:scale-95 text-[clamp(0.6rem,1vh,0.8rem)]"
                     >
                         Vender

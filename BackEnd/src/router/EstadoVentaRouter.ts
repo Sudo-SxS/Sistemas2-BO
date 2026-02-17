@@ -203,5 +203,19 @@ export function estadoVentaRouter(
     },
   );
 
+  /**
+   * POST /estados/bulk
+   * Crear múltiples estados (bulk)
+   * Body: { estados: EstadoVentaCreate[] }
+   */
+  router.post(
+    "/estados/bulk",
+    authMiddleware(userModel),
+    rolMiddleware("SUPERADMIN", "ADMIN", "BACK_OFFICE"),
+    async (ctx: ContextWithParams) => {
+      await estadoVentaController.bulkCreate(ctx);
+    },
+  );
+
   return router;
 }

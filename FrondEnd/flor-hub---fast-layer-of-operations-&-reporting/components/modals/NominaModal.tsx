@@ -1,9 +1,9 @@
 
 import React, { useState, useMemo } from 'react';
 import { z } from 'zod';
-import { MOCK_SELLERS } from '../constants';
-import { Seller } from '../types';
-import { SUPERVISORES_MOCK } from '../mocks/supervisores';
+import { MOCK_SELLERS } from '../../constants';
+import { Seller } from '../../types';
+import { SUPERVISORES_MOCK } from '../../mocks/supervisores';
 
 // Schema Zod para crear vendedor (Persona + Usuario + Vendedor)
 const VendedorFormSchema = z.object({

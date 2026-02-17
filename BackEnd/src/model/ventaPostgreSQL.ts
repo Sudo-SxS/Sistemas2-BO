@@ -412,7 +412,7 @@ export class VentaPostgreSQL implements VentaModelDB {
     // Query principal con JOINs y DISTINCT ON
     const query = `
       SELECT DISTINCT ON (v.venta_id)
-        v.venta_id, v.sds, v.chip, v.stl, v.tipo_venta, 
+        v.venta_id, v.sds, v.chip, v.stl, v.tipo_venta, v.sap, 
         TO_CHAR(v.fecha_creacion, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as fecha_creacion,
         p_cliente.nombre as cliente_nombre, 
         p_cliente.apellido as cliente_apellido,

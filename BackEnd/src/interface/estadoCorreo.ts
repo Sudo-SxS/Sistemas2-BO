@@ -58,4 +58,7 @@ export interface EstadoCorreoModelDB {
   countByEstado(params: { estado: string }): Promise<number>;
 
   countBySAP(params: { sap_id: string }): Promise<number>;
+
+  // Método bulk
+  bulkCreateEstados(estados: EstadoCorreoCreate[]): Promise<EstadoCorreo[]>;
 }

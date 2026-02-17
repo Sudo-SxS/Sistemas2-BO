@@ -470,4 +470,49 @@ export class EstadoCorreoPostgreSQL implements EstadoCorreoModelDB {
 
     return result.rows.length > 0 ? Number(result.rows[0].count) : 0;
   }
+
+  // ======================================================
+  // CREAR MÚLTIPLES ESTADOS (BULK)
+  // ======================================================
+  async bulkCreateEstados(
+    estados: EstadoCorreoCreate[],
+  ): Promise<EstadoCorreo[]> {
+    const client = this.connection.getClient();
+    const results: EstadoCorreo[] = [];
+
+    try {
+      await client.queryObject("BEGIN");
+
+      for (const estado of estados) {
+        const query = `
+          INSERT INTO estado_correo (
+            sap_id, estado, descripcion, fecha_creacion, usuario_id, ubicacion_actual
+          ) VALUES (
+            $1, $2, $3, NOW(), $4, $5
+          ) RETURNING
+            estado_correo_id, sap_id, estado, descripcion, fecha_creacion, usuario_id, ubicacion_actual
+        `;
+
+        const result = await client.queryObject<EstadoCorreo>(query, [
+          estado.sap_id?.toUpperCase(),
+          estado.estado,
+          estado.descripcion || null,
+          estado.usuario_id,
+          estado.ubicacion_actual || null,
+        ]);
+
+        if (result.rows.length > 0) {
+          results.push(result.rows[0]);
+        }
+      }
+
+      await client.queryObject("COMMIT");
+      this.logInfo(`Bulk create: ${results.length} estados de correo creados`);
+      return results;
+    } catch (error) {
+      await client.queryObject("ROLLBACK");
+      this.logError("Error en bulkCreateEstados", error);
+      throw error;
+    }
+  }
 }

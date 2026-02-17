@@ -57,6 +57,7 @@ interface EstadisticasResponse {
 interface VentaUIResponse {
   venta_id: number;
   sds: string | null;
+  sap: string | null;
   chip: 'SIM' | 'ESIM';
   stl: string | null;
   tipo_venta: 'PORTABILIDAD' | 'LINEA_NUEVA';
@@ -85,6 +86,7 @@ interface VentaUIResponse {
   estado_actual: string;
   // Estado correo
   correo_estado: string | null;
+  correo_id?: number | null;
   // Portabilidad
   numero_portar: string | null;
   operador_origen_nombre: string | null;
@@ -444,7 +446,9 @@ export const mapVentaUIToSale = (venta: VentaUIResponse): Sale => {
     advisor: `${venta.vendedor_nombre} ${venta.vendedor_apellido}`.trim(),
     supervisor: venta.supervisor_nombre 
       ? `${venta.supervisor_nombre} ${venta.supervisor_apellido || ''}`.trim()
-      : ''
+      : '',
+    correo_id: venta.correo_id,
+    sap: venta.sap
   };
 };
 

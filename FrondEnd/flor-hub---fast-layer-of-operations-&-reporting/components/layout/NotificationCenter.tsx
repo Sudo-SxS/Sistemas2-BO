@@ -1,5 +1,5 @@
 import React from 'react';
-import { NOTIFICATIONS } from '../constants';
+import { NOTIFICATIONS } from '../../constants';
 
 interface NotificationCenterProps {
   onClose: () => void;

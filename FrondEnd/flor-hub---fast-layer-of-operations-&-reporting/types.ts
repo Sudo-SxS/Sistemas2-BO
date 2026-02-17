@@ -21,8 +21,8 @@ export enum SaleStatus {
 export enum LogisticStatus {
   INICIAL = 'INICIAL',
   ASIGNADO = 'ASIGNADO',
-  EN_TRANSITO = 'EN TRANSITO',
-  EN_CAMINO = 'EN CAMINO',
+  EN_TRANSITO = 'EN_TRANSITO',
+  EN_CAMINO = 'EN_CAMINO',
   EN_REPARTO = 'EN_REPARTO',
   LLEGADA_DESTINO = 'LLEGADA_DESTINO',
   PENDIENTE = 'PENDIENTE',
@@ -30,12 +30,12 @@ export enum LogisticStatus {
   DEVUELTO_CLIENTE = 'DEVUELTO AL CLIENTE',
   EN_DEVOLUCION = 'EN DEVOLUCION',
   ENTREGADO = 'ENTREGADO',
-  INGRESADO_LOGISTICO = 'INGRESADO CENTRO LOGISTICO - ECOMMERCE',
-  INGRESADO_AGENCIA = 'INGRESADO EN AGENCIA',
-  INGRESADO_PICKUP = 'INGRESADO PICK UP CENTER UES',
-  NO_ENTREGADO = 'NO ENTREGADO',
-  PIEZA_EXTRAVIADA = 'PIEZA EXTRAVIADA',
-  RENDIDO_AL_CLIENTE = 'RENDIDO AL CLIENTE'
+  INGRESADO_LOGISTICO = 'INGRESADO_LOGISTICO',
+  INGRESADO_AGENCIA = 'INGRESADO_AGENCIA',
+  INGRESADO_PICKUP = 'INGRESADO_PICKUP',
+  NO_ENTREGADO = 'NO_ENTREGADO',
+  PIEZA_EXTRAVIADA = 'PIEZA_EXTRAVIADA',
+  RENDIDO_AL_CLIENTE = 'RENDIDO_AL_CLIENTE'
 }
 
 export enum LineStatus {
@@ -115,6 +115,9 @@ export interface Sale {
   pin?: string | null;
   fecha_vencimiento_pin?: string | null;
   mercado_origen?: 'PREPAGO' | 'POSPAGO';
+  // Campo para actualización de estado de correo
+  correo_id?: number | null;
+  sap?: string | null;
 }
 
 // Nueva interfaz completa para detalles de venta
@@ -198,6 +201,14 @@ export interface SaleDetail {
   // Estados actuales
   estadoVentaActual: SaleStatus;
   estadoCorreoActual: LogisticStatus | null;
+  
+  // Datos de precios
+  precioFinal: number;
+  precioBase: number;
+  descuento: number;
+  
+  // Origen
+  empresa_origen?: string;
   
   // Historiales
   historialEstadosVenta: {

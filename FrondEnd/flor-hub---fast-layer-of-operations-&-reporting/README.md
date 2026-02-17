@@ -58,35 +58,31 @@
 
 ```
 src/
-├── components/           # Componentes React
-│   ├── ui/              # Componentes base (Button, Input, etc.)
-│   ├── layout/          # Layouts (Header, Sidebar)
-│   ├── modals/          # Modales (SaleFormModal, etc.)
-│   └── tables/          # Tablas especializadas
-├── pages/               # Páginas/Rutas principales
-│   ├── Home.tsx
-│   ├── Sales.tsx
-│   ├── Clients.tsx
-│   └── Reports.tsx
-├── hooks/               # Custom React hooks
-│   ├── useSales.ts
-│   ├── useClients.ts
-│   └── useAuth.ts
-├── services/            # API calls
-│   ├── api.ts          # Configuración de axios/fetch
-│   ├── salesService.ts
-│   └── clientService.ts
-├── types/               # Definiciones TypeScript
-│   ├── sale.ts
-│   ├── client.ts
-│   └── index.ts
-├── utils/               # Utilidades
-│   ├── formatters.ts   # Formato de fechas, números
-│   ├── validators.ts   # Validaciones
-│   └── constants.ts    # Constantes
-├── styles/              # Estilos adicionales
-└── App.tsx             # Componente raíz
+├── components/           # Componentes React (Organizados)
+│   ├── analytics/       # Gráficos y KPIs
+│   ├── common/          # Componentes genéricos (Logo, Toast, etc.)
+│   ├── layout/          # Estructura (Header, Filters, Menus)
+│   ├── modals/          # Diálogos y formularios flotantes
+│   └── sale/            # Tarjetas y detalles de venta
+├── contexts/            # Contextos de React (Toast, Auth, etc.)
+├── hooks/               # Custom React hooks (Query, Auth)
+├── pages/               # Páginas principales
+├── services/            # Clientes de API y mapeadores
+├── types.ts             # Definiciones TypeScript globales
+└── App.tsx              # Punto de entrada principal
 ```
+
+## 🛠️ Mejoras Recientes (v2.1.0)
+
+### 📋 Gestión de Estados
+- **Corrección de Payloads**: Sincronización exacta con los esquemas Zod del backend para actualizaciones operativas y logísticas.
+- **Validación Robusta**: Mejora en el reporte de errores de Zod directamente en la interfaz (Toasts detallados).
+- **Invalidación de Queries**: Actualización en tiempo real de los modales al cambiar el estado de una venta.
+
+### 🎨 UI & UX
+- **Claridad Visual**: Eliminación de efectos de desenfoque pesados en modales para mejorar la legibilidad.
+- **Reorganización**: Estructura de componentes más lógica y escalable.
+- **Feedback**: Mejora en las notificaciones de éxito y error.
 
 ## 🚀 Instalación y Configuración
 

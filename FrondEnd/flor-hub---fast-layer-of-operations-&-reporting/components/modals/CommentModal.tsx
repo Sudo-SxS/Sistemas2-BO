@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useVentaComentarios, Comentario } from '../hooks/useVentaComentarios';
-import { createComentario, TipoComentario } from '../services/createComentario';
+import { useVentaComentarios, Comentario } from '../../hooks/useVentaComentarios';
+import { createComentario, TipoComentario } from '../../services/createComentario';
+import { useToast } from '../../contexts/ToastContext';
 
 interface CommentModalProps {
   ventaId: number;
@@ -50,6 +51,7 @@ const getTipoColor = (tipo: string): string => {
 
 export const CommentModal: React.FC<CommentModalProps> = ({ ventaId, customerName, onClose, onSuccess }) => {
   const { comentarios, isLoading, refetch } = useVentaComentarios(ventaId);
+  const { addToast } = useToast();
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
   const [tipo, setTipo] = useState<TipoComentario>('GENERAL');
@@ -58,7 +60,7 @@ export const CommentModal: React.FC<CommentModalProps> = ({ ventaId, customerNam
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !text || isSubmitting) return;
-    
+
     setIsSubmitting(true);
     try {
       await createComentario({
@@ -70,10 +72,25 @@ export const CommentModal: React.FC<CommentModalProps> = ({ ventaId, customerNam
       setTitle('');
       setText('');
       setTipo('GENERAL');
+
+      // Toast de éxito
+      addToast({
+        type: 'success',
+        title: 'Comentario Agregado',
+        message: 'El comentario se ha publicado correctamente.'
+      });
+
       if (onSuccess) onSuccess();
       refetch();
     } catch (error) {
       console.error('Error al añadir comentario:', error);
+
+      // Toast de error
+      addToast({
+        type: 'error',
+        title: 'Error',
+        message: 'No se pudo agregar el comentario. Intenta nuevamente.'
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -82,7 +99,7 @@ export const CommentModal: React.FC<CommentModalProps> = ({ ventaId, customerNam
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-500 p-2 sm:p-4">
       <div 
-        className="w-full max-w-4xl h-[95vh] sm:h-[90vh] lg:max-w-6xl lg:h-[90vh] bg-white dark:bg-slate-900 shadow-[0_30px_100px_rgba(0,0,0,0.3)] flex flex-col animate-in zoom-in-95 duration-500 rounded-2xl lg:rounded-[2vh] overflow-hidden border border-white/50 dark:border-white/5"
+        className="w-full max-w-4xl h-[85vh] sm:h-[80vh] lg:max-w-6xl lg:h-[85vh] bg-white dark:bg-slate-900 shadow-[0_30px_100px_rgba(0,0,0,0.3)] flex flex-col animate-in zoom-in-95 duration-500 rounded-2xl lg:rounded-[2vh] overflow-hidden border border-white/50 dark:border-white/5"
       >
         <div className="relative p-4 sm:p-6 lg:p-[4vh] bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-900 dark:via-slate-900 dark:to-black text-white shrink-0 flex-shrink-0">
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
@@ -162,7 +179,7 @@ export const CommentModal: React.FC<CommentModalProps> = ({ ventaId, customerNam
             )}
           </div>
 
-          <div className="w-full lg:w-[380px] xl:w-[420px] p-4 lg:p-6 bg-white dark:bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-100 dark:border-slate-800 shrink-0 flex flex-col justify-start gap-4 lg:gap-[3vh]">
+          <div className="w-full lg:w-[380px] xl:w-[420px] p-4 lg:p-6 bg-white dark:bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-100 dark:border-slate-800 shrink-0 flex flex-col justify-start gap-4 lg:gap-[3vh] overflow-y-auto max-h-[40vh] lg:max-h-none">
             <div className="space-y-3 lg:space-y-[3vh]">
               <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 lg:p-[3vh] rounded-xl lg:rounded-[3vh] border border-indigo-100 dark:border-indigo-800/40">
                 <p className="text-xs lg:text-[clamp(0.7rem,1.2vh,1.4rem)] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.15em] leading-relaxed">

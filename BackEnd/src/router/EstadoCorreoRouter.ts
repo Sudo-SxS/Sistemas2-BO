@@ -938,5 +938,36 @@ export function estadoCorreoRouter(
     },
   );
 
+  /**
+   * POST /estados-correo/bulk
+   * Crear múltiples estados de correo (bulk)
+   * Body: { estados: EstadoCorreoCreate[] }
+   */
+  router.post(
+    "/estados-correo/bulk",
+    authMiddleware(userModel),
+    rolMiddleware(...ROLES_MANAGEMENT),
+    async (ctx: Context) => {
+      try {
+        await estadoCorreoController.bulkCreate(ctx);
+
+        ctx.response.status = 201;
+        ctx.response.body = {
+          success: true,
+          message: "Estados de correo creados exitosamente",
+        };
+      } catch (error) {
+        logger.error("POST /estados-correo/bulk:", error);
+        ctx.response.status = 500;
+        ctx.response.body = {
+          success: false,
+          message: error instanceof Error
+            ? error.message
+            : "Error al crear estados masivamente",
+        };
+      }
+    },
+  );
+
   return router;
 }

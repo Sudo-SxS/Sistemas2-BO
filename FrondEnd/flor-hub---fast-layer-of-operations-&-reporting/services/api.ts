@@ -29,7 +29,7 @@ interface ApiResponse<T> {
   data?: T;
   payload?: T;
   message?: string;
-  errors?: { field: string; message: string }[];
+  errors?: any; // Puede ser array o formato flatten() de Zod
   pagination?: {
     page: number;
     limit: number;
@@ -135,23 +135,36 @@ async function apiRequest<T>(
       
       const errorData = await response.json().catch(() => ({}));
       debugError('[API ERROR RESPONSE]', { url, status: response.status, errorData });
-      const errorMessage = errorData.message || `Error ${response.status}: ${response.statusText}`;
+      
+      let errorMessage = errorData.message || `Error ${response.status}: ${response.statusText}`;
+      
+      // Manejar detalles de errores (Zod u otros)
+      if (errorData.errors) {
+        if (Array.isArray(errorData.errors)) {
+          const detail = errorData.errors.map((e: any) => `${e.field || e.path}: ${e.message}`).join(', ');
+          errorMessage = `${errorMessage} (${detail})`;
+        } else if (errorData.errors.fieldErrors) {
+          // Formato flatten() de Zod
+          const details = Object.entries(errorData.errors.fieldErrors)
+            .map(([field, msgs]: [string, any]) => `${field}: ${msgs.join(', ')}`)
+            .join(', ');
+          errorMessage = `${errorMessage} (${details})`;
+        }
+      }
+      
       throw new Error(errorMessage);
     }
     
     const data: ApiResponse<T> = await response.json();
     console.log('[API SUCCESS]', { url, status: response.status, data });
     return data;
-  } catch (error) {
-    debugError('[API CATCH ERROR]', { url, error: error?.message });
-    clearTimeout(timeoutId);
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        throw new Error('La solicitud tardó demasiado tiempo');
-      }
-      throw error;
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      clearTimeout(timeoutId);
+      throw new Error('La solicitud tardó demasiado tiempo');
     }
-    throw new Error('Error desconocido en la solicitud');
+    debugError('[API CATCH ERROR]', { url, error: error?.message });
+    throw error;
   }
 }
 

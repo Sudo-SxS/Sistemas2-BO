@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { ProductType, Sale } from '../types';
-import { getPlanesPorEmpresa, getPromocionesPorEmpresa, getEmpresasOrigen, PlanResponse, PromocionResponse, EmpresaOrigenResponse } from '../services/plan';
+import { PlanResponse, PromocionResponse, EmpresaOrigenResponse } from '../services/plan';
+import { OfferCardSkeleton } from '../components/sale/OfferCardSkeleton';
+import { useEmpresasQuery, usePlanesQuery, usePromocionesQuery } from '../hooks/useOfertasQuery';
 
 interface OfertaPlan {
   id: number;
@@ -108,25 +110,11 @@ export const OfertasPage: React.FC<OfertasPageProps> = ({ onSell }) => {
   const [selectedOperator, setSelectedOperator] = useState<string>('');
   const [selectedEmpresaId, setSelectedEmpresaId] = useState<number | null>(null);
   const [detailedPlan, setDetailedPlan] = useState<OfertaPlan | null>(null);
-  const [planes, setPlanes] = useState<PlanResponse[]>([]);
-  const [promociones, setPromociones] = useState<PromocionResponse[]>([]);
-  const [empresas, setEmpresas] = useState<EmpresaOrigenResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingPlanes, setLoadingPlanes] = useState(false);
 
-  // Cargar empresas al inicio
-  useEffect(() => {
-    const loadEmpresas = async () => {
-      setLoading(true);
-      const empresasRes = await getEmpresasOrigen();
-      
-      if (empresasRes.success && empresasRes.data) {
-        setEmpresas(empresasRes.data);
-      }
-      setLoading(false);
-    };
-    loadEmpresas();
-  }, []);
+  // Replaced local state and useEffects with React Query hooks
+  const { data: empresas = [], isLoading: isLoadingEmpresas } = useEmpresasQuery();
+  const { data: planes = [], isLoading: isLoadingPlanes } = usePlanesQuery(selectedEmpresaId);
+  const { data: promociones = [], isLoading: isLoadingPromociones } = usePromocionesQuery(selectedEmpresaId);
 
   // Filtrar empresas según tipo de oferta
   const empresasFiltradas = useMemo(() => {
@@ -137,50 +125,20 @@ export const OfertasPage: React.FC<OfertasPageProps> = ({ onSell }) => {
     }
   }, [empresas, offerType]);
 
-  // Seleccionar primera empresa por defecto cuando cambian las empresas filtradas
+  // Reiniciar selección cuando cambia el tipo de oferta
   useEffect(() => {
-    if (empresasFiltradas.length > 0) {
+    setSelectedEmpresaId(null);
+    setSelectedOperator('');
+  }, [offerType]);
+
+  // Seleccionar primera empresa por defecto cuando cambian las empresas filtradas (y no hay selección)
+  useEffect(() => {
+    if (empresasFiltradas.length > 0 && !selectedEmpresaId) {
       const primeraEmpresa = empresasFiltradas[0];
       setSelectedOperator(primeraEmpresa.nombre_empresa);
       setSelectedEmpresaId(primeraEmpresa.empresa_origen_id);
-    } else {
-      setSelectedOperator('');
-      setSelectedEmpresaId(null);
     }
-  }, [empresasFiltradas]);
-
-  // Cargar planes y promociones cuando cambia la empresa seleccionada
-  useEffect(() => {
-    const loadDataPorEmpresa = async () => {
-      if (!selectedEmpresaId) {
-        setPlanes([]);
-        setPromociones([]);
-        return;
-      }
-
-      setLoadingPlanes(true);
-      const [planesRes, promocionesRes] = await Promise.all([
-        getPlanesPorEmpresa(selectedEmpresaId),
-        getPromocionesPorEmpresa(selectedEmpresaId)
-      ]);
-      
-      if (planesRes.success && planesRes.data) {
-        setPlanes(planesRes.data);
-      } else {
-        setPlanes([]);
-      }
-      
-      if (promocionesRes.success && promocionesRes.data) {
-        setPromociones(promocionesRes.data);
-      } else {
-        setPromociones([]);
-      }
-      
-      setLoadingPlanes(false);
-    };
-
-    loadDataPorEmpresa();
-  }, [selectedEmpresaId]);
+  }, [empresasFiltradas, selectedEmpresaId, offerType]);
 
   // Función auxiliar para crear una oferta individual con precios correctos
   const crearOferta = useCallback((plan: PlanResponse, promocion: PromocionResponse | null, empresa: EmpresaOrigenResponse | undefined): OfertaPlan => {
@@ -281,15 +239,21 @@ export const OfertasPage: React.FC<OfertasPageProps> = ({ onSell }) => {
     setSelectedEmpresaId(empresa.empresa_origen_id);
   };
 
-  if (loading) {
+  const isLoading = isLoadingEmpresas || isLoadingPlanes || isLoadingPromociones;
+
+  if (isLoading && empresasFiltradas.length === 0) {
     return (
-      <div className="p-[4vh] flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full"></div>
+      <div className="p-[4vh] space-y-[4vh] animate-in fade-in duration-500">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-[2vh]">
+          <div className="h-10 w-64 bg-slate-200/40 rounded-xl animate-pulse"></div>
+          <div className="h-14 w-80 bg-slate-200/40 rounded-2xl animate-pulse"></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-[2.5vh]">
+          {[1, 2, 3, 4].map(i => <OfferCardSkeleton key={i} />)}
+        </div>
       </div>
     );
   }
-
-  const companyColors = selectedOperator ? getCompanyColor(selectedOperator) : { color: 'bg-slate-900', text: 'text-slate-900', baseColor: 'slate' };
 
   return (
     <div className="p-[4vh] space-y-[3vh] animate-in fade-in duration-500">
@@ -338,17 +302,14 @@ export const OfertasPage: React.FC<OfertasPageProps> = ({ onSell }) => {
         </div>
       )}
 
-      {/* Loading de planes */}
-      {loadingPlanes && (
-        <div className="p-[4vh] flex items-center justify-center">
-          <div className="animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full"></div>
-        </div>
-      )}
-
       {/* Grupos de Promociones */}
-      {!loadingPlanes && (
-        <div className="space-y-[4vh]">
-          {gruposPorPromocion.map((grupo, grupoIndex) => {
+      <div className="space-y-[4vh]">
+        {isLoading && planes.length === 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-[2.5vh]">
+            {[1, 2, 3, 4].map(i => <OfferCardSkeleton key={i} />)}
+          </div>
+        ) : (
+          gruposPorPromocion.map((grupo, grupoIndex) => {
             const colorVar = COLOR_VARIATIONS[grupoIndex % COLOR_VARIATIONS.length];
             return (
               <div 
@@ -431,12 +392,13 @@ export const OfertasPage: React.FC<OfertasPageProps> = ({ onSell }) => {
                           >
                             Ficha
                           </button>
-                          <button 
-                            onClick={() => onSell({ 
-                              plan: plan.name, 
-                              amount: plan.amount, 
-                              promotion: plan.promo, 
-                              productType: offerType === 'PORTA' ? ProductType.PORTABILITY : ProductType.NEW_LINE, 
+                          <button
+                            onClick={() => onSell({
+                              plan: plan.name,
+                              amount: plan.amount,
+                              promotion: plan.promo,
+                              promocion_id: plan.promoId,
+                              productType: offerType === 'PORTA' ? ProductType.PORTABILITY : ProductType.NEW_LINE,
                               originCompany: plan.companyName,
                               plan_id: plan.id,
                               empresa_origen_id: plan.companyId
@@ -452,19 +414,19 @@ export const OfertasPage: React.FC<OfertasPageProps> = ({ onSell }) => {
                 </div>
               </div>
             );
-          })}
-          
-          {gruposPorPromocion.length === 0 && (
-            <div className="p-[6vh] text-center glass-panel rounded-[3vh] dark:bg-slate-900/40 dark:border-white/5">
-              <p className="font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-[clamp(0.8rem,1.5vh,1rem)]">
-                {selectedEmpresaId 
-                  ? 'No hay ofertas configuradas para esta empresa.' 
-                  : 'Seleccione una empresa para ver las ofertas.'}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
+          })
+        )}
+        
+        {!isLoading && gruposPorPromocion.length === 0 && (
+          <div className="p-[6vh] text-center glass-panel rounded-[3vh] dark:bg-slate-900/40 dark:border-white/5">
+            <p className="font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-[clamp(0.8rem,1.5vh,1rem)]">
+              {selectedEmpresaId 
+                ? 'No hay ofertas configuradas para esta empresa.' 
+                : 'Seleccione una empresa para ver las ofertas.'}
+            </p>
+          </div>
+        )}
+      </div>
       
       {detailedPlan && (
         <PlanDetailModal 

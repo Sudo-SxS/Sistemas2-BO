@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { AppTab } from '../types';
-import { useAuth } from '../hooks/useAuth';
+import { AppTab } from '../../types';
+import { useAuth } from '../../hooks/useAuth';
+import { useAuthCheck } from '../../hooks/useAuthCheck';
 import { NotificationCenter } from './NotificationCenter';
 import { ProfileMenu } from './ProfileMenu';
-import { Logo } from './Logo';
+import { Logo } from '../common/Logo';
 
 // Variables de entorno para la aplicación
 const APP_NAME = import.meta.env.VITE_APP_NAME || 'FLOR HUB';
@@ -18,17 +19,28 @@ interface HeaderProps {
   setIsDarkMode: (val: boolean) => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ 
-  activeTab, 
-  setActiveTab, 
-  onOpenNomina, 
+export const Header: React.FC<HeaderProps> = ({
+  activeTab,
+  setActiveTab,
+  onOpenNomina,
   onLogoClick,
   isDarkMode,
   setIsDarkMode
 }) => {
   const { logout } = useAuth();
+  const { user } = useAuthCheck();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showPermissionsTooltip, setShowPermissionsTooltip] = useState(false);
+
+  // Orden de prioridad de permisos (de mayor a menor)
+  const permisosPrioridad = ["SUPERADMIN", "ADMIN", "BACK_OFFICE", "SUPERVISOR", "VENDEDOR"];
+
+  // Obtener el permiso principal (el de mayor prioridad que tenga el usuario)
+  const permisoPrincipal = user?.permisos?.find(p => permisosPrioridad.includes(p));
+
+  // Obtener el resto de permisos
+  const otrosPermisos = user?.permisos?.filter(p => p !== permisoPrincipal);
 
   const toggleNotifications = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -132,23 +144,54 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="h-[4vh] w-px bg-indigo-900/10 mx-[0.2vw]"></div>
 
             <div className="relative">
-              <div 
+              <div
                 className="flex items-center gap-[1vw] cursor-pointer group"
                 onClick={toggleProfile}
               >
-                 <div className="text-right hidden sm:block">
-                   <p className={`font-black leading-none transition-colors text-[clamp(0.8rem,1.6vh,2.2rem)] ${showProfileMenu ? 'text-indigo-600' : 'text-slate-900 dark:text-white'}`}>OPERADOR_ADMIN</p>
-                   <p className="font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mt-[0.6vh] bg-emerald-100 dark:bg-emerald-900/30 px-[1vh] py-[0.3vh] rounded-full inline-block text-[clamp(0.6rem,1.1vh,1.3rem)]">Online</p>
-                 </div>
-                 <div className={`w-[6vh] h-[6vh] rounded-[1.8vh] border-2 overflow-hidden shadow-lg transition-all ${showProfileMenu ? 'border-indigo-600 scale-110 ring-4 ring-indigo-50' : 'border-white/80 group-hover:scale-105'}`}>
-                   <img src="https://picsum.photos/100/100?random=1" alt="Avatar" className="w-full h-full object-cover" />
-                 </div>
+                <div className="text-right hidden sm:block">
+                  {/* Nombre y Apellido del usuario */}
+                  <p className={`font-black leading-none transition-colors text-[clamp(0.8rem,1.6vh,2.2rem)] ${showProfileMenu ? 'text-indigo-600' : 'text-slate-900 dark:text-white'}`}>
+                    {user ? `${user.nombre} ${user.apellido}` : 'Cargando...'}
+                  </p>
+                  {/* Rol y Permiso principal con hover para ver más permisos */}
+                  <div
+                    className="relative inline-block"
+                    onMouseEnter={() => setShowPermissionsTooltip(true)}
+                    onMouseLeave={() => setShowPermissionsTooltip(false)}
+                  >
+                    <p className="font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mt-[0.6vh] bg-emerald-100 dark:bg-emerald-900/30 px-[1vh] py-[0.3vh] rounded-full inline-block text-[clamp(0.6rem,1.1vh,1.3rem)] cursor-help">
+                      {user?.rol || 'Rol'} {permisoPrincipal ? `| ${permisoPrincipal}` : ''}
+                      {otrosPermisos && otrosPermisos.length > 0 && (
+                        <span className="ml-1 text-[0.6em]">▼</span>
+                      )}
+                    </p>
+
+                    {/* Tooltip con permisos adicionales */}
+                    {showPermissionsTooltip && otrosPermisos && otrosPermisos.length > 0 && (
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-slate-800 dark:bg-slate-900 text-white text-xs rounded-lg shadow-xl z-50 whitespace-nowrap animate-in fade-in slide-in-from-top-2">
+                        <p className="font-bold mb-1 text-emerald-400">Permisos adicionales:</p>
+                        <ul className="space-y-1">
+                          {otrosPermisos.map((permiso, index) => (
+                            <li key={index} className="flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
+                              {permiso}
+                            </li>
+                          ))}
+                        </ul>
+                        <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-slate-800 dark:bg-slate-900 rotate-45"></div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className={`w-[6vh] h-[6vh] rounded-[1.8vh] border-2 overflow-hidden shadow-lg transition-all ${showProfileMenu ? 'border-indigo-600 scale-110 ring-4 ring-indigo-50' : 'border-white/80 group-hover:scale-105'}`}>
+                  <img src="https://picsum.photos/100/100?random=1" alt="Avatar" className="w-full h-full object-cover" />
+                </div>
               </div>
               {showProfileMenu && (
-                <ProfileMenu 
-                  onClose={closeMenus} 
-                  onOpenNomina={onOpenNomina} 
-                  onLogout={logout} 
+                <ProfileMenu
+                  onClose={closeMenus}
+                  onOpenNomina={onOpenNomina}
+                  onLogout={logout}
                   isDarkMode={isDarkMode}
                   setIsDarkMode={setIsDarkMode}
                 />

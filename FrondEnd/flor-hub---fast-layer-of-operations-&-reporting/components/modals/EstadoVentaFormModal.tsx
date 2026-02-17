@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { z } from 'zod';
-import { Sale } from '../types';
+import { Sale } from '../../types';
 
 // Estados de venta según el schema
 const ESTADOS_VENTA = [

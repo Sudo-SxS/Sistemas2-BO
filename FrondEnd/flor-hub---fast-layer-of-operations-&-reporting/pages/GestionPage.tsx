@@ -1,7 +1,7 @@
 import React from 'react';
-import { SaleCard } from '../components/SaleCard';
+import { SaleCard } from '../components/sale/SaleCard';
 import { Sale } from '../types';
-import { SaleCardSkeleton } from '../components/SaleCardSkeleton';
+import { SaleCardSkeleton } from '../components/sale/SaleCardSkeleton';
 
 interface GestionPageProps {
   sales: Sale[];
@@ -12,7 +12,7 @@ interface GestionPageProps {
   onCommentSale: (sale: Sale) => void;
 }
 
-import { VirtualList } from '../components/VirtualList';
+import { VirtualList } from '../components/common/VirtualList';
 
 export const GestionPage: React.FC<GestionPageProps> = ({ 
   sales, isLoading, selectedIds, onToggleSelect, onViewSale, onCommentSale 
@@ -45,7 +45,7 @@ export const GestionPage: React.FC<GestionPageProps> = ({
   const GAP = window.innerHeight * 0.015;
 
   return (
-    <div className="animate-in fade-in duration-700 pb-[10vh]">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 pb-[10vh]">
       <VirtualList
         items={sales}
         itemHeight={ITEM_HEIGHT}

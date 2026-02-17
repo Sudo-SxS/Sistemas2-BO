@@ -1,5 +1,5 @@
 import React from 'react';
-import { SaleStatus, LogisticStatus } from '../types';
+import { SaleStatus, LogisticStatus } from '../../types';
 
 interface KPIProps {
   sales: any[];

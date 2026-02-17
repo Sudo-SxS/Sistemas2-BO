@@ -66,4 +66,8 @@ export class EstadoVentaService {
   async getAllLastEstado(): Promise<EstadoVenta[]> {
     return this.model.getAllLastEstado();
   }
+
+  async bulkCreate(estados: EstadoVentaCreate[]): Promise<EstadoVenta[]> {
+    return this.model.bulkCreateEstados(estados);
+  }
 }

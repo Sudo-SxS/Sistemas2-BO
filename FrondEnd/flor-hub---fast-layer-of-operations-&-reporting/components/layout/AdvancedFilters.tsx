@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { SaleStatus, LogisticStatus, ProductType, OriginMarket } from '../types';
+import { SaleStatus, LogisticStatus, ProductType, OriginMarket } from '../../types';
 
 interface AdvancedFiltersProps {
   onClose: () => void;
@@ -99,7 +99,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
           <h3 className="text-xl font-black italic tracking-tighter uppercase">Panel de Inteligencia de Filtros</h3>
           <p className="text-[10px] font-black text-indigo-200 dark:text-indigo-400 uppercase tracking-[0.2em] mt-1">Refina tu búsqueda operacional</p>
         </div>
-        <button onClick={onClose} className="relative z-10 w-10 h-10 rounded-2xl bg-white/10 hover:bg-white/40 transition-all group">
+        <button onClick={onClose} className="relative z-10 w-10 h-10 rounded-2xl bg-white/10 hover:bg-white/40 transition-all group flex items-center justify-center">
            <svg className="w-5 h-5 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
       </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sale, SaleStatus, LogisticStatus, ProductType } from '../types';
+import { Sale, SaleStatus, LogisticStatus, ProductType } from '../../types';
 
 interface SaleCardProps {
   sale: Sale;
@@ -42,21 +42,42 @@ const getLogisticStatusStyles = (status: LogisticStatus) => {
 export const SaleCard = React.memo(({ sale, isSelected, onToggleSelect, onClick, onComment }: SaleCardProps) => {
   const isPorta = sale.productType === ProductType.PORTABILITY;
   const lastComment = sale.comments[sale.comments.length - 1];
+  
+  // Detección de venta "fresca" (menos de 60 segundos)
+  const isFresh = React.useMemo(() => {
+    const saleTime = new Date(sale.date).getTime();
+    const now = Date.now();
+    return (now - saleTime) < 60000;
+  }, [sale.date]);
 
-  // Debug: ver qué datos recibe el componente
-  console.log('[SaleCard] Renderizando:', sale.id, sale.customerName);
-  console.log('[SaleCard] Status:', sale.status, typeof sale.status);
-  console.log('[SaleCard] LogisticStatus:', sale.logisticStatus, typeof sale.logisticStatus);
-  console.log('[SaleCard] Comments:', sale.comments);
-  console.log('[SaleCard] LastComment:', lastComment);
-  console.log('[SaleCard] Date:', sale.date);
-  console.log('[SaleCard] Phone:', sale.phoneNumber);
-  console.log('[SaleCard] OriginMarket:', sale.originMarket);
-  console.log('[SaleCard] OriginCompany:', sale.originCompany);
+  // Efecto de brillo suave para actualizaciones (comentarios, estado)
+  const [isUpdating, setIsUpdating] = React.useState(false);
+  // Efecto de brillo persistente para ventas nuevas
+  const [isFreshGlowing, setIsFreshGlowing] = React.useState(isFresh);
+  
+  React.useEffect(() => {
+    setIsUpdating(true);
+    const timer = setTimeout(() => setIsUpdating(false), 2000);
+    return () => clearTimeout(timer);
+  }, [sale.comments.length, sale.status, sale.logisticStatus]);
+
+  React.useEffect(() => {
+    if (isFresh) {
+      const timer = setTimeout(() => setIsFreshGlowing(false), 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [isFresh]);
 
   return (
     <div 
-      className={`group bento-card rounded-[2.5vh] px-[2.5vw] py-[1.5vh] flex flex-col lg:flex-row items-center gap-[1.5vw] animate-in fade-in slide-in-from-left-4 duration-500 hover:translate-x-2 border-l-[0.6vh] ${isSelected ? 'border-l-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 scale-[1.01] shadow-xl ring-4 ring-indigo-100 dark:ring-indigo-900/30' : 'border-l-transparent'}`}
+      className={`group bento-card rounded-[2.5vh] px-[2.5vw] py-[1.5vh] flex flex-col lg:flex-row items-center gap-[1.5vw] border-l-[0.6vh] transition-all
+        ${isFresh 
+          ? 'animate-in fade-in slide-in-from-right-8 duration-1000' 
+          : 'animate-in fade-in slide-in-from-left-4 duration-500'}
+        ${isUpdating ? 'ring-2 ring-indigo-400 shadow-[0_0_20px_rgba(129,140,248,0.3)]' : ''} 
+        ${isFreshGlowing ? 'ring-2 ring-blue-500 shadow-[0_0_25px_rgba(59,130,246,0.4)] bg-blue-50/5 dark:bg-blue-900/10' : ''}
+        ${isSelected ? 'border-l-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 scale-[1.01] shadow-xl ring-4 ring-indigo-100 dark:ring-indigo-900/30' : 'border-l-transparent'}
+        hover:translate-x-2`}
     >
       {/* Selection Checkbox */}
       <div className="flex items-center pr-[0.8vw]">

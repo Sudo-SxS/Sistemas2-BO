@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { SaleCard } from '../components/SaleCard';
+import { SaleCard } from '../components/sale/SaleCard';
 import { Sale } from '../types';
 
 interface SeguimientoPageProps {
@@ -14,7 +14,7 @@ interface SeguimientoPageProps {
   counts: Record<string, number>;
 }
 
-import { VirtualList } from '../components/VirtualList';
+import { VirtualList } from '../components/common/VirtualList';
 
 export const SeguimientoPage: React.FC<SeguimientoPageProps> = ({ 
   trackingSubTab, setTrackingSubTab, sales, selectedIds, onToggleSelect, onViewSale, onCommentSale, counts

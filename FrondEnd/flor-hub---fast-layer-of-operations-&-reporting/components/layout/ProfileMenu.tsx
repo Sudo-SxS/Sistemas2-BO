@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { PasswordChangeModal } from './PasswordChangeModalSimplificado';
-import { getCurrentUserId, buildPasswordChangeUrl } from '../utils/userHelpers';
+import { PasswordChangeModal } from '../modals/PasswordChangeModalSimplificado';
+import { useAuthCheck } from '../../hooks/useAuthCheck';
+import { getCurrentUserId, buildPasswordChangeUrl } from '../../utils/userHelpers';
 
 interface ProfileMenuProps {
   onClose: () => void;
@@ -22,6 +23,18 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
   const [view, setView] = useState<MenuState>('MAIN');
   const [isSyncing, setIsSyncing] = useState<string | null>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showPermissionsTooltip, setShowPermissionsTooltip] = useState(false);
+
+  const { user } = useAuthCheck();
+
+  // Orden de prioridad de permisos (de mayor a menor)
+  const permisosPrioridad = ["SUPERADMIN", "ADMIN", "BACK_OFFICE", "SUPERVISOR", "VENDEDOR"];
+
+  // Obtener el permiso principal (el de mayor prioridad que tenga el usuario)
+  const permisoPrincipal = user?.permisos?.find(p => permisosPrioridad.includes(p));
+
+  // Obtener el resto de permisos
+  const otrosPermisos = user?.permisos?.filter(p => p !== permisoPrincipal);
 
   const handleUpdateAction = (type: string) => {
     setIsSyncing(type);
@@ -138,11 +151,9 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
       <div className="px-[3vh] pb-[4vh] space-y-[2vh]">
         <p className="font-black text-slate-400 uppercase tracking-[0.2em] mb-[2.5vh] text-[clamp(0.6rem,1.1vh,1.5rem)]">Módulo a actualizar:</p>
         
-        {[
-          { id: 'status', label: 'Actualizar Status', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', color: 'indigo' },
-          { id: 'offers', label: 'Actualizar Ofertas', icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6', color: 'emerald' },
-          { id: 'correo', label: 'Actualizar Correo', icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', color: 'purple' },
-          { id: 'linea', label: 'Seguimiento de Línea', icon: 'M8.111 16.404a5.5 5.5 0 117.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0', color: 'fuchsia' }
+        {[ 
+          { id: 'estado-venta', label: 'Actualizar Estado Ventas', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', color: 'indigo' },
+          { id: 'correo', label: 'Actualizar Estado Correos', icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', color: 'purple' },
         ].map((item) => (
           <button
             key={item.id}
@@ -272,8 +283,44 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
             <div className="absolute -bottom-[0.5vh] -right-[0.5vh] w-[2.5vh] h-[2.5vh] bg-emerald-500 rounded-full border-2 border-slate-900 flex items-center justify-center shadow-lg"><div className="w-[0.8vh] h-[0.8vh] bg-white rounded-full animate-pulse"></div></div>
           </div>
           <div>
-            <div className="flex items-center gap-[1vh]"><h4 className="font-black uppercase tracking-tighter leading-none text-[clamp(1.2rem,2.2vh,3rem)]">OPERADOR_ADMIN</h4><span className="px-[0.8vh] py-[0.3vh] rounded-lg bg-indigo-500/20 border border-indigo-400/30 font-black text-indigo-300 uppercase tracking-widest text-[clamp(0.6rem,1vh,1.2rem)]">PRO</span></div>
-            <p className="font-black text-indigo-300 uppercase tracking-[0.3em] mt-[1vh] opacity-80 text-[clamp(0.7rem,1.3vh,1.5rem)] italic">Administrador Senior</p>
+            <div className="flex items-center gap-[1vh]">
+              <h4 className="font-black uppercase tracking-tighter leading-none text-[clamp(1.2rem,2.2vh,3rem)]">
+                {user ? `${user.nombre} ${user.apellido}` : 'Cargando...'}
+              </h4>
+              {user?.rol && (
+                <span className="px-[0.8vh] py-[0.3vh] rounded-lg bg-indigo-500/20 border border-indigo-400/30 font-black text-indigo-300 uppercase tracking-widest text-[clamp(0.6rem,1vh,1.2rem)]">
+                  {user.rol}
+                </span>
+              )}
+            </div>
+            <p className="font-black text-indigo-300 uppercase tracking-[0.3em] mt-[1vh] opacity-80 text-[clamp(0.7rem,1.3vh,1.5rem)] italic">
+              {permisoPrincipal ? `Permiso: ${permisoPrincipal}` : 'No autorizado'}
+            </p>
+            {otrosPermisos && otrosPermisos.length > 0 && (
+              <div 
+                className="relative inline-block"
+                onMouseEnter={() => setShowPermissionsTooltip(true)}
+                onMouseLeave={() => setShowPermissionsTooltip(false)}
+              >
+                <p className="font-bold text-indigo-200 mt-[0.5vh] uppercase opacity-80 text-[clamp(0.6rem,1.1vh,1.3rem)] cursor-help">
+                  Otros permisos ({otrosPermisos.length}) <span className="ml-1 text-[0.6em]">▼</span>
+                </p>
+                {showPermissionsTooltip && (
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-slate-800 dark:bg-slate-900 text-white text-xs rounded-lg shadow-xl z-50 whitespace-nowrap animate-in fade-in slide-in-from-top-2">
+                    <p className="font-bold mb-1 text-indigo-400">Permisos adicionales:</p>
+                    <ul className="space-y-1">
+                      {otrosPermisos.map((permiso, index) => (
+                        <li key={index} className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full"></span>
+                          {permiso}
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-slate-800 dark:bg-slate-900 rotate-45"></div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

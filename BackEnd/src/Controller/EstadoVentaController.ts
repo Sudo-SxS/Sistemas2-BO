@@ -491,4 +491,85 @@ export class EstadoVentaController {
       manejoDeError("Error en getByMultipleFilters EstadoVenta", error);
     }
   }
+
+  /**
+   * Crear múltiples estados (bulk)
+   */
+  async bulkCreate(ctx: ContextWithParams) {
+    try {
+      const body = await ctx.request.body.json();
+      const user = ctx.state.user;
+
+      console.log('🔍 [DEBUG] EstadoVentaController.bulkCreate - Datos recibidos:', JSON.stringify(body));
+
+      if (!body.estados || !Array.isArray(body.estados) || body.estados.length === 0) {
+        ctx.response.status = 400;
+        ctx.response.body = {
+          success: false,
+          message: "Se requiere un array de estados",
+        };
+        return;
+      }
+
+      // Preparar datos con usuario_id del token
+      const estadosConUsuario = body.estados.map((estado: any) => ({
+        ...estado,
+        usuario_id: user.id,
+      }));
+
+      console.log('🔍 [DEBUG] EstadoVentaController.bulkCreate - Estados con usuario:', JSON.stringify(estadosConUsuario));
+
+      // Validar cada estado
+      const estadosValidos = [];
+      const erroresValidacion = [];
+      for (const estado of estadosConUsuario) {
+        const result = EstadoVentaCreateSchema.safeParse(estado);
+        if (result.success) {
+          console.log('🔍 [DEBUG] Estado válido:', JSON.stringify(result.data));
+          estadosValidos.push(result.data);
+        } else {
+          console.log('🔍 [DEBUG] Estado inválido:', JSON.stringify(estado), 'Errores:', JSON.stringify(result.error));
+          erroresValidacion.push({ estado, error: result.error });
+        }
+      }
+
+      console.log('🔍 [DEBUG] Estados válidos encontrados:', estadosValidos.length);
+      console.log('🔍 [DEBUG] Errores de validación:', erroresValidacion.length);
+
+      if (estadosValidos.length === 0) {
+        ctx.response.status = 400;
+        ctx.response.body = {
+          success: false,
+          message: "Ningún estado válido para crear. Verifique que los estados sean válidos.",
+          debug: {
+            recibidos: body.estados.length,
+            errores: erroresValidacion.map(e => ({
+              venta_id: e.estado.venta_id,
+              estado: e.estado.estado,
+              errores: e.error.errors?.map(err => err.message) || []
+            }))
+          }
+        };
+        return;
+      }
+
+      const result = await this.estadoVentaService.bulkCreate(estadosValidos);
+
+      ctx.response.status = 201;
+      ctx.response.body = {
+        success: true,
+        message: `Se actualizaron ${result.length} estados de venta`,
+        data: result,
+        count: result.length,
+      };
+    } catch (error) {
+      console.error('🔍 [DEBUG] Error en bulkCreate:', error);
+      ctx.response.status = 500;
+      ctx.response.body = {
+        success: false,
+        message: "Error al crear estados masivamente",
+      };
+      manejoDeError("Error en bulkCreate EstadoVenta", error);
+    }
+  }
 }

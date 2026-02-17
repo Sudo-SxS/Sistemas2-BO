@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { api } from '../services/api';
-import { buildPasswordChangeUrl } from '../utils/userHelpers';
-import useAuthCheck from '../hooks/useAuthCheck';
+import { api } from '../../services/api';
+import { buildPasswordChangeUrl } from '../../utils/userHelpers';
+import useAuthCheck from '../../hooks/useAuthCheck';
+import { useToast } from '../../contexts/ToastContext';
 
 interface PasswordChangeModalProps {
   onClose: () => void;
@@ -30,8 +31,9 @@ export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClos
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const { user } = useAuthCheck();
+  const { addToast } = useToast();
   const userId = user?.id || localStorage.getItem('userId');
   
   // Verificar requisitos de la contraseña
@@ -87,25 +89,46 @@ export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClos
       });
 
       if (response.success) {
+        // Toast de éxito
+        addToast({
+          type: 'success',
+          title: 'Contraseña Actualizada',
+          message: 'Tu contraseña se ha cambiado exitosamente.'
+        });
         onSuccess();
         onClose();
       } else {
         setError(response.message || 'Error al actualizar contraseña');
+        // Toast de error
+        addToast({
+          type: 'error',
+          title: 'Error',
+          message: response.message || 'No se pudo cambiar la contraseña.'
+        });
       }
 
     } catch (err: any) {
       console.error('Error changing password:', err);
+      let errorMessage = 'Error de conexión. Intenta nuevamente.';
+
       if (err.message?.includes('401')) {
-        setError('La contraseña actual es incorrecta');
+        errorMessage = 'La contraseña actual es incorrecta';
       } else if (err.message?.includes('403')) {
-        setError('No tienes permisos para realizar esta acción');
+        errorMessage = 'No tienes permisos para realizar esta acción';
       } else if (err.message?.includes('404')) {
-        setError('Usuario no encontrado');
+        errorMessage = 'Usuario no encontrado';
       } else if (err.message?.includes('diferente')) {
-        setError('La nueva contraseña debe ser diferente a la actual');
-      } else {
-        setError('Error de conexión. Intenta nuevamente.');
+        errorMessage = 'La nueva contraseña debe ser diferente a la actual';
       }
+
+      setError(errorMessage);
+
+      // Toast de error
+      addToast({
+        type: 'error',
+        title: 'Error',
+        message: errorMessage
+      });
     } finally {
       setIsLoading(false);
     }

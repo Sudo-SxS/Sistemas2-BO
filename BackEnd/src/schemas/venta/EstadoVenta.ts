@@ -4,37 +4,37 @@
 import { z } from "zod";
 
 export const EstadoVentaEnum = z.enum([
-  "PENDIENTE DE CARGA",
-  "CREADO SIN DOCU",
+  "INICIAL",
+  "EN_PROCESO",
+  "EN_TRANSPORTE",
+  "EN_REVISION",
+  "PENDIENTE_PORTABILIDAD",
+  "CREADO_SIN_DOCU",
   "CREADO DOCU OK",
-  "EN TRANSPORTE",
-  "ENTREGADO",
-  "REPACTAR",
-  "ACTIVADO NRO CLARO",
+  "PENDIENTE_DOCUMENTACION",
+  "COMPLETADO",
+  "APROBADO",
   "ACTIVADO NRO PORTADO",
-  "AGENDADO",
-  "APROBADO ABD",
+  "ACTIVADO",
+  "EXITOSO",
+  "RECHAZADO",
   "CANCELADO",
-  "CREADO",
-  "EVALUANDO DONANTE",
-  "PENDIENTE CARGA PIN",
-  "PIN INGRESADO",
-  "RECHAZADO ABD",
-  "RECHAZADO DONANTE",
-  "SPN CANCELADA",
+  "ANULADO",
  ]);
 
 export const EstadoVentaSchema = z.object({
   estado_id: z.number().int().positive(),
   venta_id: z.number().int().positive(),
   estado: EstadoVentaEnum,
-  descripcion: z.string().max(75),
+  descripcion: z.string().max(255),
   fecha_creacion: z.coerce.date(),
   usuario_id: z.string().uuid(),
 });
 
 export const EstadoVentaCreateSchema = EstadoVentaSchema.omit({
   estado_id: true,
+  fecha_creacion: true,
+  usuario_id: true,
 });
 
 export const EstadoVentaUpdateSchema = EstadoVentaSchema.omit({

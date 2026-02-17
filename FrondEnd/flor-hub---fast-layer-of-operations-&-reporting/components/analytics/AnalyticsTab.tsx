@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
-import { MOCK_SALES } from '../constants';
-import { SaleStatus, LogisticStatus, LineStatus } from '../types';
+import { MOCK_SALES } from '../../constants';
+import { SaleStatus, LogisticStatus, LineStatus } from '../../types';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 type Period = 'DIA' | 'SEMANA' | 'MES' | 'SEMESTRE' | 'AÑO' | 'HISTORICO';

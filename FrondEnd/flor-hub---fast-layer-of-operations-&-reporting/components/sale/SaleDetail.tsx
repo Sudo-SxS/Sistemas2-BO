@@ -2,8 +2,8 @@
 // Componente para mostrar detalles completos de una venta
 
 import React from 'react';
-import { VentaDetalleCompletoResponse } from '../services/ventas';
-import { SaleStatus, LogisticStatus } from '../types';
+import { VentaDetalleCompletoResponse } from '../../services/ventas';
+import { SaleStatus, LogisticStatus } from '../../types';
 
 interface SaleDetailProps {
   ventaDetalle: VentaDetalleCompletoResponse | null;

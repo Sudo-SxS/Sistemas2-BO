@@ -1,25 +1,25 @@
 // App.tsx
 // Main App Component with React Query implementation
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { Header } from './components/Header';
-import { SaleModal } from './components/SaleModal';
-import { CommentModal } from './components/CommentModal';
-import { QuickActionFAB } from './components/QuickActionFAB';
-import { UpdateMenu } from './components/UpdateMenu';
-import { AdvancedFilters } from './components/AdvancedFilters';
-import { SaleFormModal } from './components/SaleFormModal';
-import { NominaModal } from './components/NominaModal';
-import { FilterBar } from './components/FilterBar';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { Header } from './components/layout/Header';
+import { SaleModal } from './components/sale/SaleModal';
+import { CommentModal } from './components/modals/CommentModal';
+import { QuickActionFAB } from './components/layout/QuickActionFAB';
+import { UpdateMenu } from './components/layout/UpdateMenu';
+import { AdvancedFilters } from './components/layout/AdvancedFilters';
+import { SaleFormModal } from './components/modals/SaleFormModal';
+import { NominaModal } from './components/modals/NominaModal';
+import { FilterBar } from './components/layout/FilterBar';
 import { GestionPage } from './pages/GestionPage';
 import { SeguimientoPage } from './pages/SeguimientoPage';
 import { api } from './services/api';
 import { ReportesPage } from './pages/ReportesPage';
 import { OfertasPage } from './pages/OfertasPage';
-import { KPICards } from './components/KPICards';
-import { CommandPalette } from './components/CommandPalette';
-import { ToastContainer } from './components/ToastContainer';
-import { ToastProvider } from './contexts/ToastContext';
+import { KPICards } from './components/analytics/KPICards';
+import { CommandPalette } from './components/layout/CommandPalette';
+import { ToastContainer } from './components/common/ToastContainer';
+import { ToastProvider, useToast } from './contexts/ToastContext';
 
 import { AppTab, Sale, SaleStatus, ProductType, LogisticStatus, LineStatus } from './types';
 
@@ -34,17 +34,22 @@ import { mapVentaToSale } from './services/ventas';
 import { getInspectionSales } from './mocks/ventasInspeccion';
 
 // Componentes Zod (mantener por compatibilidad)
-import { EstadoVentaFormModal } from './components/EstadoVentaFormModal';
-import { CorreoFormModal } from './components/CorreoFormModal';
-import { EstadoCorreoFormModal } from './components/EstadoCorreoFormModal';
+import { EstadoVentaFormModal } from './components/modals/EstadoVentaFormModal';
+import { CorreoFormModal } from './components/modals/CorreoFormModal';
+import { EstadoCorreoFormModal } from './components/modals/EstadoCorreoFormModal';
 
 // Páginas
 import { LoginPage } from './pages/LoginPage';
 
 // Componentes de transición
-import { TransitionOverlay } from './components/TransitionOverlay';
+import { TransitionOverlay } from './components/common/TransitionOverlay';
+
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { getVentasUI, mapVentaUIToSale } from './services/ventas';
 
 export default function App() {
+  const queryClient = useQueryClient();
+  
   // Verificación de autenticación al inicio
   const { isAuthenticated, isLoading: isAuthChecking, user: authUser, refetch, setIsAuthenticated } = useAuthCheck();
   
@@ -189,6 +194,7 @@ export default function App() {
   const [rowsPerPage, setRowsPerPage] = useState<number | 'TODOS'>(50);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isUpdatingBulk, setIsUpdatingBulk] = useState(false); // Nuevo estado para acciones bulk
 
   // Estado de Modales
   const [showCommandPalette, setShowCommandPalette] = useState(false);
@@ -201,8 +207,49 @@ export default function App() {
   const [editingCorreo, setEditingCorreo] = useState<Sale | null>(null);
   const [editingEstadoCorreo, setEditingEstadoCorreo] = useState<{sale: Sale, currentEstado?: string} | null>(null);
 
+  const { addToast } = useToast();
+
+  const handleUpdateStatus = useCallback(async (status: SaleStatus) => {
+    if (selectedIds.size === 0) return;
+    setIsUpdatingBulk(true);
+    try {
+      const estadosToUpdate = Array.from(selectedIds).map((id: string) => ({
+        venta_id: Number(id.replace('V-', '')),
+        estado: status,
+        descripcion: 'Actualización masiva desde UI'
+      }));
+
+      const response = await api.post('/estados/bulk', { estados: estadosToUpdate });
+      
+      if (response.success) {
+        addToast({
+          type: 'success',
+          title: 'Estados de Venta Actualizados',
+          message: response.message || `Se actualizaron ${selectedIds.size} ventas`
+        });
+        queryClient.invalidateQueries({ queryKey: ['ventasUI'] });
+      } else {
+        addToast({
+          type: 'error',
+          title: 'Error',
+          message: response.message || 'No se pudieron actualizar los estados de venta'
+        });
+      }
+    } catch (error: any) {
+      addToast({
+        type: 'error',
+        title: 'Error',
+        message: error.message || 'Error de conexión al actualizar estados de venta'
+      });
+    } finally {
+      setSelectedIds(new Set());
+      setIsUpdatingBulk(false);
+    }
+  }, [selectedIds, queryClient, addToast]);
+
+
   // Datos de ventas con React Query (solo si está autenticado)
-  const { ventas: ventasRaw, isLoading: isVentasLoading, error: ventasError, total, page, limit } = useVentasQuery(
+  const { ventas: ventasRaw, isLoading: isVentasLoading, error: ventasError, total, page, limit, refetch: refetchVentas } = useVentasQuery(
     isAuthenticated ? currentPage : 1, 
     isAuthenticated ? (rowsPerPage === 'TODOS' ? 1000 : rowsPerPage) : 0,
     {
@@ -221,6 +268,156 @@ export default function App() {
     }
     return apiSales;
   }, [ventasRaw, inspectionMode]);
+
+  const handleUpdateLogistic = useCallback(async (status: LogisticStatus) => {
+    if (selectedIds.size === 0) return;
+    setIsUpdatingBulk(true);
+    try {
+      // Primero obtener los correos asociados a las ventas seleccionadas
+      const ventasConCorreos = sales.filter(s => selectedIds.has(s.id) && s.correo_id);
+      const correosToUpdate = ventasConCorreos.map(venta => ({
+        correo_id: Number(venta.correo_id),
+        estado: status,
+        descripcion: 'Actualización masiva desde UI'
+      }));
+
+      if (correosToUpdate.length === 0) {
+        addToast({
+          type: 'warning',
+          title: 'Advertencia',
+          message: 'No se encontraron correos válidos para actualizar.'
+        });
+        setIsUpdatingBulk(false);
+        setSelectedIds(new Set());
+        return;
+      }
+
+      const response = await api.post('/estados-correo/bulk', { estados: correosToUpdate });
+
+      if (response.success) {
+        addToast({
+          type: 'success',
+          title: 'Estados de Correo Actualizados',
+          message: response.message || `Se actualizaron ${correosToUpdate.length} correos`
+        });
+        queryClient.invalidateQueries({ queryKey: ['ventasUI'] });
+      } else {
+        addToast({
+          type: 'error',
+          title: 'Error',
+          message: response.message || 'No se pudieron actualizar los estados de correo'
+        });
+      }
+    } catch (error: any) {
+      addToast({
+        type: 'error',
+        title: 'Error',
+        message: error.message || 'Error de conexión al actualizar estados de correo'
+      });
+    } finally {
+      setSelectedIds(new Set());
+      setIsUpdatingBulk(false);
+    }
+  }, [selectedIds, sales, queryClient, addToast]);
+  
+  // Handlers para actualizaciones individuales desde SaleModal
+  const handleSingleUpdateStatus = useCallback(async (status: SaleStatus, comment: string) => {
+    console.log('App: handleSingleUpdateStatus called', { status, comment, selectedSaleId: selectedSale?.id });
+    if (!selectedSale) return;
+    try {
+      const ventaId = String(selectedSale.id).replace('V-', '');
+      const response = await api.post('/estados', {
+        venta_id: Number(ventaId),
+        estado: status,
+        descripcion: comment
+      });
+
+      if (response.success) {
+        addToast({ type: 'success', title: 'Estado Actualizado', message: 'El estado de la venta se ha actualizado correctamente' });
+        queryClient.invalidateQueries({ queryKey: ['ventasUI'] });
+        queryClient.invalidateQueries({ queryKey: ['ventaDetalleCompleto', ventaId] });
+      } else {
+        throw new Error(response.message || 'No se pudo actualizar el estado');
+      }
+    } catch (error: any) {
+      addToast({ type: 'error', title: 'Error', message: error.message || 'Error al actualizar el estado' });
+      throw error;
+    }
+  }, [selectedSale, queryClient, addToast]);
+
+  const handleSingleUpdateLogistic = useCallback(async (status: LogisticStatus, comment: string) => {
+    console.log('App: handleSingleUpdateLogistic called', { status, comment, selectedSaleId: selectedSale?.id, sap: selectedSale?.sap });
+    if (!selectedSale) return;
+    try {
+      const sapId = selectedSale.sap;
+      if (!sapId) {
+        addToast({ type: 'error', title: 'Error', message: 'Esta venta no tiene un código SAP asignado' });
+        return;
+      }
+
+      const response = await api.post('/estados-correo', {
+        sap_id: sapId,
+        estado: status,
+        descripcion: comment
+      });
+
+      if (response.success) {
+        addToast({ type: 'success', title: 'Estado Logístico Actualizado', message: 'El estado del envío se ha actualizado correctamente' });
+        queryClient.invalidateQueries({ queryKey: ['ventasUI'] });
+        const ventaId = String(selectedSale.id).replace('V-', '');
+        queryClient.invalidateQueries({ queryKey: ['ventaDetalleCompleto', ventaId] });
+      } else {
+        throw new Error(response.message || 'No se pudo actualizar el estado logístico');
+      }
+    } catch (error: any) {
+      addToast({ type: 'error', title: 'Error', message: error.message || 'Error al actualizar el estado logístico' });
+      throw error;
+    }
+  }, [selectedSale, queryClient, addToast]);
+
+  // Función para actualizar una venta completa
+  const handleUpdateSale = useCallback(async (updatedSale: any) => {
+    try {
+      const ventaId = String(updatedSale.id).replace('V-', '');
+      
+      // Preparar datos para la API
+      const ventaData = {
+        sds: updatedSale.sds,
+        chip: updatedSale.chip,
+        stl: updatedSale.stl,
+        tipo_venta: updatedSale.tipoVenta,
+        sap: updatedSale.sap,
+        cliente_id: updatedSale.cliente?.id,
+        plan_id: updatedSale.plan?.id || updatedSale.plan_id,
+        promocion_id: updatedSale.promocion?.id || updatedSale.promocion_id,
+        empresa_origen_id: updatedSale.empresa_origen_id
+      };
+
+      const response = await api.put(`/ventas/${ventaId}`, ventaData);
+
+      if (response.success) {
+        addToast({
+          type: 'success',
+          title: 'Venta Actualizada',
+          message: 'Los cambios se han guardado correctamente'
+        });
+        queryClient.invalidateQueries({ queryKey: ['ventasUI'] });
+      } else {
+        addToast({
+          type: 'error',
+          title: 'Error',
+          message: response.message || 'No se pudieron guardar los cambios'
+        });
+      }
+    } catch (error: any) {
+      console.error('Error actualizando venta:', error);
+      addToast({
+        type: 'error',
+        title: 'Error',
+        message: error.message || 'Error de conexión al actualizar la venta'
+      });
+    }
+  }, [queryClient, addToast]);
 
   // Lazy loading para detalles completos de venta seleccionada
   const { ventaDetalle, isLoading: isDetalleLoading, error: detalleError } = useVentaDetalle(
@@ -512,16 +709,10 @@ export default function App() {
           {selectedIds.size > 0 && (
             <UpdateMenu 
               selectedCount={selectedIds.size} 
-              onUpdateStatus={(s) => { 
-                setSelectedIds(new Set()); 
-              }} 
-              onUpdateLogistic={(l) => { 
-                setSelectedIds(new Set()); 
-              }} 
-              onUpdateLine={(line) => { 
-                setSelectedIds(new Set()); 
-              }} 
-              onClear={() => setSelectedIds(new Set())} 
+              onUpdateStatus={handleUpdateStatus}
+              onUpdateLogistic={handleUpdateLogistic}
+              onClear={() => setSelectedIds(new Set())}
+              isUpdating={isUpdatingBulk}
             />
           )}
           
@@ -561,12 +752,9 @@ export default function App() {
             <SaleFormModal 
               initialData={creatingSale} 
               onClose={() => setCreatingSale(null)} 
-              onSubmit={(sale) => {
-                console.log('✅ [VENTA_REGISTRADA]', sale);
-                setCreatingSale(null);
-              }}
               onVentaCreada={() => {
-                refetch();
+                setCreatingSale(null);
+                queryClient.invalidateQueries({ queryKey: ['ventasUI'] });
               }}
             />
           )}
@@ -578,9 +766,12 @@ export default function App() {
             <SaleModal 
               sale={selectedSale as any} 
               onClose={() => setSelectedSale(null)} 
-              onUpdate={() => refetch()}
+              onUpdate={handleUpdateSale}
+              onUpdateStatus={handleSingleUpdateStatus}
+              onUpdateLogistic={handleSingleUpdateLogistic}
             />
           )}
+
 
           {showCommandPalette && (
             <CommandPalette 
@@ -608,7 +799,7 @@ export default function App() {
               onClose={() => setCommentingSale(null)} 
               onSuccess={() => {
                 setCommentingSale(null);
-                refetch();
+                queryClient.invalidateQueries({ queryKey: ['ventasUI'] });
               }}
             />
           )}

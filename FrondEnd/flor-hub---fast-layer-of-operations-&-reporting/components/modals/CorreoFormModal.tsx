@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { z } from 'zod';
-import { Sale } from '../types';
+import { Sale } from '../../types';
 
 // Schema Zod para validación del correo
 const CorreoFormSchema = z.object({

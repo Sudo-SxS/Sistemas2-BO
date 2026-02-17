@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { z } from 'zod';
-import { Sale, ProductType, OriginMarket } from '../types';
-import { clienteService, ClienteCreate, ClienteResponse } from '../services/cliente';
-import { getPlanesPorEmpresa, getPromocionesPorEmpresa, getEmpresasOrigen, getAllPlanes, getAllPromociones, PlanResponse, PromocionResponse, EmpresaOrigenResponse } from '../services/plan';
-import { verificarSAP, crearCorreo, CorreoCreate } from '../services/correo';
-import { createVenta } from '../services/ventas';
-import { useToast } from '../contexts/ToastContext';
+import { Sale, ProductType, OriginMarket } from '../../types';
+import { clienteService, ClienteCreate, ClienteResponse } from '../../services/cliente';
+import { getPlanesPorEmpresa, getPromocionesPorEmpresa, getEmpresasOrigen, getAllPlanes, getAllPromociones, PlanResponse, PromocionResponse, EmpresaOrigenResponse } from '../../services/plan';
+import { verificarSAP, crearCorreo, CorreoCreate } from '../../services/correo';
+import { createVenta } from '../../services/ventas';
+import { useToast } from '../../contexts/ToastContext';
 
 // Schema de validación por fase
 const Fase1Schema = z.object({

@@ -567,4 +567,41 @@ export class EstadoCorreoService {
       );
     }
   }
+
+  /**
+   * Crear múltiples estados de correo (bulk)
+   */
+  async bulkCreate(estados: EstadoCorreoCreate[]): Promise<EstadoCorreo[]> {
+    try {
+      if (!estados || !Array.isArray(estados) || estados.length === 0) {
+        throw new Error("Se requiere un array de estados");
+      }
+
+      logger.info(`Creando ${estados.length} estados de correo en bulk`);
+
+      // Validar cada estado con Zod
+      const estadosValidados = estados.map((estado) => {
+        return EstadoCorreoCreateSchema.parse(estado);
+      });
+
+      // Normalizar datos
+      const estadosNormalizados = estadosValidados.map((estado) => ({
+        ...estado,
+        sap_id: estado.sap_id?.toUpperCase(),
+        ubicacion_actual: estado.ubicacion_actual?.toUpperCase() || null,
+      }));
+
+      const resultados = await this.model.bulkCreateEstados(estadosNormalizados);
+
+      logger.info(`${resultados.length} estados de correo creados exitosamente`);
+      return resultados;
+    } catch (error) {
+      logger.error("EstadoCorreoService.bulkCreate:", error);
+      throw new Error(
+        `Error al crear estados masivamente: ${
+          error instanceof Error ? error.message : "Error desconocido"
+        }`,
+      );
+    }
+  }
 }
