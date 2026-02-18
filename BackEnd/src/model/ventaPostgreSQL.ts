@@ -27,13 +27,13 @@ interface VentaRow {
 
 // Función helper para convertir BigInt a Number recursivamente
 function convertBigIntToNumber(obj: any): any {
-  if (typeof obj === 'bigint') {
+  if (typeof obj === "bigint") {
     return Number(obj);
   }
   if (Array.isArray(obj)) {
     return obj.map(convertBigIntToNumber);
   }
-  if (obj !== null && typeof obj === 'object') {
+  if (obj !== null && typeof obj === "object") {
     const converted: any = {};
     for (const key in obj) {
       converted[key] = convertBigIntToNumber(obj[key]);
@@ -77,12 +77,12 @@ export class VentaPostgreSQL implements VentaModelDB {
     const client = this.connection.getClient();
     const result = await client.queryObject<VentaRow>(
       `SELECT * FROM venta LIMIT $1 OFFSET $2`,
-      [limit, offset]
+      [limit, offset],
     );
 
     logger.debug("Venta rows:", result.rows || []);
 
-    return ((result.rows || []) as VentaRow[]).map((row: VentaRow) => 
+    return ((result.rows || []) as VentaRow[]).map((row: VentaRow) =>
       convertBigIntToNumber(this.mapRowToVenta(row))
     );
   }
@@ -91,31 +91,35 @@ export class VentaPostgreSQL implements VentaModelDB {
     const client = this.connection.getClient();
     const result = await client.queryObject<VentaRow>(
       `SELECT * FROM venta WHERE venta_id = $1`,
-      [id]
+      [id],
     );
 
     if (!result.rows.length) return undefined;
 
-    return convertBigIntToNumber(this.mapRowToVenta(result.rows[0] as VentaRow));
+    return convertBigIntToNumber(
+      this.mapRowToVenta(result.rows[0] as VentaRow),
+    );
   }
 
   async getBySDS({ sds }: { sds: string }): Promise<Venta | undefined> {
     const client = this.connection.getClient();
     const result = await client.queryObject<VentaRow>(
       `SELECT * FROM venta WHERE sds = $1`,
-      [sds]
+      [sds],
     );
 
     if (!result.rows.length) return undefined;
 
-    return convertBigIntToNumber(this.mapRowToVenta(result.rows[0] as VentaRow));
+    return convertBigIntToNumber(
+      this.mapRowToVenta(result.rows[0] as VentaRow),
+    );
   }
 
   async getBySPN({ spn }: { spn: string }): Promise<Venta | undefined> {
     const client = this.connection.getClient();
     const result = await client.queryObject(
       `SELECT * FROM venta WHERE sap = $1`,
-      [spn]
+      [spn],
     );
 
     return result.rows?.[0] as Venta | undefined;
@@ -125,12 +129,14 @@ export class VentaPostgreSQL implements VentaModelDB {
     const client = this.connection.getClient();
     const result = await client.queryObject<VentaRow>(
       `SELECT * FROM venta WHERE sap = $1`,
-      [sap]
+      [sap],
     );
 
     if (!result.rows.length) return undefined;
 
-    return convertBigIntToNumber(this.mapRowToVenta(result.rows[0] as VentaRow));
+    return convertBigIntToNumber(
+      this.mapRowToVenta(result.rows[0] as VentaRow),
+    );
   }
 
   async add({ input }: { input: VentaCreate }): Promise<Venta> {
@@ -223,8 +229,10 @@ export class VentaPostgreSQL implements VentaModelDB {
 
     const client = this.connection.getClient();
     const result = await client.queryObject(
-      `UPDATE venta SET ${fields.join(", ")} WHERE venta_id = $${values.length}`,
-      values
+      `UPDATE venta SET ${
+        fields.join(", ")
+      } WHERE venta_id = $${values.length}`,
+      values,
     );
 
     if (result.rowCount !== undefined && result.rowCount > 0) {
@@ -238,7 +246,7 @@ export class VentaPostgreSQL implements VentaModelDB {
     const client = this.connection.getClient();
     const result = await client.queryObject(
       `DELETE FROM venta WHERE venta_id = $1`,
-      [id]
+      [id],
     );
 
     return result.rowCount !== undefined && result.rowCount > 0;
@@ -248,30 +256,36 @@ export class VentaPostgreSQL implements VentaModelDB {
     const client = this.connection.getClient();
     const result = await client.queryObject<VentaRow>(
       `SELECT * FROM venta WHERE vendedor_id = $1`,
-      [vendedor]
+      [vendedor],
     );
 
-    return (result.rows || []).map((row) => this.mapRowToVenta(row as VentaRow));
+    return (result.rows || []).map((row) =>
+      this.mapRowToVenta(row as VentaRow)
+    );
   }
 
   async getByCliente({ cliente }: { cliente: string }): Promise<Venta[]> {
     const client = this.connection.getClient();
     const result = await client.queryObject<VentaRow>(
       `SELECT * FROM venta WHERE cliente_id = $1`,
-      [cliente]
+      [cliente],
     );
 
-    return (result.rows || []).map((row) => this.mapRowToVenta(row as VentaRow));
+    return (result.rows || []).map((row) =>
+      this.mapRowToVenta(row as VentaRow)
+    );
   }
 
   async getByPlan({ plan }: { plan: number }): Promise<Venta[]> {
     const client = this.connection.getClient();
     const result = await client.queryObject<VentaRow>(
       `SELECT * FROM venta WHERE plan_id = $1`,
-      [plan]
+      [plan],
     );
 
-    return (result.rows || []).map((row) => this.mapRowToVenta(row as VentaRow));
+    return (result.rows || []).map((row) =>
+      this.mapRowToVenta(row as VentaRow)
+    );
   }
 
   async getByDateRange(
@@ -280,10 +294,12 @@ export class VentaPostgreSQL implements VentaModelDB {
     const client = this.connection.getClient();
     const result = await client.queryObject<VentaRow>(
       `SELECT * FROM venta WHERE fecha_creacion BETWEEN $1 AND $2`,
-      [start, end]
+      [start, end],
     );
 
-    return (result.rows || []).map((row) => this.mapRowToVenta(row as VentaRow));
+    return (result.rows || []).map((row) =>
+      this.mapRowToVenta(row as VentaRow)
+    );
   }
 
   async getStatistics(): Promise<{
@@ -299,9 +315,9 @@ export class VentaPostgreSQL implements VentaModelDB {
     // Total ventas
     const client = this.connection.getClient();
     const totalResult = await client.queryObject(
-      `SELECT COUNT(*) as total FROM venta`
+      `SELECT COUNT(*) as total FROM venta`,
     );
-    
+
     const totalVentas = (totalResult.rows[0] as { total: number })?.total || 0;
 
     // Ventas por plan
@@ -309,9 +325,9 @@ export class VentaPostgreSQL implements VentaModelDB {
       `SELECT p.plan_id, p.nombre, COUNT(*) as cantidad
       FROM plan p
       LEFT JOIN venta v ON p.plan_id = v.plan_id
-      GROUP BY p.plan_id, p.nombre`
+      GROUP BY p.plan_id, p.nombre`,
     );
-    
+
     const ventasPorPlan = (planResult.rows || []).map((
       row: any,
     ) => ({
@@ -328,7 +344,7 @@ export class VentaPostgreSQL implements VentaModelDB {
       INNER JOIN persona pe ON pe.persona_id = u.persona_id
       GROUP BY v.vendedor_id, pe.nombre, pe.apellido
     `);
-    
+
     const ventasPorVendedor = (vendedorResult.rows || []).map((
       row: any,
     ) => ({
@@ -372,7 +388,15 @@ export class VentaPostgreSQL implements VentaModelDB {
     userId?: string;
     userRol?: string;
   }): Promise<{ ventas: any[]; total: number; page: number; limit: number }> {
-    const { page = 1, limit = 50, startDate, endDate, search, userId, userRol } = params;
+    const {
+      page = 1,
+      limit = 50,
+      startDate,
+      endDate,
+      search,
+      userId,
+      userRol,
+    } = params;
     const offset = (page - 1) * limit;
 
     const client = this.connection.getClient();
@@ -383,7 +407,7 @@ export class VentaPostgreSQL implements VentaModelDB {
     let paramIndex = 1;
 
     // Filtro por vendedor (solo si es VENDEDOR)
-    if (userId && userRol === 'VENDEDOR') {
+    if (userId && userRol === "VENDEDOR") {
       conditions.push(`v.vendedor_id = $${paramIndex++}`);
       values.push(userId);
     }
@@ -402,89 +426,170 @@ export class VentaPostgreSQL implements VentaModelDB {
 
     // Filtro por búsqueda
     if (search) {
-      conditions.push(`(v.sds ILIKE $${paramIndex} OR p_cliente.nombre ILIKE $${paramIndex} OR p_cliente.documento ILIKE $${paramIndex})`);
+      conditions.push(
+        `(v.sds ILIKE $${paramIndex} OR p_cliente.nombre ILIKE $${paramIndex} OR p_cliente.documento ILIKE $${paramIndex})`,
+      );
       values.push(`%${search}%`);
       paramIndex++;
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const whereClause = conditions.length > 0
+      ? `WHERE ${conditions.join(" AND ")}`
+      : "";
 
     // Query principal con JOINs y DISTINCT ON
     const query = `
-      SELECT DISTINCT ON (v.venta_id)
-        v.venta_id, v.sds, v.chip, v.stl, v.tipo_venta, v.sap, 
-        TO_CHAR(v.fecha_creacion, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as fecha_creacion,
-        p_cliente.nombre as cliente_nombre, 
-        p_cliente.apellido as cliente_apellido,
-        p_cliente.tipo_documento as cliente_tipo_documento,
-        p_cliente.documento as cliente_documento, 
-        p_cliente.email as cliente_email,
-        p_cliente.telefono as cliente_telefono,
-        p_vendedor.nombre as vendedor_nombre, 
-        p_vendedor.apellido as vendedor_apellido,
-        p_supervisor.nombre as supervisor_nombre, 
-        p_supervisor.apellido as supervisor_apellido,
-        pl.nombre as plan_nombre, 
-        pl.precio as plan_precio,
-        pr.nombre as promocion_nombre,
-        pr.descuento as promocion_descuento,
-        eo.nombre_empresa as empresa_origen_nombre,
-        (SELECT estado FROM estado WHERE venta_id = v.venta_id ORDER BY fecha_creacion DESC LIMIT 1) as estado_actual,
-        (SELECT estado FROM estado_correo WHERE sap_id = v.sap ORDER BY fecha_creacion DESC LIMIT 1) as correo_estado,
-        po.numero_portar, po.empresa_origen as operador_origen_nombre, po.mercado_origen,
-        (SELECT titulo FROM comentario WHERE venta_id = v.venta_id ORDER BY fecha_creacion DESC LIMIT 1) as ultimo_comentario_titulo,
-        (SELECT comentario FROM comentario WHERE venta_id = v.venta_id ORDER BY fecha_creacion DESC LIMIT 1) as ultimo_comentario,
-        (SELECT TO_CHAR(fecha_creacion, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') FROM comentario WHERE venta_id = v.venta_id ORDER BY fecha_creacion DESC LIMIT 1) as fecha_ultimo_comentario
-      FROM venta v
-      INNER JOIN cliente c ON v.cliente_id = c.persona_id
-      INNER JOIN persona p_cliente ON c.persona_id = p_cliente.persona_id
-      INNER JOIN usuario u ON v.vendedor_id = u.persona_id
-      INNER JOIN persona p_vendedor ON u.persona_id = p_vendedor.persona_id
-      LEFT JOIN usuario u_supervisor ON u.celula = u_supervisor.celula AND u_supervisor.rol = 'SUPERVISOR'
-      LEFT JOIN supervisor sup ON u_supervisor.persona_id = sup.usuario_id
-      LEFT JOIN persona p_supervisor ON u_supervisor.persona_id = p_supervisor.persona_id
-      INNER JOIN plan pl ON v.plan_id = pl.plan_id
-      LEFT JOIN promocion pr ON v.promocion_id = pr.promocion_id
-      LEFT JOIN empresa_origen eo ON v.empresa_origen_id = eo.empresa_origen_id
-      LEFT JOIN portabilidad po ON v.venta_id = po.venta_id
-      LEFT JOIN linea_nueva ln ON v.venta_id = ln.venta_id
-      ${whereClause}
-      ORDER BY v.venta_id, v.fecha_creacion DESC
-      LIMIT $${paramIndex++} OFFSET $${paramIndex}
-    `;
+        SELECT
+          v.venta_id,
+          v.sds,
+          v.chip,
+          v.stl,
+          v.tipo_venta,
+          v.sap,
+          TO_CHAR(v.fecha_creacion, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS fecha_creacion,
+
+          -- CLIENTE
+          p_cliente.nombre AS cliente_nombre,
+          p_cliente.apellido AS cliente_apellido,
+          p_cliente.tipo_documento AS cliente_tipo_documento,
+          p_cliente.documento AS cliente_documento,
+          p_cliente.email AS cliente_email,
+          p_cliente.telefono AS cliente_telefono,
+
+          -- VENDEDOR
+          p_vendedor.nombre AS vendedor_nombre,
+          p_vendedor.apellido AS vendedor_apellido,
+
+          -- SUPERVISOR
+          p_supervisor.nombre AS supervisor_nombre,
+          p_supervisor.apellido AS supervisor_apellido,
+
+          -- PLAN / PROMO
+          pl.nombre AS plan_nombre,
+          pl.precio AS plan_precio,
+          pr.nombre AS promocion_nombre,
+          pr.descuento AS promocion_descuento,
+
+          -- EMPRESA ORIGEN
+          eo.nombre_empresa AS empresa_origen_nombre,
+
+          -- ESTADOS
+          e.estado AS estado_actual,
+          ec.estado AS correo_estado,
+
+          -- PORTABILIDAD
+          po.numero_portar,
+          po.empresa_origen AS operador_origen_nombre,
+          po.mercado_origen,
+
+          -- COMENTARIO
+          cm.titulo AS ultimo_comentario_titulo,
+          cm.comentario AS ultimo_comentario,
+          TO_CHAR(cm.fecha_creacion, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS fecha_ultimo_comentario
+
+        FROM venta v
+
+        -- CLIENTE
+        INNER JOIN cliente c
+          ON v.cliente_id = c.persona_id
+        INNER JOIN persona p_cliente
+          ON c.persona_id = p_cliente.persona_id
+
+        -- VENDEDOR
+        INNER JOIN usuario u
+          ON v.vendedor_id = u.persona_id
+        INNER JOIN persona p_vendedor
+          ON u.persona_id = p_vendedor.persona_id
+
+        -- SUPERVISOR
+        LEFT JOIN usuario u_supervisor
+          ON u.celula = u_supervisor.celula
+         AND u_supervisor.rol = 'SUPERVISOR'
+        LEFT JOIN persona p_supervisor
+          ON u_supervisor.persona_id = p_supervisor.persona_id
+
+        -- PLAN / PROMO
+        INNER JOIN plan pl
+          ON v.plan_id = pl.plan_id
+        LEFT JOIN promocion pr
+          ON v.promocion_id = pr.promocion_id
+
+        -- EMPRESA ORIGEN
+        INNER JOIN empresa_origen eo
+          ON v.empresa_origen_id = eo.empresa_origen_id
+
+        -- PORTABILIDAD / LINEA NUEVA
+        LEFT JOIN portabilidad po
+          ON v.venta_id = po.venta_id
+        LEFT JOIN linea_nueva ln
+          ON v.venta_id = ln.venta_id
+
+        -- ✅ ÚLTIMO ESTADO DE LA VENTA
+        LEFT JOIN LATERAL (
+          SELECT estado
+          FROM estado
+          WHERE venta_id = v.venta_id
+          ORDER BY fecha_creacion DESC
+          LIMIT 1
+        ) e ON true
+
+        -- ✅ ÚLTIMO ESTADO DEL CORREO
+        LEFT JOIN LATERAL (
+          SELECT estado
+          FROM estado_correo
+          WHERE sap_id = v.sap
+          ORDER BY fecha_creacion DESC
+          LIMIT 1
+        ) ec ON true
+
+        LEFT JOIN LATERAL (
+          SELECT titulo, comentario, fecha_creacion
+          FROM comentario
+          WHERE venta_id = v.venta_id
+          ORDER BY fecha_creacion DESC
+          LIMIT 1
+        ) cm ON true
+
+        ${whereClause}
+
+        ORDER BY v.venta_id DESC
+        LIMIT $${paramIndex++} OFFSET $${paramIndex};
+
+      `;
 
     values.push(limit, offset);
 
     const result = await client.queryObject(query, values);
 
-    // Eliminar duplicados por si acaso y ordenar por fecha
-    const seen = new Set<string>();
+    // Eliminar duplicados MANTENIENDO el orden por venta_id DESC
+    const seen = new Set<number>();
     const uniqueRows: any[] = [];
     const rows = result.rows as any[] || [];
+
     for (const row of rows) {
-      const key = String(row.venta_id);
-      if (!seen.has(key)) {
-        seen.add(key);
+      const ventaId = Number(row.venta_id);
+      if (!seen.has(ventaId)) {
+        seen.add(ventaId);
         uniqueRows.push(row);
       }
     }
 
-    // Ordenar por fecha DESC (más reciente primero)
-    uniqueRows.sort((a, b) => {
-      const dateA = new Date(a.fecha_creacion).getTime();
-      const dateB = new Date(b.fecha_creacion).getTime();
-      return dateB - dateA;
-    });
+    // ❌ ELIMINAR ESTE SORT - Ya está ordenado por la query SQL
+    // uniqueRows.sort((a, b) => {
+    //   const dateA = new Date(a.fecha_creacion).getTime();
+    //   const dateB = new Date(b.fecha_creacion).getTime();
+    //   return dateB - dateA;
+    // });
 
     // Query para contar total
     const countQuery = `
-      SELECT COUNT(*) as total
-      FROM venta v
-      INNER JOIN cliente c ON v.cliente_id = c.persona_id
-      INNER JOIN persona p_cliente ON c.persona_id = p_cliente.persona_id
-      INNER JOIN usuario u ON v.vendedor_id = u.persona_id
-      ${whereClause}
-    `;
+        SELECT COUNT(*) as total
+        FROM venta v
+        INNER JOIN cliente c ON v.cliente_id = c.persona_id
+        INNER JOIN persona p_cliente ON c.persona_id = p_cliente.persona_id
+        INNER JOIN usuario u ON v.vendedor_id = u.persona_id
+        ${whereClause}
+      `;
     const countValues = values.slice(0, -2);
     const countResult = await client.queryObject(countQuery, countValues);
 
@@ -507,12 +612,12 @@ export class VentaPostgreSQL implements VentaModelDB {
 
     // Query principal de la venta con todos los JOINs
     const ventaQuery = `
-      SELECT 
+      SELECT
         v.*,
         -- Cliente
-        p_cliente.nombre as cliente_nombre, 
+        p_cliente.nombre as cliente_nombre,
         p_cliente.apellido as cliente_apellido,
-        p_cliente.documento as cliente_documento, 
+        p_cliente.documento as cliente_documento,
         p_cliente.email as cliente_email,
         p_cliente.telefono as cliente_telefono,
         p_cliente.tipo_documento as cliente_tipo_documento,
@@ -520,7 +625,7 @@ export class VentaPostgreSQL implements VentaModelDB {
         p_cliente.fecha_nacimiento as cliente_fecha_nacimiento,
         p_cliente.nacionalidad as cliente_nacionalidad,
         -- Vendedor
-        p_vendedor.nombre as vendedor_nombre, 
+        p_vendedor.nombre as vendedor_nombre,
         p_vendedor.apellido as vendedor_apellido,
         p_vendedor.email as vendedor_email,
         p_vendedor.telefono as vendedor_telefono,
@@ -529,12 +634,12 @@ export class VentaPostgreSQL implements VentaModelDB {
         u.celula as vendedor_celula,
         -- Supervisor
         sup.supervisor_id as supervisor_id,
-        p_supervisor.nombre as supervisor_nombre, 
+        p_supervisor.nombre as supervisor_nombre,
         p_supervisor.apellido as supervisor_apellido,
         p_supervisor.email as supervisor_email,
         u_supervisor.legajo as supervisor_legajo,
         -- Plan
-        pl.nombre as plan_nombre, 
+        pl.nombre as plan_nombre,
         pl.precio as plan_precio,
         pl.beneficios as plan_descripcion,
         pl.gigabyte as plan_gigabyte,
@@ -571,7 +676,7 @@ export class VentaPostgreSQL implements VentaModelDB {
     `;
 
     const ventaResult = await client.queryObject(ventaQuery, [ventaId]);
-    
+
     if (!ventaResult.rows || ventaResult.rows.length === 0) {
       return undefined;
     }
@@ -587,7 +692,9 @@ export class VentaPostgreSQL implements VentaModelDB {
 
     // Transformar fechas a strings
     venta.fecha_creacion = transformarFecha(venta.fecha_creacion);
-    venta.cliente_fecha_nacimiento = transformarFecha(venta.cliente_fecha_nacimiento);
+    venta.cliente_fecha_nacimiento = transformarFecha(
+      venta.cliente_fecha_nacimiento,
+    );
 
     // Queries paralelas para datos relacionados
     const [
@@ -596,45 +703,45 @@ export class VentaPostgreSQL implements VentaModelDB {
       comentarios,
       portabilidad,
       lineaNueva,
-      correo
+      correo,
     ] = await Promise.all([
       // Historial de estados de la venta
       client.queryObject(
         `SELECT * FROM estado WHERE venta_id = $1 ORDER BY fecha_creacion DESC`,
-        [ventaId]
+        [ventaId],
       ),
       // Historial de estados del correo (si tiene SAP)
-      venta.sap 
+      venta.sap
         ? client.queryObject(
-            `SELECT * FROM estado_correo WHERE sap_id = $1 ORDER BY fecha_creacion DESC`,
-            [venta.sap]
-          )
+          `SELECT * FROM estado_correo WHERE sap_id = $1 ORDER BY fecha_creacion DESC`,
+          [venta.sap],
+        )
         : Promise.resolve({ rows: [] }),
       // Comentarios
       client.queryObject(
-        `SELECT c.*, p.nombre as autor_nombre, p.apellido as autor_apellido 
-         FROM comentario c 
-         INNER JOIN persona p ON c.usuarios_id = p.persona_id 
-         WHERE c.venta_id = $1 
+        `SELECT c.*, p.nombre as autor_nombre, p.apellido as autor_apellido
+         FROM comentario c
+         INNER JOIN persona p ON c.usuarios_id = p.persona_id
+         WHERE c.venta_id = $1
          ORDER BY c.fecha_creacion DESC`,
-        [ventaId]
+        [ventaId],
       ),
       // Portabilidad
       client.queryObject(
         `SELECT * FROM portabilidad WHERE venta_id = $1`,
-        [ventaId]
+        [ventaId],
       ),
       // Línea nueva
       client.queryObject(
         `SELECT * FROM linea_nueva WHERE venta_id = $1`,
-        [ventaId]
+        [ventaId],
       ),
       // Datos del correo
       venta.sap
         ? client.queryObject(
-            `SELECT * FROM correo WHERE sap_id = $1`,
-            [venta.sap]
-          )
+          `SELECT * FROM correo WHERE sap_id = $1`,
+          [venta.sap],
+        )
         : Promise.resolve({ rows: [] }),
     ]);
 
@@ -671,13 +778,15 @@ export class VentaPostgreSQL implements VentaModelDB {
         exa: venta.vendedor_exa,
         celula: venta.vendedor_celula,
       },
-      supervisor: venta.supervisor_nombre ? {
-        id: venta.supervisor_id,
-        nombre: venta.supervisor_nombre,
-        apellido: venta.supervisor_apellido,
-        legajo: venta.supervisor_legajo,
-        email: venta.supervisor_email,
-      } : null,
+      supervisor: venta.supervisor_nombre
+        ? {
+          id: venta.supervisor_id,
+          nombre: venta.supervisor_nombre,
+          apellido: venta.supervisor_apellido,
+          legajo: venta.supervisor_legajo,
+          email: venta.supervisor_email,
+        }
+        : null,
       plan: {
         id: venta.plan_id,
         nombre: venta.plan_nombre,
@@ -689,34 +798,50 @@ export class VentaPostgreSQL implements VentaModelDB {
         whatsapp: venta.plan_whatsapp,
         roaming: venta.plan_roaming,
       },
-      promocion: venta.promocion_nombre ? {
-        promocion_id: venta.promocion_id,
-        nombre: venta.promocion_nombre,
-        descuento: venta.promocion_descuento,
-        beneficios: venta.promocion_beneficios,
-      } : null,
-      empresa_origen: venta.empresa_origen_nombre ? {
-        empresa_origen_id: venta.empresa_origen_id,
-        nombre: venta.empresa_origen_nombre,
-        pais: venta.empresa_origen_pais,
-      } : null,
+      promocion: venta.promocion_nombre
+        ? {
+          promocion_id: venta.promocion_id,
+          nombre: venta.promocion_nombre,
+          descuento: venta.promocion_descuento,
+          beneficios: venta.promocion_beneficios,
+        }
+        : null,
+      empresa_origen: venta.empresa_origen_nombre
+        ? {
+          empresa_origen_id: venta.empresa_origen_id,
+          nombre: venta.empresa_origen_nombre,
+          pais: venta.empresa_origen_pais,
+        }
+        : null,
       estado_actual: {
         estado: venta.estado_actual,
         descripcion: venta.estado_descripcion,
       },
-      correo_estado: venta.correo_estado_actual ? {
-        estado: venta.correo_estado_actual,
-        ubicacion: venta.correo_ubicacion,
-      } : null,
-      portabilidad: portabilidad.rows && portabilidad.rows.length > 0 ? {
-        ...portabilidad.rows[0],
-        fecha_portacion: transformarFecha(portabilidad.rows[0]?.fecha_portacion),
-        fecha_vencimiento_pin: transformarFecha(portabilidad.rows[0]?.fecha_vencimiento_pin),
-      } : null,
-      linea_nueva: lineaNueva.rows && lineaNueva.rows.length > 0 ? {
-        ...lineaNueva.rows[0],
-        fecha_activacion: transformarFecha(lineaNueva.rows[0]?.fecha_activacion),
-      } : null,
+      correo_estado: venta.correo_estado_actual
+        ? {
+          estado: venta.correo_estado_actual,
+          ubicacion: venta.correo_ubicacion,
+        }
+        : null,
+      portabilidad: portabilidad.rows && portabilidad.rows.length > 0
+        ? {
+          ...portabilidad.rows[0],
+          fecha_portacion: transformarFecha(
+            portabilidad.rows[0]?.fecha_portacion,
+          ),
+          fecha_vencimiento_pin: transformarFecha(
+            portabilidad.rows[0]?.fecha_vencimiento_pin,
+          ),
+        }
+        : null,
+      linea_nueva: lineaNueva.rows && lineaNueva.rows.length > 0
+        ? {
+          ...lineaNueva.rows[0],
+          fecha_activacion: transformarFecha(
+            lineaNueva.rows[0]?.fecha_activacion,
+          ),
+        }
+        : null,
       historial_estados: (estadosVenta.rows || []).map((e: any) => ({
         estado_id: e.estado_id,
         estado: e.estado,
@@ -739,11 +864,13 @@ export class VentaPostgreSQL implements VentaModelDB {
         fecha: transformarFecha(c.fecha_creacion),
         author: `${c.autor_nombre} ${c.autor_apellido}`,
       })),
-      correo: correo.rows && correo.rows.length > 0 ? {
-        ...correo.rows[0],
-        fecha_creacion: transformarFecha(correo.rows[0]?.fecha_creacion),
-        fecha_limite: transformarFecha(correo.rows[0]?.fecha_limite),
-      } : null,
+      correo: correo.rows && correo.rows.length > 0
+        ? {
+          ...correo.rows[0],
+          fecha_creacion: transformarFecha(correo.rows[0]?.fecha_creacion),
+          fecha_limite: transformarFecha(correo.rows[0]?.fecha_limite),
+        }
+        : null,
     });
   }
 }

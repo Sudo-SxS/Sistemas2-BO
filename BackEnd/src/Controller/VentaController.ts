@@ -44,18 +44,21 @@ import { PlanModelDB } from "../interface/Plan.ts";
 import { PromocionModelDB } from "../interface/Promocion.ts";
 import { EstadoVentaModelDB } from "../interface/EstadoVenta.ts";
 import { CorreoCreate, CorreoCreateSchema } from "../schemas/correo/Correo.ts";
-import { PortabilidadCreate, PortabilidadCreateSchema } from "../schemas/venta/Portabilidad.ts";
+import {
+  PortabilidadCreate,
+  PortabilidadCreateSchema,
+} from "../schemas/venta/Portabilidad.ts";
 
 // Función helper para convertir BigInt a string en respuestas JSON
 function convertBigIntToString(obj: any): any {
-  if (typeof obj === 'bigint') {
+  if (typeof obj === "bigint") {
     return obj.toString();
   }
-  if (obj !== null && typeof obj === 'object') {
-    if (typeof obj.toISOString === 'function') {
+  if (obj !== null && typeof obj === "object") {
+    if (typeof obj.toISOString === "function") {
       return obj.toISOString();
     }
-    if (obj.epoch && typeof obj.epoch === 'number') {
+    if (obj.epoch && typeof obj.epoch === "number") {
       return new Date(obj.epoch * 1000).toISOString();
     }
     if (Array.isArray(obj)) {
@@ -176,7 +179,10 @@ export class VentaController {
         // Por ahora confiamos en que el FK lo valide en BD
       }
 
-      const newVenta = await this.ventaService.create(input.venta, input.userId);
+      const newVenta = await this.ventaService.create(
+        input.venta,
+        input.userId,
+      );
       return newVenta;
     } catch (error) {
       logger.error("VentaController.create:", error);
@@ -396,8 +402,19 @@ export class VentaController {
     // Variable para tracking del correo creado (solo para rollback en caso de error de BD)
     let correoCreado: { sap_id: string } | null = null;
 
+    // Validar que userId esté presente
+    if (!userId) {
+      logger.error("createFullVenta llamado sin userId");
+      return {
+        success: false,
+        message:
+          "ID de usuario no proporcionado. Por favor, inicie sesión nuevamente.",
+      };
+    }
+
     try {
       logger.info("Iniciando createFullVenta - FASE DE VALIDACIONES");
+      logger.debug(`UserId recibido: ${userId}`);
 
       // ============================================
       // FASE 1: VALIDACIONES (SIN CREAR NADA EN BD)
@@ -567,12 +584,19 @@ export class VentaController {
             sap: ventaValidada.sap,
           });
           if (existingSap) {
-            logger.debug("Validación fallida: SAP ya existe");
-            return {
-              success: false,
-              message:
-                `Ya existe un correo registrado para SAP: ${ventaValidada.sap}`,
-            };
+            logger.warn(`SAP ${ventaValidada.sap} ya existe. Intentando cleanup automático...`);
+            
+            // Intentar cleanup: primero desvincular ventas, luego eliminar correo
+            try {
+              await this.rollbackCorreo(ventaValidada.sap, "SAP duplicado - cleanup automático");
+              logger.info(`✅ Cleanup automático completado para SAP ${ventaValidada.sap}`);
+            } catch (cleanupError) {
+              logger.error(`Error en cleanup automático: ${cleanupError}`);
+              return {
+                success: false,
+                message: `Ya existe un correo registrado para SAP: ${ventaValidada.sap}`,
+              };
+            }
           }
         } catch (error) {
           // No existe, continuar
@@ -613,21 +637,30 @@ export class VentaController {
       let newVenta;
       try {
         logger.info("Creando venta en BD...");
+        logger.info(`userId usado para crear venta: ${userId}`);
         newVenta = await this.ventaService.create(ventaValidada, userId);
         console.log("newVenta:", newVenta);
         logger.info(`✅ Venta creada exitosamente: ID ${newVenta.venta_id}`);
       } catch (error) {
         logger.error("Error al crear venta:", error);
+        logger.error(`Error details: ${JSON.stringify(error)}`);
 
         // ROLLBACK: Eliminar correo si fue creado
         if (correoCreado) {
-          await this.rollbackCorreo(
-            correoCreado.sap_id,
-            `Error al crear venta en BD: ${(error as Error).message}`,
-          );
+          logger.warn(`Iniciando rollback de correo: ${correoCreado.sap_id}`);
+          try {
+            await this.correoService.delete({ id: correoCreado.sap_id });
+            logger.info("✅ Rollback de correo completado");
+          } catch (rollbackError) {
+            logger.error("Error durante rollback:", rollbackError);
+          }
         }
 
-        throw error;
+        // Devolver error en lugar de lanzar para mantener consistencia
+        return {
+          success: false,
+          message: `Error al crear venta: ${(error as Error).message}`,
+        };
       }
 
       // 2.3. Post-procesamiento (portabilidad o línea nueva)
@@ -642,10 +675,30 @@ export class VentaController {
         logger.warn("Iniciando rollback completo (venta + correo)");
 
         // Eliminar venta
+        // ROLLBACK: Eliminar correo si fue creado
+        if (correoCreado) {
+          logger.warn(`Iniciando rollback de correo: ${correoCreado.sap_id}`);
+          try {
+            await this.correoService.delete({ id: correoCreado.sap_id });
+            logger.info("✅ Rollback de correo completado");
+          } catch (rollbackError) {
+            logger.error("Error durante rollback:", rollbackError);
+          }
+        }
         try {
           await this.ventaService.delete(String(newVenta.venta_id));
           logger.info(`✅ Venta ${newVenta.venta_id} eliminada (rollback)`);
         } catch (deleteError) {
+          // ROLLBACK: Eliminar correo si fue creado
+          if (correoCreado) {
+            logger.warn(`Iniciando rollback de correo: ${correoCreado.sap_id}`);
+            try {
+              await this.correoService.delete({ id: correoCreado.sap_id });
+              logger.info("✅ Rollback de correo completado");
+            } catch (rollbackError) {
+              logger.error("Error durante rollback:", rollbackError);
+            }
+          }
           logger.error(
             "Error al eliminar venta durante rollback:",
             deleteError,
@@ -654,13 +707,22 @@ export class VentaController {
 
         // Eliminar correo si fue creado
         if (correoCreado) {
-          await this.rollbackCorreo(
-            correoCreado.sap_id,
-            `Error en post-procesamiento: ${(error as Error).message}`,
-          );
+          try {
+            await this.rollbackCorreo(
+              correoCreado.sap_id,
+              `Error en post-procesamiento: ${(error as Error).message}`,
+            );
+            logger.info("✅ Rollback de correo completado");
+          } catch (rollbackError) {
+            logger.error("Error durante rollback de correo:", rollbackError);
+          }
         }
 
-        throw error;
+        // Devolver error en lugar de lanzar
+        return {
+          success: false,
+          message: `Error en post-procesamiento: ${(error as Error).message}`,
+        };
       }
 
       logger.info("✅ createFullVenta completado exitosamente");
@@ -689,6 +751,20 @@ export class VentaController {
       logger.warn(`🔄 Iniciando rollback de correo SAP: ${sapId}`);
       logger.warn(`   Razón: ${reason}`);
 
+      // Paso 1: Desvincular el correo de cualquier venta que lo referencia
+      // (para evitar error de FK al eliminar el correo)
+      try {
+        const ventasConSAP = await this.ventaService.getBySAP(sapId);
+        if (ventasConSAP) {
+          logger.warn(`🔄 Desvinculando SAP ${sapId} de venta ${ventasConSAP.venta_id}`);
+          await this.ventaService.update(String(ventasConSAP.venta_id), { sap: null });
+          logger.info(`✅ SAP desvinculado de venta ${ventasConSAP.venta_id}`);
+        }
+      } catch (sapError) {
+        logger.warn(`No se encontró venta con SAP ${sapId} o error al desvincular: ${sapError}`);
+      }
+
+      // Paso 2: Eliminar el correo
       await this.correoService.delete({ id: sapId });
       logger.info(`✅ Correo ${sapId} eliminado exitosamente (rollback)`);
     } catch (error) {
@@ -763,7 +839,9 @@ export class VentaController {
       const userId = ctx.state.user?.id;
       const userRol = ctx.state.user?.rol;
 
-      logger.debug(`VentaController.getVentasUI - Página: ${page}, Límite: ${limit}`);
+      logger.debug(
+        `VentaController.getVentasUI - Página: ${page}, Límite: ${limit}`,
+      );
 
       const result = await this.ventaService.getVentasUI({
         page,
@@ -835,7 +913,9 @@ export class VentaController {
       ctx.response.status = 500;
       ctx.response.body = {
         success: false,
-        message: isDev ? (error as Error).message : "Error al obtener detalle de venta",
+        message: isDev
+          ? (error as Error).message
+          : "Error al obtener detalle de venta",
       };
     }
   }

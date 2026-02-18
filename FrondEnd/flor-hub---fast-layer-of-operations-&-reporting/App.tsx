@@ -20,6 +20,7 @@ import { KPICards } from './components/analytics/KPICards';
 import { CommandPalette } from './components/layout/CommandPalette';
 import { ToastContainer } from './components/common/ToastContainer';
 import { ToastProvider, useToast } from './contexts/ToastContext';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 import { AppTab, Sale, SaleStatus, ProductType, LogisticStatus, LineStatus } from './types';
 
@@ -274,9 +275,9 @@ export default function App() {
     setIsUpdatingBulk(true);
     try {
       // Primero obtener los correos asociados a las ventas seleccionadas
-      const ventasConCorreos = sales.filter(s => selectedIds.has(s.id) && s.correo_id);
+      const ventasConCorreos = sales.filter(s => selectedIds.has(s.id) && s.sap);
       const correosToUpdate = ventasConCorreos.map(venta => ({
-        correo_id: Number(venta.correo_id),
+        sap_id: venta.sap,
         estado: status,
         descripcion: 'Actualización masiva desde UI'
       }));
@@ -319,57 +320,186 @@ export default function App() {
       setIsUpdatingBulk(false);
     }
   }, [selectedIds, sales, queryClient, addToast]);
+
+  // Nueva función para actualizar ambos estados simultáneamente
+  const handleUpdateBoth = useCallback(async (saleStatus: SaleStatus | null, logisticStatus: LogisticStatus | null) => {
+    console.log('[DEBUG] handleUpdateBoth llamado:', { saleStatus, logisticStatus, selectedIds: Array.from(selectedIds) });
+    
+    if (selectedIds.size === 0) {
+      console.log('[DEBUG] No hay ventas seleccionadas, retornando');
+      return;
+    }
+    if (!saleStatus && !logisticStatus) {
+      console.log('[DEBUG] No hay estados seleccionados, retornando');
+      return;
+    }
+    
+    setIsUpdatingBulk(true);
+    const results: { ventas?: any; correos?: any } = {};
+    const errors: string[] = [];
+    
+    try {
+      // Actualizar estados de venta si se seleccionó
+      if (saleStatus) {
+        const estadosToUpdate = Array.from(selectedIds).map((id: string) => ({
+          venta_id: Number(id.replace('V-', '')),
+          estado: saleStatus,
+          descripcion: 'Actualización masiva desde UI'
+        }));
+        
+        console.log('[DEBUG] Enviando estados de venta:', estadosToUpdate);
+
+        try {
+          const response = await api.post('/estados/bulk', { estados: estadosToUpdate });
+          console.log('[DEBUG] Respuesta de /estados/bulk:', response);
+          if (response.success) {
+            results.ventas = response;
+          } else {
+            errors.push(`Venta: ${response.message || 'Error desconocido'}`);
+          }
+        } catch (error: any) {
+          errors.push(`Venta: ${error.message || 'Error de conexión'}`);
+        }
+      }
+
+      // Actualizar estados de correo si se seleccionó
+      if (logisticStatus) {
+        const ventasConCorreos = sales.filter(s => selectedIds.has(s.id) && s.sap);
+        const correosToUpdate = ventasConCorreos.map(venta => ({
+          sap_id: venta.sap,
+          estado: logisticStatus,
+          descripcion: 'Actualización masiva desde UI'
+        }));
+
+        if (correosToUpdate.length > 0) {
+          try {
+            const response = await api.post('/estados-correo/bulk', { estados: correosToUpdate });
+            if (response.success) {
+              results.correos = response;
+            } else {
+              errors.push(`Correo: ${response.message || 'Error desconocido'}`);
+            }
+          } catch (error: any) {
+            errors.push(`Correo: ${error.message || 'Error de conexión'}`);
+          }
+        }
+      }
+
+      // Mostrar resultado combinado
+      if (errors.length === 0) {
+        const messages = [];
+        if (results.ventas) messages.push(`${selectedIds.size} ventas`);
+        if (results.correos) messages.push(`${results.correos.count || 'varios'} correos`);
+        
+        addToast({
+          type: 'success',
+          title: 'Actualización Exitosa',
+          message: `Se actualizaron ${messages.join(' y ')} correctamente`
+        });
+        queryClient.invalidateQueries({ queryKey: ['ventasUI'] });
+      } else if (results.ventas || results.correos) {
+        // Algunas actualizaciones fallaron
+        addToast({
+          type: 'warning',
+          title: 'Actualización Parcial',
+          message: `Algunas actualizaciones fallaron: ${errors.join(', ')}`
+        });
+        queryClient.invalidateQueries({ queryKey: ['ventasUI'] });
+      } else {
+        // Todas fallaron
+        addToast({
+          type: 'error',
+          title: 'Error',
+          message: `No se pudieron realizar las actualizaciones: ${errors.join(', ')}`
+        });
+      }
+    } catch (error: any) {
+      addToast({
+        type: 'error',
+        title: 'Error',
+        message: error.message || 'Error de conexión al actualizar'
+      });
+    } finally {
+      setSelectedIds(new Set());
+      setIsUpdatingBulk(false);
+    }
+  }, [selectedIds, sales, queryClient, addToast]);
   
   // Handlers para actualizaciones individuales desde SaleModal
   const handleSingleUpdateStatus = useCallback(async (status: SaleStatus, comment: string) => {
-    console.log('App: handleSingleUpdateStatus called', { status, comment, selectedSaleId: selectedSale?.id });
-    if (!selectedSale) return;
+    console.log('[DEBUG] handleSingleUpdateStatus called', { status, comment, selectedSaleId: selectedSale?.id });
+    if (!selectedSale) {
+      console.error('[DEBUG] No selectedSale available');
+      return;
+    }
     try {
       const ventaId = String(selectedSale.id).replace('V-', '');
-      const response = await api.post('/estados', {
-        venta_id: Number(ventaId),
-        estado: status,
-        descripcion: comment
+      console.log('[DEBUG] Sending POST to /estados/bulk with:', { venta_id: Number(ventaId), estado: status, descripcion: comment });
+      
+      // Usar endpoint bulk con un solo elemento (consistencia con el menú)
+      const response = await api.post('/estados/bulk', {
+        estados: [{
+          venta_id: Number(ventaId),
+          estado: status,
+          descripcion: comment
+        }]
       });
+
+      console.log('[DEBUG] Response from /estados/bulk:', response);
 
       if (response.success) {
         addToast({ type: 'success', title: 'Estado Actualizado', message: 'El estado de la venta se ha actualizado correctamente' });
-        queryClient.invalidateQueries({ queryKey: ['ventasUI'] });
-        queryClient.invalidateQueries({ queryKey: ['ventaDetalleCompleto', ventaId] });
+        await queryClient.invalidateQueries({ queryKey: ['ventasUI'] });
+        await queryClient.invalidateQueries({ queryKey: ['ventaDetalleCompleto', ventaId] });
       } else {
+        console.error('[DEBUG] API returned success=false:', response);
         throw new Error(response.message || 'No se pudo actualizar el estado');
       }
     } catch (error: any) {
+      console.error('[DEBUG] Error in handleSingleUpdateStatus:', error);
       addToast({ type: 'error', title: 'Error', message: error.message || 'Error al actualizar el estado' });
       throw error;
     }
   }, [selectedSale, queryClient, addToast]);
 
   const handleSingleUpdateLogistic = useCallback(async (status: LogisticStatus, comment: string) => {
-    console.log('App: handleSingleUpdateLogistic called', { status, comment, selectedSaleId: selectedSale?.id, sap: selectedSale?.sap });
-    if (!selectedSale) return;
+    console.log('[DEBUG] handleSingleUpdateLogistic called', { status, comment, selectedSaleId: selectedSale?.id, sap: selectedSale?.sap });
+    if (!selectedSale) {
+      console.error('[DEBUG] No selectedSale available');
+      return;
+    }
     try {
       const sapId = selectedSale.sap;
       if (!sapId) {
+        console.error('[DEBUG] No SAP ID available for this sale');
         addToast({ type: 'error', title: 'Error', message: 'Esta venta no tiene un código SAP asignado' });
         return;
       }
 
-      const response = await api.post('/estados-correo', {
-        sap_id: sapId,
-        estado: status,
-        descripcion: comment
+      console.log('[DEBUG] Sending POST to /estados-correo/bulk with:', { sap_id: sapId, estado: status, descripcion: comment });
+      
+      // Usar endpoint bulk con un solo elemento (consistencia con el menú)
+      const response = await api.post('/estados-correo/bulk', {
+        estados: [{
+          sap_id: sapId,
+          estado: status,
+          descripcion: comment
+        }]
       });
+
+      console.log('[DEBUG] Response from /estados-correo/bulk:', response);
 
       if (response.success) {
         addToast({ type: 'success', title: 'Estado Logístico Actualizado', message: 'El estado del envío se ha actualizado correctamente' });
-        queryClient.invalidateQueries({ queryKey: ['ventasUI'] });
+        await queryClient.invalidateQueries({ queryKey: ['ventasUI'] });
         const ventaId = String(selectedSale.id).replace('V-', '');
-        queryClient.invalidateQueries({ queryKey: ['ventaDetalleCompleto', ventaId] });
+        await queryClient.invalidateQueries({ queryKey: ['ventaDetalleCompleto', ventaId] });
       } else {
+        console.error('[DEBUG] API returned success=false:', response);
         throw new Error(response.message || 'No se pudo actualizar el estado logístico');
       }
     } catch (error: any) {
+      console.error('[DEBUG] Error in handleSingleUpdateLogistic:', error);
       addToast({ type: 'error', title: 'Error', message: error.message || 'Error al actualizar el estado logístico' });
       throw error;
     }
@@ -410,7 +540,7 @@ export default function App() {
         });
       }
     } catch (error: any) {
-      console.error('Error actualizando venta:', error);
+      // console.error('Error actualizando venta:', error);
       addToast({
         type: 'error',
         title: 'Error',
@@ -540,7 +670,7 @@ export default function App() {
     document.body.removeChild(link);
   };
 
-  console.log('🔍 [APP] Renderizando con estados:', { isAuthChecking, isAuthenticated, user: authUser });
+  // console.log('🔍 [APP] Renderizando con estados:', { isAuthChecking, isAuthenticated, user: authUser });
 
   return (
     <ToastProvider>
@@ -709,8 +839,7 @@ export default function App() {
           {selectedIds.size > 0 && (
             <UpdateMenu 
               selectedCount={selectedIds.size} 
-              onUpdateStatus={handleUpdateStatus}
-              onUpdateLogistic={handleUpdateLogistic}
+              onUpdateBoth={handleUpdateBoth}
               onClear={() => setSelectedIds(new Set())}
               isUpdating={isUpdatingBulk}
             />
@@ -731,7 +860,7 @@ export default function App() {
               sale={editingCorreo}
               onClose={() => setEditingCorreo(null)}
               onSubmit={(data) => {
-                console.log('Correo creado/actualizado:', data);
+                // console.log('Correo creado/actualizado:', data);
                 setEditingCorreo(null);
               }}
             />

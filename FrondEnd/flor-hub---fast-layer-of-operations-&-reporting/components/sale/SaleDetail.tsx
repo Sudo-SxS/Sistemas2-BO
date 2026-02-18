@@ -110,8 +110,24 @@ export const SaleDetail: React.FC<SaleDetailProps> = ({ ventaDetalle, isLoading,
             <p className="text-lg font-bold text-amber-900">{ventaDetalle.vendedor?.nombre} {ventaDetalle.vendedor?.apellido}</p>
           </div>
           <div>
+            <span className="text-xs text-amber-600 font-bold uppercase tracking-wider">Legajo</span>
+            <p className="text-sm font-bold text-amber-900">{ventaDetalle.vendedor?.legajo || '-'}</p>
+          </div>
+          <div>
+            <span className="text-xs text-amber-600 font-bold uppercase tracking-wider">EXA</span>
+            <p className="text-sm font-bold text-amber-900">{ventaDetalle.vendedor?.exa || '-'}</p>
+          </div>
+          <div>
             <span className="text-xs text-amber-600 font-bold uppercase tracking-wider">Email Vendedor</span>
-            <p className="text-sm font-medium text-amber-900">{ventaDetalle.vendedor?.email}</p>
+            <p className="text-sm font-medium text-amber-900">{ventaDetalle.vendedor?.email || '-'}</p>
+          </div>
+          <div>
+            <span className="text-xs text-amber-600 font-bold uppercase tracking-wider">Teléfono</span>
+            <p className="text-sm font-bold text-amber-900">{ventaDetalle.vendedor?.telefono || '-'}</p>
+          </div>
+          <div>
+            <span className="text-xs text-amber-600 font-bold uppercase tracking-wider">Célula</span>
+            <p className="text-sm font-bold text-amber-900">{ventaDetalle.vendedor?.celula || '-'}</p>
           </div>
           <div>
             <span className="text-xs text-amber-600 font-bold uppercase tracking-wider">Plan</span>
@@ -131,6 +147,27 @@ export const SaleDetail: React.FC<SaleDetailProps> = ({ ventaDetalle, isLoading,
           </div>
         </div>
       </div>
+
+      {/* Supervisor */}
+      {ventaDetalle.supervisor && (
+        <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-200">
+          <h3 className="text-lg font-bold text-purple-900 mb-4">Supervisor</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <span className="text-xs text-purple-600 font-bold uppercase tracking-wider">Supervisor</span>
+              <p className="text-lg font-bold text-purple-900">{ventaDetalle.supervisor?.nombre} {ventaDetalle.supervisor?.apellido}</p>
+            </div>
+            <div>
+              <span className="text-xs text-purple-600 font-bold uppercase tracking-wider">Legajo</span>
+              <p className="text-sm font-bold text-purple-900">{ventaDetalle.supervisor?.legajo || '-'}</p>
+            </div>
+            <div>
+              <span className="text-xs text-purple-600 font-bold uppercase tracking-wider">Email</span>
+              <p className="text-sm font-medium text-purple-900">{ventaDetalle.supervisor?.email || '-'}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sección Dinámica según tipo de venta */}
       {(venta.tipo_venta === 'PORTABILIDAD' && ventaDetalle.portabilidad) && (

@@ -11,31 +11,103 @@ interface SaleCardProps {
 
 const getStatusStyles = (status: SaleStatus) => {
   switch (status) {
+    // Estados Exitosos/Finales Positivos (Verde)
+    case SaleStatus.COMPLETADO:
+      return 'bg-emerald-600/15 dark:bg-emerald-500/20 text-emerald-900 dark:text-emerald-400 border-emerald-600/20 dark:border-emerald-500/30 font-black';
     case SaleStatus.ACTIVADO:
-    case SaleStatus.APROBADO: 
-      return 'bg-emerald-500/15 dark:bg-emerald-500/25 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 dark:border-emerald-400/40 font-black';
-    case SaleStatus.CANCELADO:
-    case SaleStatus.RECHAZADO: 
-      return 'bg-rose-500/15 dark:bg-rose-500/25 text-rose-700 dark:text-rose-400 border-rose-500/30 dark:border-rose-400/40 font-black';
-    case SaleStatus.INICIAL:
+      return 'bg-green-600/15 dark:bg-green-500/20 text-green-900 dark:text-green-400 border-green-600/20 dark:border-green-500/30 font-black';
+    case SaleStatus.APROBADO:
+      return 'bg-teal-600/15 dark:bg-teal-500/20 text-teal-900 dark:text-teal-400 border-teal-600/20 dark:border-teal-500/30 font-black';
+    case SaleStatus.ACTIVADO_NRO_PORTADO:
+      return 'bg-green-500/15 dark:bg-green-500/20 text-green-800 dark:text-green-400 border-green-500/20 dark:border-green-500/30 font-black';
+    
+    // Estados de Proceso/En Curso (Azul)
     case SaleStatus.EN_PROCESO:
-    case SaleStatus.PENDIENTE_DOCUMENTACION: 
-      return 'bg-amber-500/15 dark:bg-amber-500/25 text-amber-700 dark:text-amber-400 border-amber-500/30 dark:border-amber-400/40 font-black';
-    default: 
-      return 'bg-slate-500/25 dark:bg-slate-700/40 text-slate-800 dark:text-slate-200 border-slate-500/30 dark:border-slate-500/50 font-black';
+      return 'bg-blue-600/15 dark:bg-blue-500/20 text-blue-900 dark:text-blue-400 border-blue-600/20 dark:border-blue-500/30 font-black';
+    case SaleStatus.EN_TRANSPORTE:
+      return 'bg-cyan-600/15 dark:bg-cyan-500/20 text-cyan-900 dark:text-cyan-400 border-cyan-600/20 dark:border-cyan-500/30 font-black';
+    case SaleStatus.EN_REVISION:
+      return 'bg-sky-600/15 dark:bg-sky-500/20 text-sky-900 dark:text-sky-400 border-sky-600/20 dark:border-sky-500/30 font-black';
+    
+    // Estados de Creación/Documentación (Púrpura/Violeta)
+    case SaleStatus.CREADO_DOCU_OK:
+      return 'bg-violet-600/15 dark:bg-violet-500/20 text-violet-900 dark:text-violet-400 border-violet-600/20 dark:border-violet-500/30 font-black';
+    case SaleStatus.CREADO_SIN_DOCU:
+      return 'bg-fuchsia-600/15 dark:bg-fuchsia-500/20 text-fuchsia-900 dark:text-fuchsia-400 border-fuchsia-600/20 dark:border-fuchsia-500/30 font-black';
+    case SaleStatus.PENDIENTE_DOCUMENTACION:
+      return 'bg-purple-600/15 dark:bg-purple-500/20 text-purple-900 dark:text-purple-400 border-purple-600/20 dark:border-purple-500/30 font-black';
+    
+    // Estados Pendientes/Espera (Ámbar/Naranja)
+    case SaleStatus.PENDIENTE_PORTABILIDAD:
+      return 'bg-amber-600/15 dark:bg-amber-500/20 text-amber-900 dark:text-amber-400 border-amber-600/20 dark:border-amber-500/30 font-black';
+    case SaleStatus.EXITOSO:
+      return 'bg-lime-600/15 dark:bg-lime-500/20 text-lime-900 dark:text-lime-400 border-lime-600/20 dark:border-lime-500/30 font-black';
+    
+    // Estados Negativos/Rechazados (Rojo)
+    case SaleStatus.RECHAZADO:
+      return 'bg-red-600/15 dark:bg-red-500/20 text-red-900 dark:text-red-400 border-red-600/20 dark:border-red-500/30 font-black';
+    case SaleStatus.CANCELADO:
+      return 'bg-rose-600/15 dark:bg-rose-500/20 text-rose-900 dark:text-rose-400 border-rose-600/20 dark:border-rose-500/30 font-black';
+    case SaleStatus.ANULADO:
+      return 'bg-red-800/15 dark:bg-red-700/20 text-red-950 dark:text-red-300 border-red-800/20 dark:border-red-700/30 font-black';
+    
+    // Estado Inicial (Gris)
+    case SaleStatus.INICIAL:
+    default:
+      return 'bg-slate-400/15 dark:bg-slate-500/20 text-slate-800 dark:text-slate-300 border-slate-400/20 dark:border-slate-500/30 font-black';
   }
 };
 
 const getLogisticStatusStyles = (status: LogisticStatus) => {
   switch (status) {
+    // Estados de Éxito/Entrega (Verde)
     case LogisticStatus.ENTREGADO:
     case LogisticStatus.RENDIDO_AL_CLIENTE:
       return 'bg-emerald-600/15 dark:bg-emerald-500/20 text-emerald-900 dark:text-emerald-400 border-emerald-600/20 dark:border-emerald-500/30 font-black';
-    case LogisticStatus.PIEZA_EXTRAVIADA:
+    
+    // Estados en Tránsito (Azul)
+    case LogisticStatus.EN_TRANSITO:
+    case LogisticStatus.EN_CAMINO:
+      return 'bg-blue-600/15 dark:bg-blue-500/20 text-blue-900 dark:text-blue-400 border-blue-600/20 dark:border-blue-500/30 font-black';
+    case LogisticStatus.ASIGNADO:
+      return 'bg-sky-600/15 dark:bg-sky-500/20 text-sky-900 dark:text-sky-400 border-sky-600/20 dark:border-sky-500/30 font-black';
+    case LogisticStatus.EN_REPARTO:
+      return 'bg-cyan-600/15 dark:bg-cyan-500/20 text-cyan-900 dark:text-cyan-400 border-cyan-600/20 dark:border-cyan-500/30 font-black';
+    
+    // Estados en Centro/Agencia (Azul marino/Índigo)
+    case LogisticStatus.INGRESADO_LOGISTICO:
+      return 'bg-blue-800/15 dark:bg-blue-700/20 text-blue-950 dark:text-blue-300 border-blue-800/20 dark:border-blue-700/30 font-black';
+    case LogisticStatus.INGRESADO_AGENCIA:
+      return 'bg-indigo-600/15 dark:bg-indigo-500/20 text-indigo-900 dark:text-indigo-400 border-indigo-600/20 dark:border-indigo-500/30 font-black';
+    case LogisticStatus.INGRESADO_PICKUP:
+      return 'bg-violet-600/15 dark:bg-violet-500/20 text-violet-900 dark:text-violet-400 border-violet-600/20 dark:border-violet-500/30 font-black';
+    case LogisticStatus.LLEGADA_DESTINO:
+      return 'bg-teal-600/15 dark:bg-teal-500/20 text-teal-900 dark:text-teal-400 border-teal-600/20 dark:border-teal-500/30 font-black';
+    
+    // Estados Pendientes/Alerta (Amarillo/Naranja)
+    case LogisticStatus.PENDIENTE:
+      return 'bg-amber-600/15 dark:bg-amber-500/20 text-amber-900 dark:text-amber-400 border-amber-600/20 dark:border-amber-500/30 font-black';
+    case LogisticStatus.DEVUELTO:
+      return 'bg-orange-600/15 dark:bg-orange-500/20 text-orange-900 dark:text-orange-400 border-orange-600/20 dark:border-orange-500/30 font-black';
+    case LogisticStatus.DEVUELTO_CLIENTE:
+      return 'bg-orange-700/15 dark:bg-orange-600/20 text-orange-950 dark:text-orange-300 border-orange-700/20 dark:border-orange-600/30 font-black';
+    case LogisticStatus.EN_DEVOLUCION:
+      return 'bg-amber-700/15 dark:bg-amber-600/20 text-amber-950 dark:text-amber-300 border-amber-700/20 dark:border-amber-600/30 font-black';
+    
+    // Estados de Error/Problema (Rojo)
     case LogisticStatus.NO_ENTREGADO:
       return 'bg-rose-600/15 dark:bg-rose-500/20 text-rose-900 dark:text-rose-400 border-rose-600/20 dark:border-rose-500/30 font-black';
+    case LogisticStatus.PIEZA_EXTRAVIADA:
+      return 'bg-red-700/15 dark:bg-red-600/20 text-red-950 dark:text-red-300 border-red-700/20 dark:border-red-600/30 font-black';
+    
+    // Estado Especial ESIM (Morado)
+    case LogisticStatus.ESIM:
+      return 'bg-purple-600/15 dark:bg-purple-500/20 text-purple-900 dark:text-purple-400 border-purple-600/20 dark:border-purple-500/30 font-black';
+    
+    // Estado Inicial (Gris)
+    case LogisticStatus.INICIAL:
     default: 
-      return 'bg-indigo-600/15 dark:bg-indigo-500/20 text-indigo-900 dark:text-indigo-300 border-indigo-600/20 dark:border-indigo-400/30 font-black';
+      return 'bg-slate-400/15 dark:bg-slate-500/20 text-slate-800 dark:text-slate-300 border-slate-400/20 dark:border-slate-500/30 font-black';
   }
 };
 
@@ -160,11 +232,11 @@ export const SaleCard = React.memo(({ sale, isSelected, onToggleSelect, onClick,
 
       {/* Estado Logístico */}
       <div className="w-full lg:w-[12%] flex-shrink-0">
-        <div 
-          title={sale.logisticStatus}
+        <div
+          title={sale.logisticStatusDisplay || sale.logisticStatus}
           className={`px-[1.5vh] py-[1.2vh] rounded-[1.8vh] font-black uppercase tracking-widest border text-center truncate whitespace-nowrap text-[clamp(0.75rem,1.3vh,1.6rem)] shadow-sm overflow-hidden ${getLogisticStatusStyles(sale.logisticStatus)}`}
         >
-          {sale.logisticStatus}
+          {sale.logisticStatusDisplay || sale.logisticStatus}
         </div>
       </div>
 

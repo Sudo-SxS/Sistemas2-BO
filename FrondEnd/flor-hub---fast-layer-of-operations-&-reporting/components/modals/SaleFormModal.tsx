@@ -1,419 +1,328 @@
 import React, { useState, useEffect } from 'react';
-import { z } from 'zod';
-import { Sale, ProductType, OriginMarket } from '../../types';
-import { clienteService, ClienteCreate, ClienteResponse } from '../../services/cliente';
-import { getPlanesPorEmpresa, getPromocionesPorEmpresa, getEmpresasOrigen, getAllPlanes, getAllPromociones, PlanResponse, PromocionResponse, EmpresaOrigenResponse } from '../../services/plan';
-import { verificarSAP, crearCorreo, CorreoCreate } from '../../services/correo';
-import { createVenta } from '../../services/ventas';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Fase1Schema, Fase2Schema, Fase3Schema, Fase1Data, Fase2Data, Fase3Data } from '../../schemas/sale';
+import { Sale, ProductType } from '../../types';
+import { usePlansQuery, usePromotionsQuery, useEmpresasQuery } from '../../hooks/useSaleDependencies';
+import { useCreateSaleMutation } from '../../hooks/useSales';
+import { clienteService } from '../../services/cliente';
+import { verificarSAP } from '../../services/correo';
 import { useToast } from '../../contexts/ToastContext';
-
-// Schema de validación por fase
-const Fase1Schema = z.object({
-  tipo_documento: z.string().min(1, 'Tipo de documento requerido'),
-  documento: z.string().min(7, 'Documento inválido').max(20),
-  nombre: z.string().optional(),
-  apellido: z.string().optional(),
-  email: z.string().email().optional(),
-  telefono: z.string().optional(),
-  telefono_alternativo: z.string().optional(),
-  fecha_nacimiento: z.string().optional(),
-  genero: z.string().optional(),
-  nacionalidad: z.string().optional(),
-});
-
-const Fase2Schema = z.object({
-  tipo_venta: z.enum(['PORTABILIDAD', 'LINEA_NUEVA']),
-  empresa_origen_id: z.number().positive('Seleccione empresa'),
-  plan_id: z.number().positive('Seleccione un plan'),
-  promocion_id: z.number().optional(),
-  chip: z.enum(['SIM', 'ESIM']),
-  sds: z.string().optional(),
-  stl: z.string().optional(),
-  // Campos de portabilidad
-  spn: z.string().optional(),
-  numero_portar: z.string().optional(),
-  pin: z.string().optional(),
-  fecha_vencimiento_pin: z.string().optional(),
-  mercado_origen: z.enum(['PREPAGO', 'POSPAGO']).optional(),
-});
-
-const Fase3Schema = z.object({
-  sap_id: z.string().optional(),
-  numero: z.string().min(8, 'Teléfono inválido'),
-  tipo: z.enum(['RESIDENCIAL', 'EMPRESARIAL']).optional(),
-  direccion: z.string().optional(),
-  numero_casa: z.string().optional(),
-  entre_calles: z.string().optional(),
-  barrio: z.string().optional(),
-  localidad: z.string().optional(),
-  departamento: z.string().optional(),
-  provincia: z.string().optional(),
-  codigo_postal: z.string().optional(),
-  geolocalizacion: z.string().optional(),
-  estado_entrega: z.string().optional(),
-  telefono_alternativo: z.string().optional(),
-});
-
-type Fase1Data = z.infer<typeof Fase1Schema>;
-type Fase2Data = z.infer<typeof Fase2Schema>;
-type Fase3Data = z.infer<typeof Fase3Schema>;
 
 interface SaleFormModalProps {
   onClose: () => void;
-  onSubmit: (sale: Partial<Sale>) => void;
   onVentaCreada?: () => void;
   initialData?: Partial<Sale>;
 }
 
 type Fase = 1 | 2 | 3;
 
-export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit, onVentaCreada, initialData }) => {
+export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onVentaCreada, initialData }) => {
   const { addToast } = useToast();
   const [fase, setFase] = useState<Fase>(1);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Datos de fase 1 - Cliente
-  const [fase1, setFase1] = useState<Fase1Data>({
-    tipo_documento: 'DNI',
-    documento: '',
-    nombre: '',
-    apellido: '',
-    email: '',
-    telefono: '',
-    telefono_alternativo: '',
-    fecha_nacimiento: '',
-    genero: '',
-    nacionalidad: '',
-  });
-
-  // Datos de fase 2 - Venta
-  const [fase2, setFase2] = useState<Fase2Data>({
-    tipo_venta: initialData?.productType === ProductType.PORTABILITY ? 'PORTABILIDAD' : 'LINEA_NUEVA',
-    empresa_origen_id: initialData?.empresa_origen_id || 0,
-    plan_id: initialData?.plan_id || 0,
-    promocion_id: initialData?.promocion_id || undefined,
-    chip: 'SIM',
-    sds: '',
-    stl: '',
-    spn: '',
-    numero_portar: '',
-    pin: '',
-    fecha_vencimiento_pin: '',
-    mercado_origen: undefined,
-  });
-
-  // Datos de fase 3 - Correo (solo si chip = SIM)
-  const [fase3, setFase3] = useState<Fase3Data>({
-    sap_id: '',
-    numero: '',
-    tipo: 'RESIDENCIAL',
-    direccion: '',
-    numero_casa: '',
-    entre_calles: '',
-    barrio: '',
-    localidad: '',
-    departamento: '',
-    provincia: '',
-    codigo_postal: '',
-    geolocalizacion: '',
-    estado_entrega: '',
-    telefono_alternativo: '',
-  });
-
-  // Datos cargados del backend
-  const [empresas, setEmpresas] = useState<EmpresaOrigenResponse[]>([]);
-  const [planes, setPlanes] = useState<PlanResponse[]>([]);
-  const [promociones, setPromociones] = useState<PromocionResponse[]>([]);
-  const [clienteEncontrado, setClienteEncontrado] = useState<ClienteResponse | null>(null);
+  const [clienteEncontrado, setClienteEncontrado] = useState<any | null>(null);
   const [sapVerificado, setSapVerificado] = useState(false);
+  const [isLoadingCliente, setIsLoadingCliente] = useState(false);
+  
+  // Custom Hooks
+  const { data: planes, isLoading: isLoadingPlanes } = usePlansQuery();
+  const { data: promociones, isLoading: isLoadingPromociones } = usePromotionsQuery();
+  const { data: empresas, isLoading: isLoadingEmpresas } = useEmpresasQuery();
+  const createSaleMutation = useCreateSaleMutation();
 
-  // Cargar empresas al inicio
-  useEffect(() => {
-    getEmpresasOrigen().then(res => {
-      if (res.success && res.data) setEmpresas(res.data);
-    });
-  }, []);
-
-  // Cargar planes y promociones según tipo de venta
-  useEffect(() => {
-    setIsLoading(true);
-    
-    if (fase2.tipo_venta === 'LINEA_NUEVA') {
-      // Usar empresa_origen_id = 2 (Claro/Interna) para Línea Nueva, igual que en OfferPage
-      getPlanesPorEmpresa(2).then(res => {
-        if (res.success && res.data) {
-          // Filtrar inactivos y ordenar por precio
-          const filteredPlanes = res.data.filter(p => p.activo !== false);
-          const sortedPlanes = filteredPlanes.sort((a, b) => a.precio - b.precio);
-          setPlanes(sortedPlanes);
-        }
-        setIsLoading(false);
-      });
-      
-      getPromocionesPorEmpresa(2).then(res => {
-        if (res.success && res.data) {
-          // Filtrar inactivas y sin descuento, ordenar por nombre
-          const filteredPromociones = res.data.filter(p => p.activo !== false && p.descuento > 0);
-          const sortedPromociones = filteredPromociones.sort((a, b) => a.nombre.localeCompare(b.nombre));
-          setPromociones(sortedPromociones);
-        }
-      });
-    } else if (fase2.tipo_venta === 'PORTABILIDAD' && fase2.empresa_origen_id > 0) {
-      getPlanesPorEmpresa(fase2.empresa_origen_id).then(res => {
-        if (res.success && res.data) {
-          // Filtrar inactivos y ordenar por precio
-          const filteredPlanes = res.data.filter(p => p.activo !== false);
-          const sortedPlanes = filteredPlanes.sort((a, b) => a.precio - b.precio);
-          setPlanes(sortedPlanes);
-        }
-        setIsLoading(false);
-      });
-      
-      getPromocionesPorEmpresa(fase2.empresa_origen_id).then(res => {
-        if (res.success && res.data) {
-          // Filtrar inactivas y sin descuento, ordenar por nombre
-          const filteredPromociones = res.data.filter(p => p.activo !== false && p.descuento > 0);
-          const sortedPromociones = filteredPromociones.sort((a, b) => a.nombre.localeCompare(b.nombre));
-          setPromociones(sortedPromociones);
-        }
-      });
-    } else {
-      setPlanes([]);
-      setPromociones([]);
-      setIsLoading(false);
+  // Forms
+  const formFase1 = useForm<Fase1Data>({
+    resolver: zodResolver(Fase1Schema),
+    defaultValues: {
+      tipo_documento: 'DNI',
+      documento: '',
+      nombre: '',
+      apellido: '',
+      email: '',
+      telefono: '',
+      telefono_alternativo: '',
+      fecha_nacimiento: '',
+      genero: '',
+      nacionalidad: '',
     }
-  }, [fase2.tipo_venta, fase2.empresa_origen_id]);
+  });
 
-  // Buscar cliente por documento
+  const formFase2 = useForm<Fase2Data>({
+    resolver: zodResolver(Fase2Schema),
+    defaultValues: {
+      tipo_venta: initialData?.productType === ProductType.PORTABILITY ? 'PORTABILIDAD' : 'LINEA_NUEVA',
+      empresa_origen_id: initialData?.empresa_origen_id || 0,
+      plan_id: initialData?.plan_id || 0,
+      promocion_id: initialData?.promocion_id,
+      chip: 'SIM',
+      sds: '',
+      stl: '',
+      spn: '',
+      numero_portar: '',
+      pin: '',
+      fecha_vencimiento_pin: '',
+      mercado_origen: undefined,
+    }
+  });
+
+  const formFase3 = useForm<Fase3Data>({
+    resolver: zodResolver(Fase3Schema),
+    defaultValues: {
+      sap_id: '',
+      numero: '',
+      tipo: 'RESIDENCIAL',
+      direccion: '',
+      numero_casa: '',
+      entre_calles: '',
+      barrio: '',
+      localidad: '',
+      departamento: '',
+      provincia: '',
+      codigo_postal: '',
+      geolocalizacion: '',
+      estado_entrega: '',
+      telefono_alternativo: '',
+    }
+  });
+
+  // Watchers
+  const documento = formFase1.watch('documento');
+  const tipoDocumento = formFase1.watch('tipo_documento');
+  const tipoVenta = formFase2.watch('tipo_venta');
+  const planId = formFase2.watch('plan_id');
+  const promocionId = formFase2.watch('promocion_id');
+  const chip = formFase2.watch('chip');
+  const sapId = formFase3.watch('sap_id');
+
+  // Filtered Data
+  const filteredPlanes = React.useMemo(() => {
+    if (!planes) return [];
+    if (tipoVenta === 'LINEA_NUEVA') {
+      // Logic for logic new line (internal company id 2)
+      return planes.filter(p => p.activo !== false && p.empresa_origen_id === 2).sort((a, b) => a.precio - b.precio);
+    }
+    const empresaId = formFase2.getValues('empresa_origen_id');
+    if (tipoVenta === 'PORTABILIDAD' && empresaId) {
+       return planes.filter(p => p.activo !== false && p.empresa_origen_id === empresaId).sort((a, b) => a.precio - b.precio);
+    }
+    return [];
+  }, [planes, tipoVenta, formFase2.watch('empresa_origen_id')]);
+
+  const filteredPromociones = React.useMemo(() => {
+    if (!promociones) return [];
+     if (tipoVenta === 'LINEA_NUEVA') {
+      return promociones.filter(p => p.activo !== false && p.descuento > 0 && p.empresa_origen_id === 2).sort((a, b) => a.nombre.localeCompare(b.nombre));
+    }
+    const empresaId = formFase2.getValues('empresa_origen_id');
+    if (tipoVenta === 'PORTABILIDAD' && empresaId) {
+      return promociones.filter(p => p.activo !== false && p.descuento > 0 && p.empresa_origen_id === empresaId).sort((a, b) => a.nombre.localeCompare(b.nombre));
+    }
+    return [];
+  }, [promociones, tipoVenta, formFase2.watch('empresa_origen_id')]);
+
+  // Handlers
   const handleBuscarCliente = async () => {
-    if (!fase1.documento) return;
-    setIsLoading(true);
-    setError(null);
-    
-    const res = await clienteService.buscarPorDocumento({
-      tipo_documento: fase1.tipo_documento,
-      documento: fase1.documento,
-    });
-
-    if (res.success && res.data) {
-      setClienteEncontrado(res.data);
-      setFase1(prev => ({
-        ...prev,
-        nombre: res.data!.nombre,
-        apellido: res.data!.apellido,
-        email: res.data!.email,
-        telefono: res.data!.telefono || '',
-        fecha_nacimiento: res.data!.fecha_nacimiento.split('T')[0],
-        genero: res.data!.genero,
-        nacionalidad: res.data!.nacionalidad,
-      }));
-    } else {
-      setClienteEncontrado(null);
-      setError('Cliente no encontrado. Complete los datos para crear uno nuevo.');
+    if (!documento) return;
+    setIsLoadingCliente(true);
+    try {
+      const res = await clienteService.buscarPorDocumento({
+        tipo_documento: tipoDocumento,
+        documento: documento,
+      });
+      if (res.success && res.data) {
+        setClienteEncontrado(res.data);
+        formFase1.reset({
+          ...formFase1.getValues(),
+          nombre: res.data.nombre,
+          apellido: res.data.apellido,
+          email: res.data.email,
+          telefono: res.data.telefono || '',
+          fecha_nacimiento: res.data.fecha_nacimiento.split('T')[0],
+          genero: res.data.genero,
+          nacionalidad: res.data.nacionalidad,
+        });
+        addToast({ type: 'success', title: 'Cliente Encontrado', message: `${res.data.nombre} ${res.data.apellido}` });
+      } else {
+        setClienteEncontrado(null);
+        addToast({ type: 'info', title: 'Cliente No Encontrado', message: 'Complete los datos para registrarlo.' });
+      }
+    } catch (error) {
+       console.error(error);
+       addToast({ type: 'error', title: 'Error', message: 'Error al buscar cliente' });
+    } finally {
+      setIsLoadingCliente(false);
     }
-    setIsLoading(false);
   };
 
-  // Crear cliente nuevo
   const handleCrearCliente = async () => {
-    const clienteData: ClienteCreate = {
-      nombre: fase1.nombre!.toUpperCase(),
-      apellido: fase1.apellido!.toUpperCase(),
-      documento: fase1.documento,
-      tipo_documento: fase1.tipo_documento,
-      email: fase1.email!.toLowerCase(),
-      telefono: fase1.telefono,
-      telefono_alternativo: fase1.telefono_alternativo,
-      fecha_nacimiento: fase1.fecha_nacimiento!,
-      genero: fase1.genero as 'MASCULINO' | 'FEMENINO' | 'OTRO' | 'PREFIERO NO DECIR',
-      nacionalidad: fase1.nacionalidad!.toUpperCase(),
-    };
+    const data = formFase1.getValues();
+    // Validate manually or assume form is valid if button is enabled
+    // Ideally use formFase1.handleSubmit for this part too, but we are in a step flow
+    setIsLoadingCliente(true);
+    try {
+        const res = await clienteService.crear({
+            nombre: data.nombre!.toUpperCase(),
+            apellido: data.apellido!.toUpperCase(),
+            documento: data.documento,
+            tipo_documento: data.tipo_documento,
+            email: data.email!.toLowerCase(),
+            telefono: data.telefono,
+            telefono_alternativo: data.telefono_alternativo,
+            fecha_nacimiento: data.fecha_nacimiento!,
+            genero: data.genero as any,
+            nacionalidad: data.nacionalidad!.toUpperCase(),
+        });
 
-    setIsLoading(true);
-    const res = await clienteService.crear(clienteData);
-    
-    if (res.success && res.data) {
-      setClienteEncontrado(res.data);
-      setError(null);
-      addToast({
-        type: 'success',
-        title: 'Cliente Creado',
-        message: `${res.data.nombre} ${res.data.apellido} ha sido registrado exitosamente.`
-      });
-    } else {
-      setError(res.message || 'Error al crear cliente');
-      addToast({
-        type: 'error',
-        title: 'Error',
-        message: res.message || 'No se pudo crear el cliente.'
-      });
+        if (res.success && res.data) {
+            setClienteEncontrado(res.data);
+            addToast({ type: 'success', title: 'Cliente Creado', message: 'Cliente registrado correctamente' });
+        } else {
+            addToast({ type: 'error', title: 'Error', message: res.message || 'No se pudo crear el cliente' });
+        }
+    } catch (error) {
+        addToast({ type: 'error', title: 'Error', message: 'Error al crear cliente' });
+    } finally {
+        setIsLoadingCliente(false);
     }
-    setIsLoading(false);
   };
 
-  // Verificar SAP
   const handleVerificarSAP = async () => {
-    if (!fase3.sap_id) return;
-    setIsLoading(true);
-    const res = await verificarSAP(fase3.sap_id);
+    if (!sapId) return;
+    const res = await verificarSAP(sapId);
     if (res.success && !res.existe) {
       setSapVerificado(true);
-      setError(null);
+      formFase3.clearErrors('sap_id');
     } else {
       setSapVerificado(false);
-      setError(res.message || 'SAP ya existe');
+      formFase3.setError('sap_id', { type: 'manual', message: 'SAP ya existe o inválido' });
     }
-    setIsLoading(false);
   };
 
-  // Validación para crear cliente (cuando NO existe)
-  const puedeCrearCliente = () => {
-    return !clienteEncontrado && 
-           fase1.nombre && 
-           fase1.apellido && 
-           fase1.email && 
-           fase1.documento &&
-           fase1.tipo_documento &&
-           fase1.fecha_nacimiento && 
-           fase1.genero && 
-           fase1.nacionalidad;
-  };
+  const onSubmit = async () => {
+    // Final Validation Trigger
+    const isValidFase3 = await formFase3.trigger();
+    if (!isValidFase3 && chip === 'SIM') return;
 
-  // Validación para pasar a fase 2 (cuando existe cliente)
-  const puedePasarFase1 = () => {
-    return !!clienteEncontrado;
-  };
-
-  const puedePasarFase2 = () => {
-    // Plan es obligatorio siempre
-    if (fase2.plan_id === 0) return false;
-    
-    // Para PORTABILIDAD: validar campos adicionales
-    if (fase2.tipo_venta === 'PORTABILIDAD') {
-      if (fase2.empresa_origen_id === 0) return false;
-      if (!fase2.spn) return false;
-      if (!fase2.numero_portar) return false;
-      if (!fase2.mercado_origen) return false;
-    }
-    
-    return true;
-  };
-
-  const puedePasarFase3 = () => {
-    if (fase2.chip === 'ESIM') return true;
-    // SAP es opcional para SIM, pero si se ingresa debe estar verificado
-    if (fase3.sap_id && !sapVerificado) return false;
-    return fase3.numero && fase3.numero.length >= 8;
-  };
-
-  // Enviar formulario
-  const handleSubmit = async () => {
     if (!clienteEncontrado) {
-      setError('Debe buscar o crear un cliente primero');
-      return;
+        addToast({ type: 'error', title: 'Error', message: 'Debe seleccionar un cliente' });
+        return;
     }
 
-    setIsLoading(true);
+    const dataFase1 = formFase1.getValues();
+    const dataFase2 = formFase2.getValues();
+    const dataFase3 = formFase3.getValues();
 
-    const empresa = empresas.find(e => e.empresa_origen_id === fase2.empresa_origen_id);
-    const plan = planes.find(p => p.plan_id === fase2.plan_id);
-    const promocion = promociones.find(p => p.promocion_id === fase2.promocion_id);
-    
-    const empresaParaVenta = fase2.tipo_venta === 'LINEA_NUEVA' && empresas.length > 0 
-      ? empresas[0] 
-      : empresa;
+    const selectedEmpresa = empresas?.find(e => e.empresa_origen_id === dataFase2.empresa_origen_id);
+    const empresaParaVenta = dataFase2.tipo_venta === 'LINEA_NUEVA' && empresas && empresas.length > 0 ? empresas[0] : selectedEmpresa; 
 
-    const descuentoNum = promocion?.descuento || 0;
-    const precioBase = plan ? plan.precio : 0;
-    const precioFinal = descuentoNum > 0 
-      ? Math.round(precioBase * (1 - descuentoNum / 100))
-      : precioBase;
-
-    // Preparar payload para el backend
     const ventaPayload: any = {
       venta: {
-        sds: fase2.sds?.toUpperCase() || null,
-        chip: fase2.chip,
-        stl: fase2.chip === 'ESIM' ? null : (fase2.stl?.toUpperCase() || null),
-        tipo_venta: fase2.tipo_venta,
-        sap: null, // Se llena automático desde backend si se crea correo
+        sds: dataFase2.sds?.toUpperCase() || null,
+        chip: dataFase2.chip,
+        stl: dataFase2.chip === 'ESIM' ? null : (dataFase2.stl?.toUpperCase() || null),
+        tipo_venta: dataFase2.tipo_venta,
+        sap: null,
         cliente_id: clienteEncontrado.persona_id,
-        plan_id: fase2.plan_id,
-        promocion_id: fase2.promocion_id || null,
+        plan_id: dataFase2.plan_id,
+        promocion_id: dataFase2.promocion_id || null,
         empresa_origen_id: empresaParaVenta?.empresa_origen_id || 0,
       }
     };
 
-    // Agregar correo solo si es SIM
-    if (fase2.chip === 'SIM') {
-      ventaPayload.correo = {
-        sap_id: fase3.sap_id?.toUpperCase() || '',
-        telefono_contacto: fase3.numero,
-        telefono_alternativo: fase3.telefono_alternativo || null,
-        destinatario: `${fase1.nombre} ${fase1.apellido}`,
-        persona_autorizada: null,
-        direccion: fase3.direccion || '',
-        numero_casa: fase3.numero_casa ? Number(fase3.numero_casa) : 0,
-        entre_calles: fase3.entre_calles || null,
-        barrio: fase3.barrio || null,
-        localidad: fase3.localidad || null,
-        departamento: fase3.departamento || null,
-        codigo_postal: fase3.codigo_postal ? Number(fase3.codigo_postal) : null,
-        geolocalizacion: fase3.geolocalizacion || null,
-        estado_entrega: fase3.estado_entrega || null,
-      };
+    if (dataFase2.chip === 'SIM') {
+        ventaPayload.correo = {
+            sap_id: dataFase3.sap_id?.toUpperCase() || '',
+            telefono_contacto: dataFase3.numero,
+            telefono_alternativo: dataFase3.telefono_alternativo || null,
+            destinatario: `${dataFase1.nombre} ${dataFase1.apellido}`,
+            direccion: dataFase3.direccion || '',
+            numero_casa: dataFase3.numero_casa ? Number(dataFase3.numero_casa) : 1,
+            entre_calles: dataFase3.entre_calles || null,
+            barrio: dataFase3.barrio || null,
+            localidad: dataFase3.localidad || '',
+            departamento: dataFase3.departamento || '',
+            codigo_postal: dataFase3.codigo_postal ? Number(dataFase3.codigo_postal) : 1000,
+            geolocalizacion: dataFase3.geolocalizacion || null,
+        };
     }
 
-    // Agregar portabilidad solo si es PORTABILIDAD
-    if (fase2.tipo_venta === 'PORTABILIDAD') {
-      ventaPayload.portabilidad = {
-        spn: fase2.spn?.toUpperCase() || '',
-        empresa_origen: empresaParaVenta?.empresa_origen_id || 0,
-        mercado_origen: fase2.mercado_origen || '',
-        numero_porta: fase2.numero_portar || '',
-        pin: fase2.pin?.toUpperCase() || null,
-        fecha_vencimiento_pin: fase2.fecha_vencimiento_pin || null,
-      };
+    if (dataFase2.tipo_venta === 'PORTABILIDAD') {
+        ventaPayload.portabilidad = {
+            spn: dataFase2.spn?.toUpperCase() || '',
+            empresa_origen: dataFase2.empresa_origen_id,
+            mercado_origen: dataFase2.mercado_origen,
+            numero_porta: dataFase2.numero_portar,
+            pin: dataFase2.pin?.toUpperCase() || null,
+            fecha_vencimiento_pin: dataFase2.fecha_vencimiento_pin || null,
+        };
     }
-
-    try {
-      // Llamar al endpoint de crear venta
-      const response = await createVenta(ventaPayload);
-      
-      if (response) {
-        // Éxito
-        addToast({
-          type: 'success',
-          title: 'Venta Creada Exitosamente',
-          message: `Venta ${response.venta_id || ''} registrada correctamente.`
-        });
-
-        // Refrescar lista de ventas
-        if (onVentaCreada) {
-          onVentaCreada();
+    
+    createSaleMutation.mutate(ventaPayload, {
+        onSuccess: (res) => {
+            addToast({ type: 'success', title: 'Venta Creada', message: `Venta ${res.venta_id || ''} registrada` });
+            onVentaCreada && onVentaCreada();
+            onClose();
+        },
+        onError: (err: any) => {
+            addToast({ type: 'error', title: 'Error', message: err.message || 'Error al crear venta' });
         }
-
-        // Cerrar modal
-        onClose();
-      }
-    } catch (error: any) {
-      console.error('Error al crear venta:', error);
-      addToast({
-        type: 'error',
-        title: 'Error al Crear Venta',
-        message: error.message || 'Ocurrió un error al registrar la venta.'
-      });
-      setError(error.message || 'Error al crear venta');
-    } finally {
-      setIsLoading(false);
-    }
+    });
   };
 
-  // Clases UI reutilizables
+  // Render Helpers
   const inputClass = "w-full border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 font-bold outline-none focus:ring-4 focus:ring-indigo-50 dark:focus:ring-indigo-900/30 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm";
   const labelClass = "block font-black text-slate-500 dark:text-slate-400 uppercase text-xs mb-1 ml-1";
-  const sectionTitleClass = "font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-xs border-b border-slate-200 dark:border-slate-800 pb-2 mb-4";
+  const errorClass = "text-red-500 text-xs mt-1 font-bold ml-1";
+
+  const nextFase = async () => {
+    console.log('[nextFase] Fase actual:', fase, 'clienteEncontrado:', !!clienteEncontrado);
+    if (fase === 1) {
+        if (!clienteEncontrado) {
+          console.log('[nextFase] No hay cliente encontrado, no avanza');
+          return;
+        }
+        console.log('[nextFase] Avanzando a fase 2');
+        setFase(2);
+    } else if (fase === 2) {
+        console.log('[nextFase] Validando fase 2...');
+        
+        // Validar todos los campos
+        const fieldsToValidate: string[] = ['sds', 'stl', 'tipo_venta', 'plan_id', 'promocion_id', 'chip'];
+        
+        // Si es portabilidad, agregar campos adicionales
+        if (tipoVenta === 'PORTABILIDAD') {
+          fieldsToValidate.push('empresa_origen_id', 'spn', 'numero_portar', 'mercado_origen');
+        }
+        
+        console.log('[nextFase] Campos a validar:', fieldsToValidate);
+        console.log('[nextFase] Valores actuales:', formFase2.getValues());
+        
+        let allValid = true;
+        const errors: Record<string, any> = {};
+        
+        for (const field of fieldsToValidate) {
+          const fieldValid = await formFase2.trigger(field as any);
+          console.log(`[nextFase] Campo ${field}:`, fieldValid ? '✓ válido' : '✗ inválido', formFase2.getValues(field as any));
+          if (!fieldValid) {
+            allValid = false;
+            const fieldError = formFase2.formState.errors[field as keyof typeof formFase2.formState.errors];
+            if (fieldError) {
+              errors[field] = fieldError;
+            }
+          }
+        }
+        
+        console.log('[nextFase] Validación resultado:', allValid);
+        console.log('[nextFase] Errores encontrados:', errors);
+        
+        if (allValid) {
+          console.log('[nextFase] Avanzando a fase 3');
+          setFase(3);
+        } else {
+          console.log('[nextFase] Validación falló. Campos con error:', Object.keys(errors).join(', '));
+        }
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
@@ -425,833 +334,194 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onSubmit,
             <p className="font-black uppercase tracking-wider text-xs opacity-80">Registro en FLOR HUB</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-xl transition-all">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
 
-        {/* Pestañas */}
+        {/* Steps */}
         <div className="flex border-b border-slate-200 dark:border-slate-800 shrink-0">
-          {[
-            { n: 1, t: 'Cliente' },
-            { n: 2, t: 'Venta' },
-            { n: 3, t: fase2.chip === 'ESIM' ? 'Resumen' : 'Correo' },
-          ].map(tab => (
-            <button
-              key={tab.n}
-              onClick={() => setFase(tab.n as Fase)}
-              className={`flex-1 py-3 font-black uppercase text-sm tracking-wider transition-all ${
-                fase === tab.n
-                  ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 bg-indigo-50/50 dark:bg-indigo-900/20'
-                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-              }`}
-            >
-              <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full mr-2 text-xs ${
-                fase > tab.n ? 'bg-green-500 text-white' : fase === tab.n ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
-              }`}>
-                {fase > tab.n ? '✓' : tab.n}
-              </span>
-              {tab.t}
-            </button>
-          ))}
+             {[1, 2, 3].map((step) => (
+                <button key={step} onClick={() => step < fase && setFase(step as Fase)} className={`flex-1 py-3 font-black uppercase text-sm tracking-wider transition-all ${fase === step ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-400'}`}>
+                    {step === 1 ? 'Cliente' : step === 2 ? 'Venta' : chip === 'ESIM' ? 'Resumen' : 'Logística'}
+                </button>
+             ))}
         </div>
 
-        {/* Contenido */}
+        {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-sm font-bold">
-              {error}
-            </div>
-          )}
-
-          {/* FASE 1: CLIENTE */}
-          {fase === 1 && (
-            <div className="space-y-6">
-              <div className={sectionTitleClass}>Búsqueda de Cliente</div>
-              
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className={labelClass}>Tipo Documento</label>
-                  <select
-                    value={fase1.tipo_documento}
-                    onChange={e => setFase1(prev => ({ ...prev, tipo_documento: e.target.value }))}
-                    className={inputClass}
-                  >
-                    <option value="DNI">DNI</option>
-                    <option value="CUIL">CUIL</option>
-                    <option value="PASAPORTE">Pasaporte</option>
-                  </select>
-                </div>
-                <div className="col-span-2">
-                  <label className={labelClass}>Número Documento *</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={fase1.documento}
-                      onChange={e => setFase1(prev => ({ ...prev, documento: e.target.value }))}
-                      className={inputClass}
-                      placeholder="12345678"
-                    />
-                    <button
-                      onClick={handleBuscarCliente}
-                      disabled={!fase1.documento || isLoading}
-                      className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-bold py-3 px-6 rounded-xl transition-all"
-                    >
-                      {isLoading ? '...' : 'Buscar'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {clienteEncontrado ? (
-                <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
-                  <p className="font-bold text-green-700 dark:text-green-400">
-                    ✓ Cliente encontrado: {clienteEncontrado.nombre} {clienteEncontrado.apellido}
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <div className={sectionTitleClass}>Datos del Nuevo Cliente</div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className={labelClass}>Nombre *</label>
-                      <input
-                        type="text"
-                        value={fase1.nombre}
-                        onChange={e => setFase1(prev => ({ ...prev, nombre: e.target.value }))}
-                        className={inputClass}
-                        placeholder="JUAN"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Apellido *</label>
-                      <input
-                        type="text"
-                        value={fase1.apellido}
-                        onChange={e => setFase1(prev => ({ ...prev, apellido: e.target.value }))}
-                        className={inputClass}
-                        placeholder="PÉREZ"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Email *</label>
-                      <input
-                        type="email"
-                        value={fase1.email}
-                        onChange={e => setFase1(prev => ({ ...prev, email: e.target.value }))}
-                        className={inputClass}
-                        placeholder="juan.perez@email.com"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Teléfono</label>
-                      <input
-                        type="tel"
-                        value={fase1.telefono}
-                        onChange={e => setFase1(prev => ({ ...prev, telefono: e.target.value }))}
-                        className={inputClass}
-                        placeholder="3511234567"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Teléfono Alternativo</label>
-                      <input
-                        type="tel"
-                        value={fase1.telefono_alternativo}
-                        onChange={e => setFase1(prev => ({ ...prev, telefono_alternativo: e.target.value }))}
-                        className={inputClass}
-                        placeholder="3517654321"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Fecha Nacimiento *</label>
-                      <input
-                        type="date"
-                        value={fase1.fecha_nacimiento}
-                        onChange={e => setFase1(prev => ({ ...prev, fecha_nacimiento: e.target.value }))}
-                        className={inputClass}
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Género *</label>
-                      <select
-                        value={fase1.genero}
-                        onChange={e => setFase1(prev => ({ ...prev, genero: e.target.value }))}
-                        className={inputClass}
-                      >
-                        <option value="">Seleccionar...</option>
-                        <option value="MASCULINO">Masculino</option>
-                        <option value="FEMENINO">Femenino</option>
-                        <option value="OTRO">Otro</option>
-                        <option value="PREFIERO NO DECIR">Prefiero no decir</option>
-                      </select>
-                    </div>
-                    <div className="col-span-2">
-                      <label className={labelClass}>Nacionalidad *</label>
-                      <input
-                        type="text"
-                        value={fase1.nacionalidad}
-                        onChange={e => setFase1(prev => ({ ...prev, nacionalidad: e.target.value }))}
-                        className={inputClass}
-                        placeholder="ARGENTINA"
-                      />
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleCrearCliente}
-                    disabled={!puedeCrearCliente() || isLoading}
-                    className="mt-4 w-full bg-green-600 hover:bg-green-700 disabled:bg-slate-300 text-white font-bold py-3 rounded-xl transition-all"
-                  >
-                    {isLoading ? 'Creando...' : 'Crear Cliente'}
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* FASE 2: VENTA */}
-          {fase === 2 && (
-            <div className="space-y-6">
-              <div className={sectionTitleClass}>Tipo de Venta</div>
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  onClick={() => {
-                    setFase2(prev => ({ 
-                      ...prev, 
-                      tipo_venta: 'LINEA_NUEVA', 
-                      empresa_origen_id: 0,
-                      spn: '',
-                      numero_portar: '',
-                      pin: '',
-                      fecha_vencimiento_pin: '',
-                      mercado_origen: undefined,
-                    }));
-                    setPlanes([]);
-                    setPromociones([]);
-                  }}
-                  className={`p-4 rounded-xl border-2 transition-all ${
-                    fase2.tipo_venta === 'LINEA_NUEVA'
-                      ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30'
-                      : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300'
-                  }`}
-                >
-                  <div className="font-black text-lg text-slate-900 dark:text-white">📱 Línea Nueva</div>
-                  <div className="text-xs text-slate-500 mt-1">Activación de línea nueva</div>
-                </button>
-                <button
-                  onClick={() => setFase2(prev => ({ 
-                    ...prev, 
-                    tipo_venta: 'PORTABILIDAD',
-                    empresa_origen_id: 0,
-                  }))}
-                  className={`p-4 rounded-xl border-2 transition-all ${
-                    fase2.tipo_venta === 'PORTABILIDAD'
-                      ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30'
-                      : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300'
-                  }`}
-                >
-                  <div className="font-black text-lg text-slate-900 dark:text-white">🔄 Portabilidad</div>
-                  <div className="text-xs text-slate-500 mt-1">Trae tu número a Claro</div>
-                </button>
-              </div>
-
-              {/* Campos SDS y STL */}
-              <div className={sectionTitleClass}>Datos de Venta</div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>SDS</label>
-                  <input
-                    type="text"
-                    value={fase2.sds}
-                    onChange={e => setFase2(prev => ({ ...prev, sds: e.target.value }))}
-                    className={`${inputClass} uppercase`}
-                    placeholder="SDS001"
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>STL {fase2.chip === 'ESIM' && <span className="text-amber-500 text-xs">(No aplica para eSIM)</span>}</label>
-                  <input
-                    type="text"
-                    value={fase2.stl}
-                    onChange={e => setFase2(prev => ({ ...prev, stl: e.target.value }))}
-                    className={`${inputClass} uppercase ${fase2.chip === 'ESIM' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    placeholder="STL001"
-                    disabled={fase2.chip === 'ESIM'}
-                  />
-                </div>
-              </div>
-
-              <div className={sectionTitleClass}>Empresa y Plan</div>
-              
-              {/* Solo mostrar empresa origen para PORTABILIDAD */}
-              {fase2.tipo_venta === 'PORTABILIDAD' && (
-                <div className="mb-4">
-                  <label className={labelClass}>Empresa Origen *</label>
-                  <select
-                    value={fase2.empresa_origen_id || ''}
-                    onChange={e => {
-                      setFase2(prev => ({ 
-                        ...prev, 
-                        empresa_origen_id: Number(e.target.value),
-                        plan_id: 0,
-                        promocion_id: undefined
-                      }));
-                    }}
-                    className={inputClass}
-                  >
-                    <option value="">Seleccionar empresa...</option>
-                    {empresas.filter(e => e.empresa_origen_id !== 2).map(e => (
-                      <option key={e.empresa_origen_id} value={e.empresa_origen_id}>
-                        {e.nombre_empresa} ({e.pais})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>Plan *</label>
-                  <select
-                    value={fase2.plan_id || ''}
-                    onChange={e => {
-                      setFase2(prev => ({ 
-                        ...prev, 
-                        plan_id: Number(e.target.value),
-                        promocion_id: undefined
-                      }));
-                    }}
-                    className={inputClass}
-                    disabled={planes.length === 0}
-                  >
-                    <option value="">Seleccionar plan...</option>
-                    {planes.map(p => (
-                      <option key={p.plan_id} value={p.plan_id}>
-                        {p.nombre} - {p.gigabyte} GB
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className={labelClass}>Promoción</label>
-                  <select
-                    value={fase2.promocion_id || ''}
-                    onChange={e => setFase2(prev => ({ ...prev, promocion_id: e.target.value ? Number(e.target.value) : undefined }))}
-                    className={inputClass}
-                    disabled={planes.length === 0}
-                  >
-                    <option value="">Sin promoción</option>
-                    {promociones.map(promo => (
-                      <option key={promo.promocion_id} value={promo.promocion_id}>
-                        {promo.nombre} {promo.descuento ? `(-${promo.descuento}%)` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Resumen del Plan Seleccionado */}
-              {fase2.plan_id > 0 && (
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
-                  {(() => {
-                    const selectedPlan = planes.find(p => p.plan_id === fase2.plan_id);
-                    const selectedPromo = promociones.find(p => p.promocion_id === fase2.promocion_id);
-                    
-                    if (!selectedPlan) return null;
-                    
-                    const precioBase = selectedPlan.precio;
-                    const descuento = selectedPromo?.descuento || 0;
-                    const precioFinal = descuento > 0 
-                      ? Math.round(precioBase * (1 - descuento / 100))
-                      : precioBase;
-                    
-                    // Concatenar beneficios
-                    const beneficiosPlan = selectedPlan.beneficios || '';
-                    const beneficiosPromo = selectedPromo?.beneficios || '';
-                    const todosBeneficios = [beneficiosPlan, beneficiosPromo].filter(b => b).join(' • ');
-                    
-                    return (
-                      <>
-                        <div className="font-black text-slate-700 dark:text-slate-200 text-lg mb-3">
-                          {selectedPlan.nombre}
+            {/* FASE 1 */}
+            {fase === 1 && (
+                <div className="space-y-6">
+                    <div className="grid grid-cols-3 gap-4">
+                        <div>
+                             <label className={labelClass}>Tipo</label>
+                             <select {...formFase1.register('tipo_documento')} className={inputClass}>
+                                <option value="DNI">DNI</option>
+                                <option value="CUIL">CUIL</option>
+                             </select>
                         </div>
-                        
-                        <div className="flex items-center gap-3 mb-3">
-                          {descuento > 0 ? (
-                            <>
-                              <span className="text-slate-400 line-through font-bold text-lg">
-                                ${precioBase.toLocaleString('es-AR')}
-                              </span>
-                              <span className="text-green-600 font-black text-2xl">
-                                ${precioFinal.toLocaleString('es-AR')}
-                              </span>
-                              <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-                                -{descuento}% OFF
-                              </span>
-                            </>
-                          ) : (
-                            <span className="text-slate-900 dark:text-white font-black text-2xl">
-                              ${precioBase.toLocaleString('es-AR')}
-                            </span>
-                          )}
+                        <div className="col-span-2">
+                             <label className={labelClass}>Documento</label>
+                             <div className="flex gap-2">
+                                <input {...formFase1.register('documento')} className={inputClass} placeholder="12345678" />
+                                <button type="button" onClick={handleBuscarCliente} disabled={isLoadingCliente} className="bg-indigo-600 text-white px-6 rounded-xl font-bold">Buscar</button>
+                             </div>
                         </div>
-                        
-                        <div className="flex gap-4 text-sm text-slate-600 dark:text-slate-300 mb-3">
-                          <span>📊 {selectedPlan.gigabyte} GB</span>
-                          <span>📞 {selectedPlan.llamadas}</span>
-                          <span>💬 {selectedPlan.mensajes}</span>
+                    </div>
+                    
+                    {clienteEncontrado ? (
+                        <div className="p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-xl text-green-700 dark:text-green-400 font-bold">
+                             ✓ Cliente: {clienteEncontrado.nombre} {clienteEncontrado.apellido}
                         </div>
-                        
-                        {todosBeneficios && (
-                          <div className="text-sm text-slate-500 dark:text-slate-400">
-                            <span className="font-bold">🎁 Beneficios:</span> {todosBeneficios}
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
-                </div>
-              )}
-
-              {/* Campos de Portabilidad */}
-              {fase2.tipo_venta === 'PORTABILIDAD' && (
-                <>
-                  <div className={sectionTitleClass}>Datos de Portabilidad</div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className={labelClass}>SPN *</label>
-                      <input
-                        type="text"
-                        value={fase2.spn}
-                        onChange={e => setFase2(prev => ({ ...prev, spn: e.target.value }))}
-                        className={`${inputClass} uppercase`}
-                        placeholder="SPN123456"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Número a Portar *</label>
-                      <input
-                        type="text"
-                        value={fase2.numero_portar}
-                        onChange={e => setFase2(prev => ({ ...prev, numero_portar: e.target.value }))}
-                        className={inputClass}
-                        placeholder="3511234567"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>PIN</label>
-                      <input
-                        type="text"
-                        value={fase2.pin}
-                        onChange={e => setFase2(prev => ({ ...prev, pin: e.target.value }))}
-                        className={inputClass}
-                        placeholder="1234"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Fecha Vencimiento PIN</label>
-                      <input
-                        type="date"
-                        value={fase2.fecha_vencimiento_pin}
-                        onChange={e => setFase2(prev => ({ ...prev, fecha_vencimiento_pin: e.target.value }))}
-                        className={inputClass}
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <label className={labelClass}>Mercado Origen *</label>
-                      <select
-                        value={fase2.mercado_origen || ''}
-                        onChange={e => setFase2(prev => ({ ...prev, mercado_origen: e.target.value as 'PREPAGO' | 'POSPAGO' }))}
-                        className={inputClass}
-                      >
-                        <option value="">Seleccionar...</option>
-                        <option value="PREPAGO">Prepago</option>
-                        <option value="POSPAGO">Pospago</option>
-                      </select>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              <div className={sectionTitleClass}>Tipo de Chip</div>
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  onClick={() => setFase2(prev => ({ ...prev, chip: 'SIM' }))}
-                  className={`p-4 rounded-xl border-2 transition-all ${
-                    fase2.chip === 'SIM'
-                      ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30'
-                      : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300'
-                  }`}
-                >
-                  <div className="font-black text-lg text-slate-900 dark:text-white">💳 SIM Física</div>
-                  <div className="text-xs text-slate-500 mt-1">Requiere correo</div>
-                </button>
-                <button
-                  onClick={() => setFase2(prev => ({ ...prev, chip: 'ESIM' }))}
-                  className={`p-4 rounded-xl border-2 transition-all ${
-                    fase2.chip === 'ESIM'
-                      ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30'
-                      : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300'
-                  }`}
-                >
-                  <div className="font-black text-lg text-slate-900 dark:text-white">📲 eSIM Digital</div>
-                  <div className="text-xs text-slate-500 mt-1">Sin correo físico</div>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* FASE 3: CORREO o RESUMEN */}
-          {fase === 3 && (
-            <div className="space-y-6">
-              {fase2.chip === 'SIM' ? (
-                <>
-                  <div className={sectionTitleClass}>Datos del Correo SIM</div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className={labelClass}>SAP ID</label>
-                      <input
-                        type="text"
-                        value={fase3.sap_id}
-                        onChange={e => {
-                          setFase3(prev => ({ ...prev, sap_id: e.target.value }));
-                          setSapVerificado(false);
-                        }}
-                        className={`${inputClass} uppercase`}
-                        placeholder="SAP123456"
-                      />
-                    </div>
-                    <div className="flex items-end">
-                      <button
-                        onClick={handleVerificarSAP}
-                        disabled={!fase3.sap_id || isLoading}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-bold py-3 rounded-xl transition-all"
-                      >
-                        {sapVerificado ? '✓ SAP Disponible' : 'Verificar SAP'}
-                      </button>
-                    </div>
-                    <div>
-                      <label className={labelClass}>Número Teléfono *</label>
-                      <input
-                        type="tel"
-                        value={fase3.numero}
-                        onChange={e => setFase3(prev => ({ ...prev, numero: e.target.value }))}
-                        className={inputClass}
-                        placeholder="600000000"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Teléfono Alternativo</label>
-                      <input
-                        type="tel"
-                        value={fase3.telefono_alternativo}
-                        onChange={e => setFase3(prev => ({ ...prev, telefono_alternativo: e.target.value }))}
-                        className={inputClass}
-                        placeholder="3511234567"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Tipo</label>
-                      <select
-                        value={fase3.tipo}
-                        onChange={e => setFase3(prev => ({ ...prev, tipo: e.target.value as 'RESIDENCIAL' | 'EMPRESARIAL' }))}
-                        className={inputClass}
-                      >
-                        <option value="RESIDENCIAL">Residencial</option>
-                        <option value="EMPRESARIAL">Empresarial</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className={labelClass}>Dirección</label>
-                      <input
-                        type="text"
-                        value={fase3.direccion}
-                        onChange={e => setFase3(prev => ({ ...prev, direccion: e.target.value }))}
-                        className={inputClass}
-                        placeholder="Calle 123"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Localidad</label>
-                      <input
-                        type="text"
-                        value={fase3.localidad}
-                        onChange={e => setFase3(prev => ({ ...prev, localidad: e.target.value }))}
-                        className={inputClass}
-                        placeholder="Buenos Aires"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Departamento</label>
-                      <input
-                        type="text"
-                        value={fase3.departamento}
-                        onChange={e => setFase3(prev => ({ ...prev, departamento: e.target.value }))}
-                        className={inputClass}
-                        placeholder="Capital"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Código Postal</label>
-                      <input
-                        type="text"
-                        value={fase3.codigo_postal}
-                        onChange={e => setFase3(prev => ({ ...prev, codigo_postal: e.target.value }))}
-                        className={inputClass}
-                        placeholder="5000"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Número de Casa</label>
-                      <input
-                        type="text"
-                        value={fase3.numero_casa}
-                        onChange={e => setFase3(prev => ({ ...prev, numero_casa: e.target.value }))}
-                        className={inputClass}
-                        placeholder="1234"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Barrio</label>
-                      <input
-                        type="text"
-                        value={fase3.barrio}
-                        onChange={e => setFase3(prev => ({ ...prev, barrio: e.target.value }))}
-                        className={inputClass}
-                        placeholder="Centro"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Entre Calles</label>
-                      <input
-                        type="text"
-                        value={fase3.entre_calles}
-                        onChange={e => setFase3(prev => ({ ...prev, entre_calles: e.target.value }))}
-                        className={inputClass}
-                        placeholder="Entre calle A y B"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Geolocalización</label>
-                      <input
-                        type="text"
-                        value={fase3.geolocalizacion}
-                        onChange={e => setFase3(prev => ({ ...prev, geolocalizacion: e.target.value }))}
-                        className={inputClass}
-                        placeholder="-34.6037, -58.3816"
-                      />
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="p-4 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-xl">
-                  <p className="font-bold text-indigo-700 dark:text-indigo-400 text-sm">
-                    ✓ Venta con eSIM - No requiere datos de correo
-                  </p>
-                </div>
-              )}
-
-              <div className={sectionTitleClass}>Resumen de la Venta</div>
-              <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 space-y-4 text-sm">
-                {/* Datos del Cliente */}
-                <div>
-                  <div className="font-black text-indigo-600 dark:text-indigo-400 text-xs uppercase mb-2">👤 Cliente</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <span className="text-slate-500">Nombre:</span>
-                      <span className="font-bold ml-2">{clienteEncontrado?.nombre} {clienteEncontrado?.apellido}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500">DNI:</span>
-                      <span className="font-bold ml-2">{clienteEncontrado?.documento}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500">Tel:</span>
-                      <span className="font-bold ml-2">{clienteEncontrado?.telefono || fase1.telefono}</span>
-                    </div>
-                    {(clienteEncontrado?.telefono_alternativo || fase1.telefono_alternativo) && (
-                      <div>
-                        <span className="text-slate-500">Tel Alt:</span>
-                        <span className="font-bold ml-2">{clienteEncontrado?.telefono_alternativo || fase1.telefono_alternativo}</span>
-                      </div>
+                    ) : (
+                        <div className="space-y-4 border-t border-slate-100 pt-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><label className={labelClass}>Nombre</label><input {...formFase1.register('nombre')} className={inputClass} /></div>
+                                <div><label className={labelClass}>Apellido</label><input {...formFase1.register('apellido')} className={inputClass} /></div>
+                                <div><label className={labelClass}>Email</label><input {...formFase1.register('email')} className={inputClass} /></div>
+                                <div><label className={labelClass}>Teléfono</label><input {...formFase1.register('telefono')} className={inputClass} /></div>
+                                <div><label className={labelClass}>Fecha Nac.</label><input type="date" {...formFase1.register('fecha_nacimiento')} className={inputClass} /></div>
+                                <div><label className={labelClass}>Género</label>
+                                    <select {...formFase1.register('genero')} className={inputClass}>
+                                        <option value="">Seleccionar...</option>
+                                        <option value="MASCULINO">Masculino</option>
+                                        <option value="FEMENINO">Femenino</option>
+                                    </select>
+                                </div>
+                                <div className="col-span-2"><label className={labelClass}>Nacionalidad</label><input {...formFase1.register('nacionalidad')} className={inputClass} /></div>
+                            </div>
+                            <button type="button" onClick={handleCrearCliente} disabled={isLoadingCliente} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold">Crear Cliente</button>
+                        </div>
                     )}
-                  </div>
                 </div>
+            )}
 
-                {/* Datos del Plan */}
-                {(() => {
-                  const selectedPlan = planes.find(p => p.plan_id === fase2.plan_id);
-                  const selectedPromo = promociones.find(p => p.promocion_id === fase2.promocion_id);
-                  if (!selectedPlan) return null;
-                  
-                  const precioBase = selectedPlan.precio;
-                  const descuento = selectedPromo?.descuento || 0;
-                  const precioFinal = descuento > 0 ? Math.round(precioBase * (1 - descuento / 100)) : precioBase;
-                  const beneficios = [selectedPlan.beneficios, selectedPromo?.beneficios].filter(b => b).join(' • ');
-                  
-                  return (
-                    <div>
-                      <div className="font-black text-indigo-600 dark:text-indigo-400 text-xs uppercase mb-2">📱 Plan</div>
-                      <div className="font-bold text-base mb-1">{selectedPlan.nombre}</div>
-                      <div className="flex items-center gap-2 mb-2">
-                        {descuento > 0 ? (
-                          <>
-                            <span className="text-slate-400 line-through">${precioBase.toLocaleString('es-AR')}</span>
-                            <span className="text-green-600 font-bold">${precioFinal.toLocaleString('es-AR')}</span>
-                            <span className="bg-green-500 text-white px-2 py-0.5 rounded-full text-xs">-{descuento}%</span>
-                          </>
-                        ) : (
-                          <span className="text-slate-900 dark:text-white font-bold">${precioBase.toLocaleString('es-AR')}</span>
-                        )}
-                      </div>
-                      <div className="text-xs text-slate-500 mb-1">
-                        {selectedPlan.gigabyte} GB | {selectedPlan.llamadas} | {selectedPlan.mensajes}
-                      </div>
-                      {beneficios && (
-                        <div className="text-xs text-slate-500">
-                          <span className="font-bold">🎁 Beneficios:</span> {beneficios}
+            {/* FASE 2 */}
+            {fase === 2 && (
+                <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                        <button type="button" onClick={() => formFase2.setValue('tipo_venta', 'LINEA_NUEVA')} className={`p-4 rounded-xl border-2 ${tipoVenta === 'LINEA_NUEVA' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30' : 'border-slate-200 dark:border-slate-700'}`}>
+                            📱 Línea Nueva
+                        </button>
+                        <button type="button" onClick={() => formFase2.setValue('tipo_venta', 'PORTABILIDAD')} className={`p-4 rounded-xl border-2 ${tipoVenta === 'PORTABILIDAD' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30' : 'border-slate-200 dark:border-slate-700'}`}>
+                            🔄 Portabilidad
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                         <div><label className={labelClass}>SDS</label><input {...formFase2.register('sds')} className={inputClass} placeholder="SDS001" /></div>
+                         <div><label className={labelClass}>STL</label><input {...formFase2.register('stl')} disabled={chip === 'ESIM'} className={`${inputClass} ${chip === 'ESIM' ? 'opacity-50' : ''}`} placeholder="STL001" /></div>
+                    </div>
+
+                    {tipoVenta === 'PORTABILIDAD' && (
+                        <div>
+                             <label className={labelClass}>Empresa Origen</label>
+                             <select {...formFase2.register('empresa_origen_id', { valueAsNumber: true })} className={inputClass}>
+                                <option value={0}>Seleccionar...</option>
+                                {empresas?.filter(e => e.empresa_origen_id !== 2).map(e => <option key={e.empresa_origen_id} value={e.empresa_origen_id}>{e.nombre_empresa}</option>)}
+                             </select>
+                             {formFase2.formState.errors.empresa_origen_id && <p className={errorClass}>{formFase2.formState.errors.empresa_origen_id.message}</p>}
                         </div>
-                      )}
-                    </div>
-                  );
-                })()}
+                    )}
 
-                {/* Datos de Venta */}
-                <div>
-                  <div className="font-black text-indigo-600 dark:text-indigo-400 text-xs uppercase mb-2">📋 Datos de Venta</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <span className="text-slate-500">Tipo:</span>
-                      <span className="font-bold ml-2">{fase2.tipo_venta}</span>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                             <label className={labelClass}>Plan</label>
+                             <select {...formFase2.register('plan_id', { valueAsNumber: true })} className={inputClass}>
+                                <option value={0}>Seleccionar...</option>
+                                {filteredPlanes?.map(p => <option key={p.plan_id} value={p.plan_id}>{p.nombre} ({p.precio})</option>)}
+                             </select>
+                        </div>
+                        <div>
+                             <label className={labelClass}>Promoción</label>
+                             <select {...formFase2.register('promocion_id', { valueAsNumber: true })} className={inputClass}>
+                                <option value="">Sin promo</option>
+                                {filteredPromociones?.map(p => <option key={p.promocion_id} value={p.promocion_id}>{p.nombre}</option>)}
+                             </select>
+                        </div>
                     </div>
-                    <div>
-                      <span className="text-slate-500">Chip:</span>
-                      <span className="font-bold ml-2">{fase2.chip}</span>
+
+                    {tipoVenta === 'PORTABILIDAD' && (
+                        <div className="grid grid-cols-2 gap-4 border-t pt-4 border-slate-100">
+                             <div><label className={labelClass}>SPN</label><input {...formFase2.register('spn')} className={inputClass} /></div>
+                             <div><label className={labelClass}>Línea a Portar</label><input {...formFase2.register('numero_portar')} className={inputClass} /></div>
+                             <div><label className={labelClass}>PIN</label><input {...formFase2.register('pin')} className={inputClass} /></div>
+                             <div><label className={labelClass}>Vencimiento PIN</label><input type="date" {...formFase2.register('fecha_vencimiento_pin')} className={inputClass} /></div>
+                             <div className="col-span-2">
+                                <label className={labelClass}>Mercado Origen</label>
+                                <select {...formFase2.register('mercado_origen')} className={inputClass}>
+                                    <option value="">Seleccionar...</option>
+                                    <option value="PREPAGO">Prepago</option>
+                                    <option value="POSPAGO">Pospago</option>
+                                </select>
+                             </div>
+                        </div>
+                    )}
+                    
+                     <div className="grid grid-cols-2 gap-4">
+                         <button type="button" onClick={() => formFase2.setValue('chip', 'SIM')} className={`p-4 rounded-xl border-2 ${chip === 'SIM' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30' : 'border-slate-200 dark:border-slate-700'}`}>💳 SIM Física</button>
+                         <button type="button" onClick={() => formFase2.setValue('chip', 'ESIM')} className={`p-4 rounded-xl border-2 ${chip === 'ESIM' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30' : 'border-slate-200 dark:border-slate-700'}`}>📲 eSIM</button>
                     </div>
-                    {fase2.sds && (
-                      <div>
-                        <span className="text-slate-500">SDS:</span>
-                        <span className="font-bold ml-2">{fase2.sds}</span>
-                      </div>
-                    )}
-                    {fase2.stl && (
-                      <div>
-                        <span className="text-slate-500">STL:</span>
-                        <span className="font-bold ml-2">{fase2.stl}</span>
-                      </div>
-                    )}
-                  </div>
                 </div>
+            )}
 
-                {/* Datos de Portabilidad */}
-                {fase2.tipo_venta === 'PORTABILIDAD' && (
-                  <div>
-                    <div className="font-black text-indigo-600 dark:text-indigo-400 text-xs uppercase mb-2">🔄 Portabilidad</div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {fase2.spn && (
-                        <div>
-                          <span className="text-slate-500">SPN:</span>
-                          <span className="font-bold ml-2">{fase2.spn}</span>
+            {/* FASE 3 */}
+            {fase === 3 && (
+                <div className="space-y-6">
+                    {chip === 'SIM' ? (
+                        <>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><label className={labelClass}>SAP ID</label><input {...formFase3.register('sap_id')} onBlur={() => handleVerificarSAP()} className={inputClass} />
+                                    {sapVerificado && <span className="text-green-500 text-xs font-bold">✓ Verificado</span>}
+                                </div>
+                                <div><label className={labelClass}>Teléfono Contacto</label><input {...formFase3.register('numero')} className={inputClass} /></div>
+                                <div className="col-span-2"><label className={labelClass}>Dirección</label><input {...formFase3.register('direccion')} className={inputClass} /></div>
+                                <div><label className={labelClass}>Número</label><input {...formFase3.register('numero_casa')} className={inputClass} /></div>
+                                <div><label className={labelClass}>Entre Calles</label><input {...formFase3.register('entre_calles')} className={inputClass} /></div>
+                                <div><label className={labelClass}>Barrio</label><input {...formFase3.register('barrio')} className={inputClass} /></div>
+                                <div><label className={labelClass}>Localidad</label><input {...formFase3.register('localidad')} className={inputClass} /></div>
+                                <div><label className={labelClass}>Departamento</label><input {...formFase3.register('departamento')} className={inputClass} /></div>
+                                <div><label className={labelClass}>Provincia</label><input {...formFase3.register('provincia')} className={inputClass} /></div>
+                                <div><label className={labelClass}>CP</label><input {...formFase3.register('codigo_postal')} className={inputClass} /></div>
+                                <div><label className={labelClass}>Tipo</label>
+                                    <select {...formFase3.register('tipo')} className={inputClass}>
+                                        <option value="RESIDENCIAL">Residencial</option>
+                                        <option value="EMPRESARIAL">Empresarial</option>
+                                    </select>
+                                </div>
+                                <div><label className={labelClass}>Teléfono Alternativo</label><input {...formFase3.register('telefono_alternativo')} className={inputClass} /></div>
+                                <div className="col-span-2"><label className={labelClass}>Geolocalización</label><input {...formFase3.register('geolocalizacion')} className={inputClass} placeholder="Latitud,Longitud" /></div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="p-6 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl text-center">
+                            <h3 className="font-bold text-indigo-800 dark:text-indigo-300">Venta de eSIM</h3>
+                            <p className="text-indigo-600 dark:text-indigo-400">No se requieren datos de logística física.</p>
                         </div>
-                      )}
-                      {fase2.numero_portar && (
-                        <div>
-                          <span className="text-slate-500">Número:</span>
-                          <span className="font-bold ml-2">{fase2.numero_portar}</span>
-                        </div>
-                      )}
-                      {fase2.mercado_origen && (
-                        <div>
-                          <span className="text-slate-500">Mercado:</span>
-                          <span className="font-bold ml-2">{fase2.mercado_origen}</span>
-                        </div>
-                      )}
-                      {fase2.pin && (
-                        <div>
-                          <span className="text-slate-500">PIN:</span>
-                          <span className="font-bold ml-2">{fase2.pin}</span>
-                        </div>
-                      )}
+                    )}
+                    
+                    <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl">
+                        <h4 className="font-bold mb-2">Resumen</h4>
+                        <p>Cliente: {clienteEncontrado?.nombre} {clienteEncontrado?.apellido}</p>
+                        <p>Plan: {filteredPlanes?.find(p => p.plan_id === planId)?.nombre}</p>
+                        <p>Total a Pagar: ${filteredPlanes?.find(p => p.plan_id === planId)?.precio}</p>
                     </div>
-                  </div>
-                )}
-
-                {/* Datos de Correo */}
-                {fase2.chip === 'SIM' && (
-                  <div>
-                    <div className="font-black text-indigo-600 dark:text-indigo-400 text-xs uppercase mb-2">📦 Correo</div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {fase3.sap_id && (
-                        <div>
-                          <span className="text-slate-500">SAP:</span>
-                          <span className="font-bold ml-2">{fase3.sap_id}</span>
-                        </div>
-                      )}
-                      {fase3.numero && (
-                        <div>
-                          <span className="text-slate-500">Contacto:</span>
-                          <span className="font-bold ml-2">{fase3.numero}</span>
-                        </div>
-                      )}
-                      {fase3.telefono_alternativo && (
-                        <div>
-                          <span className="text-slate-500">Tel Alt:</span>
-                          <span className="font-bold ml-2">{fase3.telefono_alternativo}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+                </div>
+            )}
         </div>
 
-        {/* Footer con botones de navegación */}
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex justify-between shrink-0">
-          <button
-            onClick={() => setFase(prev => (prev > 1 ? prev - 1 : 1) as Fase)}
-            disabled={fase === 1}
-            className="px-6 py-2 text-slate-500 font-bold hover:text-slate-700 dark:hover:text-slate-300 disabled:opacity-50 transition-colors"
-          >
-            ← Atrás
-          </button>
-          <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              className="px-6 py-2 text-slate-500 font-bold hover:text-red-500 transition-colors"
-            >
-              Cancelar
-            </button>
-            {fase < 3 ? (
-              <button
-                onClick={() => setFase(prev => (prev + 1) as Fase)}
-                disabled={
-                  (fase === 1 && !puedePasarFase1()) ||
-                  (fase === 2 && !puedePasarFase2())
-                }
-                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white font-bold rounded-xl transition-all"
-              >
-                Siguiente →
-              </button>
-            ) : (
-              <button
-                onClick={handleSubmit}
-                disabled={!puedePasarFase3() || isLoading}
-                className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white font-bold rounded-xl transition-all flex items-center gap-2"
-              >
-                {isLoading ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-                Finalizar Venta
-              </button>
-            )}
-          </div>
+        {/* Footer */}
+        <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex justify-between shrink-0">
+             {fase > 1 && <button onClick={() => setFase(prev => (prev - 1) as Fase)} className="px-6 py-3 font-bold text-slate-500">Atrás</button>}
+             <div className="ml-auto">
+                 {fase < 3 ? (
+                     <button onClick={nextFase} disabled={fase === 1 && !clienteEncontrado} className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 disabled:bg-slate-300">Siguiente</button>
+                 ) : (
+                     <button onClick={onSubmit} disabled={createSaleMutation.isPending} className="px-8 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 disabled:bg-slate-300">
+                         {createSaleMutation.isPending ? 'Procesando...' : 'Confirmar Venta'}
+                     </button>
+                 )}
+             </div>
         </div>
       </div>
     </div>

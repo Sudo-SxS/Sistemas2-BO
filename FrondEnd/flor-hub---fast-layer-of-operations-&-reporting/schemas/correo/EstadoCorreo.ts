@@ -5,19 +5,24 @@ import { z } from "zod";
 
 const toUpper = (v: string) => v.trim().toUpperCase();
 
-export const EstadoVentaEnum = z.enum([
+export const LogisticStatusEnum = z.enum([
   "INICIAL",
   "ASIGNADO",
+  "EN_TRANSITO",
+  "EN_CAMINO",
+  "EN_REPARTO",
+  "LLEGADA_DESTINO",
+  "PENDIENTE",
+  "DEVUELTO",
   "DEVUELTO AL CLIENTE",
   "EN DEVOLUCION",
-  "EN TRANSITO",
   "ENTREGADO",
-  "INGRESADO CENTRO LOGISTICO - ECOMMERCE",
-  "INGRESADO EN AGENCIA",
-  "INGRESADO PICK UP CENTER UES",
-  "NO ENTREGADO",
-  "PIEZA EXTRAVIADA",
-  "RENDIDO AL CLIENTE"
+  "INGRESADO_LOGISTICO",
+  "INGRESADO_AGENCIA",
+  "INGRESADO_PICKUP",
+  "NO_ENTREGADO",
+  "PIEZA_EXTRAVIADA",
+  "RENDIDO_AL_CLIENTE"
 ]);
 
 export const EstadoCorreoSchema = z.object({
@@ -29,7 +34,7 @@ export const EstadoCorreoSchema = z.object({
     .max(255)
     .transform(toUpper),
 
-  estado: EstadoVentaEnum,
+  estado: LogisticStatusEnum,
 
   descripcion: z.string().max(255).nullable(),
 

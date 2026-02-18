@@ -3,30 +3,35 @@ import { SaleStatus, LogisticStatus } from '../../types';
 
 interface UpdateMenuProps {
   selectedCount: number;
-  onUpdateStatus: (status: SaleStatus) => void;
-  onUpdateLogistic: (status: LogisticStatus) => void;
+  onUpdateBoth: (saleStatus: SaleStatus | null, logisticStatus: LogisticStatus | null) => void;
   onClear: () => void;
   isUpdating?: boolean;
 }
 
-export const UpdateMenu: React.FC<UpdateMenuProps> = ({ selectedCount, onUpdateStatus, onUpdateLogistic, onClear, isUpdating = false }) => {
+export const UpdateMenu: React.FC<UpdateMenuProps> = ({ selectedCount, onUpdateBoth, onClear, isUpdating = false }) => {
   const [selectedSaleStatus, setSelectedSaleStatus] = useState<SaleStatus | ''>('');
   const [selectedLogisticStatus, setSelectedLogisticStatus] = useState<LogisticStatus | ''>('');
 
   useEffect(() => {
-    console.log('SaleStatus values:', Object.values(SaleStatus));
-    console.log('LogisticStatus values:', Object.values(LogisticStatus));
+    // console.log('SaleStatus values:', Object.values(SaleStatus));
+    // console.log('LogisticStatus values:', Object.values(LogisticStatus));
   }, []);
 
   const handleApply = () => {
-    if (selectedSaleStatus) {
-      onUpdateStatus(selectedSaleStatus);
-    } else if (selectedLogisticStatus) {
-      onUpdateLogistic(selectedLogisticStatus);
-    }
+    console.log('[DEBUG UpdateMenu] handleApply - selectedSaleStatus:', selectedSaleStatus);
+    console.log('[DEBUG UpdateMenu] handleApply - selectedLogisticStatus:', selectedLogisticStatus);
+    console.log('[DEBUG UpdateMenu] handleApply - selectedCount:', selectedCount);
+    
+    // Llamar a onUpdateBoth con ambos estados seleccionados (pueden ser null)
+    onUpdateBoth(
+      selectedSaleStatus || null,
+      selectedLogisticStatus || null
+    );
     setSelectedSaleStatus('');
     setSelectedLogisticStatus('');
   };
+
+  const canApply = selectedSaleStatus || selectedLogisticStatus;
 
   return (
     <div className="fixed bottom-[5vh] left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-bottom-12 duration-500 ease-out w-full max-w-[95vw] px-[2vw]">
@@ -61,13 +66,11 @@ export const UpdateMenu: React.FC<UpdateMenuProps> = ({ selectedCount, onUpdateS
                 onChange={(e) => {
                   const v = e.target.value as SaleStatus | '';
                   setSelectedSaleStatus(v);
-                  if (v) setSelectedLogisticStatus('');
                 }}
                 value={selectedSaleStatus}
-                disabled={!!selectedLogisticStatus}
               >
-                <option value="" disabled>Selecciona estado...</option>
-                {Object.values(SaleStatus).map(s => <option key={s} value={s} className="uppercase">{s.replace('_', ' ')}</option>)}
+                <option value="">Sin cambio</option>
+                {Object.values(SaleStatus).map(s => <option key={s} value={s} className="uppercase">{s.replace(/_/g, ' ')}</option>)}
               </select>
               <div className="absolute right-[1vw] top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-slate-300">
                 <svg className="w-[2.2vh] h-[2.2vh]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
@@ -84,13 +87,11 @@ export const UpdateMenu: React.FC<UpdateMenuProps> = ({ selectedCount, onUpdateS
                 onChange={(e) => {
                   const v = e.target.value as LogisticStatus | '';
                   setSelectedLogisticStatus(v);
-                  if (v) setSelectedSaleStatus('');
                 }}
                 value={selectedLogisticStatus}
-                disabled={!!selectedSaleStatus}
               >
-                <option value="" disabled>Selecciona estado...</option>
-                {Object.values(LogisticStatus).map(s => <option key={s} value={s} className="uppercase">{s}</option>)}
+                <option value="">Sin cambio</option>
+                {Object.values(LogisticStatus).map(s => <option key={s} value={s} className="uppercase">{s.replace(/_/g, ' ')}</option>)}
               </select>
               <div className="absolute right-[1vw] top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-slate-300">
                 <svg className="w-[2.2vh] h-[2.2vh]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
@@ -101,7 +102,7 @@ export const UpdateMenu: React.FC<UpdateMenuProps> = ({ selectedCount, onUpdateS
 
         {/* Single Apply Button */}
         <div className="pl-[2vh] shrink-0 flex items-center">
-          <button onClick={handleApply} disabled={!(selectedSaleStatus || selectedLogisticStatus) || isUpdating} className="px-6 py-3 rounded-[1.6vh] bg-emerald-600 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-emerald-700 transition">{isUpdating ? 'Actualizando...' : 'Aplicar'}</button>
+          <button onClick={handleApply} disabled={!canApply || isUpdating} className="px-6 py-3 rounded-[1.6vh] bg-emerald-600 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-emerald-700 transition">{isUpdating ? 'Actualizando...' : 'Aplicar'}</button>
         </div>
       </div>
     </div>

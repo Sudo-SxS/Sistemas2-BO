@@ -39,12 +39,12 @@ export interface BusquedaDocumento {
 export const clienteService = {
   buscarPorDocumento: async (params: BusquedaDocumento): Promise<{ success: boolean; data?: ClienteResponse; message?: string }> => {
     try {
-      console.log('[CLIENTE SERVICE] Llamando api.get...');
+      // console.log('[CLIENTE SERVICE] Llamando api.get...');
       const response = await api.get<ClienteResponse>(
         `/clientes/buscar?tipo_documento=${params.tipo_documento}&documento=${params.documento}`
       );
-      console.log('[CLIENTE SERVICE] response:', response);
-      console.log('[CLIENTE SERVICE] response.data:', response.data);
+      // console.log('[CLIENTE SERVICE] response:', response);
+      // console.log('[CLIENTE SERVICE] response.data:', response.data);
       
       // response.data es ClienteResponse directamente
       if (response.data) {

@@ -20,7 +20,7 @@ export const EstadoVentaEnum = z.enum([
   "RECHAZADO",
   "CANCELADO",
   "ANULADO",
- ]);
+]);
 
 export const EstadoVentaSchema = z.object({
   estado_id: z.number().int().positive(),

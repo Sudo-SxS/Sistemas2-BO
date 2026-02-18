@@ -500,7 +500,7 @@ export class EstadoVentaController {
       const body = await ctx.request.body.json();
       const user = ctx.state.user;
 
-      console.log('🔍 [DEBUG] EstadoVentaController.bulkCreate - Datos recibidos:', JSON.stringify(body));
+      // console.log('🔍 [DEBUG] EstadoVentaController.bulkCreate - Datos recibidos:', JSON.stringify(body));
 
       if (!body.estados || !Array.isArray(body.estados) || body.estados.length === 0) {
         ctx.response.status = 400;
@@ -517,7 +517,7 @@ export class EstadoVentaController {
         usuario_id: user.id,
       }));
 
-      console.log('🔍 [DEBUG] EstadoVentaController.bulkCreate - Estados con usuario:', JSON.stringify(estadosConUsuario));
+      // console.log('🔍 [DEBUG] EstadoVentaController.bulkCreate - Estados con usuario:', JSON.stringify(estadosConUsuario));
 
       // Validar cada estado
       const estadosValidos = [];
@@ -533,8 +533,8 @@ export class EstadoVentaController {
         }
       }
 
-      console.log('🔍 [DEBUG] Estados válidos encontrados:', estadosValidos.length);
-      console.log('🔍 [DEBUG] Errores de validación:', erroresValidacion.length);
+      // console.log('🔍 [DEBUG] Estados válidos encontrados:', estadosValidos.length);
+      // console.log('🔍 [DEBUG] Errores de validación:', erroresValidacion.length);
 
       if (estadosValidos.length === 0) {
         ctx.response.status = 400;
@@ -563,7 +563,7 @@ export class EstadoVentaController {
         count: result.length,
       };
     } catch (error) {
-      console.error('🔍 [DEBUG] Error en bulkCreate:', error);
+      // console.error('🔍 [DEBUG] Error en bulkCreate:', error);
       ctx.response.status = 500;
       ctx.response.body = {
         success: false,

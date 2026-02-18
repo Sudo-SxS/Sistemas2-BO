@@ -45,9 +45,14 @@ export const login = async (email: string, password: string): Promise<AuthRespon
 
   const response = await api.post<AuthData>('/usuario/login', credentials);
 
+  // console.log('[AUTH LOGIN DEBUG] Response:', response);
+
   // Guardar token en sessionStorage si existe
   if (response.success && response.data?.token) {
+    // console.log('[AUTH LOGIN DEBUG] Token received:', response.data.token.substring(0, 50) + '...');
     tokenStorage.setToken(response.data.token);
+  } else {
+    // console.warn('[AUTH LOGIN DEBUG] No token in response:', response);
   }
 
   return {

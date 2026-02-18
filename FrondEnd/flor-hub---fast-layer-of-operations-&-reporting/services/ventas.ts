@@ -132,10 +132,16 @@ interface VentaDetalleCompletoResponse {
     nombre: string;
     apellido: string;
     email: string;
+    telefono?: string;
+    legajo?: string;
+    exa?: string;
+    celula?: number;
   };
   supervisor: {
     nombre: string;
     apellido: string;
+    email?: string;
+    legajo?: string;
   } | null;
   plan: {
     plan_id: number;
@@ -388,21 +394,14 @@ export const mapVentaUIToSale = (venta: VentaUIResponse): Sale => {
     return LogisticStatus.INICIAL;
   };
 
-  // Determinar estado de venta
+  // Determinar estado de venta - USA EL ESTADO DIRECTAMENTE DEL BACKEND
   const mapEstadoToSaleStatus = (estado: string | undefined): SaleStatus => {
+    // Si no hay estado, retorna INICIAL
     if (!estado) return SaleStatus.INICIAL;
-    const estadoUpper = estado.toUpperCase();
-    if (estadoUpper.includes('COMPLETADO') || estadoUpper.includes('EXITOSO')) return SaleStatus.COMPLETADO;
-    if (estadoUpper.includes('CANCELADO') || estadoUpper.includes('ANULADO')) return SaleStatus.CANCELADO;
-    if (estadoUpper.includes('RECHAZADO')) return SaleStatus.RECHAZADO;
-    if (estadoUpper.includes('APROBADO')) return SaleStatus.APROBADO;
-    if (estadoUpper.includes('ACTIVADO')) return SaleStatus.ACTIVADO;
-    if (estadoUpper.includes('TRANSPORTE') || estadoUpper.includes('TRANSporte')) return SaleStatus.EN_TRANSPORTE;
-    if (estadoUpper.includes('REVISION')) return SaleStatus.EN_REVISION;
-    if (estadoUpper.includes('PORTABILIDAD')) return SaleStatus.PENDIENTE_PORTABILIDAD;
-    if (estadoUpper.includes('DOCU')) return SaleStatus.PENDIENTE_DOCUMENTACION;
-    if (estadoUpper.includes('PENDIENTE')) return SaleStatus.EN_PROCESO;
-    return SaleStatus.INICIAL;
+    
+    // Usa el estado exactamente como viene del backend (sin transformaciones)
+    // El backend garantiza que siempre devuelve estados válidos del enum SaleStatus
+    return (estado as SaleStatus) || SaleStatus.INICIAL;
   };
 
   // Determinar mercado origen
@@ -419,7 +418,12 @@ export const mapVentaUIToSale = (venta: VentaUIResponse): Sale => {
     dni: venta.cliente_documento || '',
     phoneNumber: phoneNumber,
     status: mapEstadoToSaleStatus(venta.estado_actual),
-    logisticStatus: mapCorreoEstadoToLogisticStatus(venta.correo_estado),
+    logisticStatus: venta.chip === 'ESIM'
+      ? LogisticStatus.ESIM
+      : mapCorreoEstadoToLogisticStatus(venta.correo_estado),
+    logisticStatusDisplay: venta.chip === 'ESIM'
+      ? 'ESIM'
+      : (venta.correo_estado || 'INICIAL'),
     lineStatus: venta.tipo_venta === 'PORTABILIDAD' 
       ? (venta.stl ? LineStatus.PENDIENTE_PORTABILIDAD : LineStatus.PENDIENTE_PRECARGA)
       : LineStatus.PENDIENTE_PRECARGA,

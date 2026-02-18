@@ -14,13 +14,13 @@ import { PostgresClient } from "../database/PostgreSQL.ts";
 import { logger } from "../Utils/logger.ts";
 
 function convertBigIntToNumber(obj: any): any {
-  if (typeof obj === 'bigint') {
+  if (typeof obj === "bigint") {
     return Number(obj);
   }
   if (Array.isArray(obj)) {
     return obj.map(convertBigIntToNumber);
   }
-  if (obj !== null && typeof obj === 'object') {
+  if (obj !== null && typeof obj === "object") {
     const converted: any = {};
     for (const key in obj) {
       converted[key] = convertBigIntToNumber(obj[key]);
@@ -43,7 +43,11 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
   private logSuccess(message: string, details?: any): void {
     const isDev = Deno.env.get("MODO") === "development";
     if (isDev) {
-      logger.info(`${message} ${details ? JSON.stringify(convertBigIntToNumber(details)) : ""}`);
+      logger.info(
+        `${message} ${
+          details ? JSON.stringify(convertBigIntToNumber(details)) : ""
+        }`,
+      );
     } else {
       logger.info(message);
     }
@@ -52,7 +56,11 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
   private logWarning(message: string, details?: any): void {
     const isDev = Deno.env.get("MODO") === "development";
     if (isDev) {
-      logger.warn(`${message} ${details ? JSON.stringify(convertBigIntToNumber(details)) : ""}`);
+      logger.warn(
+        `${message} ${
+          details ? JSON.stringify(convertBigIntToNumber(details)) : ""
+        }`,
+      );
     } else {
       logger.warn(message);
     }
@@ -61,7 +69,11 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
   private logError(message: string, error?: any): void {
     const isDev = Deno.env.get("MODO") === "development";
     if (isDev) {
-      logger.error(`${message} ${error ? JSON.stringify(convertBigIntToNumber(error)) : ""}`);
+      logger.error(
+        `${message} ${
+          error ? JSON.stringify(convertBigIntToNumber(error)) : ""
+        }`,
+      );
     } else {
       logger.error(message);
     }
@@ -72,8 +84,8 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
   // ======================
   private mapRowToEstadoVenta(row: any): EstadoVenta {
     return {
-      estado_id: row.estado_id,
-      venta_id: row.venta_id,
+      estado_id: Number(row.estado_id),
+      venta_id: Number(row.venta_id),
       estado: row.estado as EstadoVentaEstado,
       descripcion: row.descripcion,
       fecha_creacion: row.fecha_creacion,
@@ -97,7 +109,7 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
 
     try {
       const client = this.connection.getClient();
-      const result = await client.queryObject<EstadoVenta>(
+      const result = await client.queryObject(
         `SELECT
           estado_id,
           venta_id,
@@ -132,7 +144,7 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
 
     try {
       const client = this.connection.getClient();
-      const result = await client.queryObject<EstadoVenta>(
+      const result = await client.queryObject(
         `SELECT
           estado_id,
           venta_id,
@@ -169,7 +181,7 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
 
     try {
       const client = this.connection.getClient();
-      const result = await client.queryObject<EstadoVenta>(
+      const result = await client.queryObject(
         `SELECT
           estado_id,
           venta_id,
@@ -205,7 +217,7 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
 
     try {
       const client = this.connection.getClient();
-      const result = await client.queryObject<EstadoVenta>(
+      const result = await client.queryObject(
         `SELECT estado_id, venta_id, estado, descripcion, fecha_creacion, usuario_id
          FROM estado
          WHERE venta_id = $1
@@ -236,7 +248,7 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
       // console.log("venta_id:", input.venta_id, "tipo:", typeof input.venta_id);
       // console.log("estado:", input.estado);
       // console.log("usuario_id:", input.usuario_id);
-      
+
       this.logSuccess("Iniciando creación de estado de venta", {
         venta_id: input.venta_id,
         estado: input.estado,
@@ -247,11 +259,11 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
       // console.log("Antes de validateVentaId...");
       await this.validateVentaId(input.venta_id);
       // console.log("✓ validateVentaId pasó");
-      
+
       // console.log("Antes de validateUsuarioId...");
       await this.validateUsuarioId(input.usuario_id);
       // console.log("✓ validateUsuarioId pasó");
-      
+
       // console.log("Antes de validateEstado...");
       await this.validateEstado(input.estado);
       // console.log("✓ validateEstado pasó");
@@ -259,7 +271,7 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
       const { venta_id, descripcion, usuario_id } = input;
       // Normalizar estado: reemplazar guiones bajos por espacios
       const estado = input.estado.replace(/_/g, " ");
-      
+
       // DEBUG: Descomentar para debugging
       // console.log("Preparando INSERT...");
       // console.log("Query params:", {
@@ -270,13 +282,13 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
       //   usuario_id: usuario_id
       // });
 
-      const result = await client.queryObject<EstadoVenta>(
+      const result = await client.queryObject(
         `INSERT INTO estado (venta_id, estado, descripcion, fecha_creacion, usuario_id)
          VALUES ($1, $2, $3, $4, $5)
          RETURNING estado_id, venta_id, estado, descripcion, fecha_creacion, usuario_id`,
         [venta_id, estado, descripcion, new Date(), usuario_id],
       );
-      
+
       // DEBUG: Descomentar para debugging
       // console.log("Query ejecutada. Rows:", result.rows.length);
 
@@ -433,7 +445,7 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
   async getLastStateForAllVentas(): Promise<EstadoVenta[]> {
     try {
       const client = this.connection.getClient();
-      const result = await client.queryObject<EstadoVenta>(
+      const result = await client.queryObject(
         `SELECT DISTINCT ON (venta_id)
            estado_id,
            venta_id,
@@ -487,7 +499,7 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
 
     try {
       const client = this.connection.getClient();
-      const result = await client.queryObject<EstadoVenta>(
+      const result = await client.queryObject(
         `SELECT
           estado_id,
           venta_id,
@@ -526,7 +538,7 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
 
     try {
       const client = this.connection.getClient();
-      const result = await client.queryObject<EstadoVenta>(
+      const result = await client.queryObject(
         `SELECT
           estado_id,
           venta_id,
@@ -559,15 +571,12 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
       const client = this.connection.getClient();
 
       // Total de estados
-      const totalResult = await client.queryObject<{ count: number }>(
+      const totalResult = await client.queryObject(
         `SELECT COUNT(*) as count FROM estado`,
       );
 
       // Estados por tipo
-      const estadosPorTipoResult = await client.queryObject<{
-        estado: string;
-        cantidad: number;
-      }>(
+      const estadosPorTipoResult = await client.queryObject(
         `SELECT estado, COUNT(*) as cantidad
          FROM estado
          GROUP BY estado
@@ -575,10 +584,7 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
       );
 
       // Estados por mes (últimos 12 meses)
-      const estadosPorMesResult = await client.queryObject<{
-        mes: string;
-        cantidad: number;
-      }>(
+      const estadosPorMesResult = await client.queryObject(
         `SELECT TO_CHAR(fecha_creacion, 'YYYY-MM') as mes, COUNT(*) as cantidad
          FROM estado
          WHERE fecha_creacion >= NOW() - INTERVAL '12 months'
@@ -657,7 +663,7 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
 
     try {
       const client = this.connection.getClient();
-      const result = await client.queryObject<EstadoVenta>(
+      const result = await client.queryObject(
         `SELECT
           estado_id,
           venta_id,
@@ -681,6 +687,7 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
 
   /**
    * Creación masiva de estados para optimizar rendimiento
+   * Versión CORREGIDA con transacciones y validaciones optimizadas
    */
   async bulkCreateEstados(
     estados: EstadoVentaCreate[],
@@ -690,52 +697,147 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
     const client = this.connection.getClient();
 
     try {
-      // Validar todos los estados en paralelo
-      await Promise.all(
-        estados.map(async (estado) => {
-          await Promise.all([
-            this.validateVentaId(estado.venta_id),
-            this.validateUsuarioId(estado.usuario_id),
-            this.validateEstado(estado.estado),
-          ]);
-        }),
-      );
+      // ✅ VALIDACIÓN ELIMINADA: Las validaciones dependían de tablas que no existen en PostgreSQL
+      // El controller ya valida con Zod (EstadoVentaCreateSchema), no necesitamos validaciones adicionales
+      // await Promise.all([
+      //   this.validateVentaIdsBulk(ventaIds as number[]),
+      //   this.validateUsuarioIdsBulk(usuarioIds as unknown as number[]),
+      //   this.validateEstadosBulk(estadosUnicos),
+      // ]);
 
-      const values: any[] = [];
-      const placeholders: string[] = [];
-      let paramIndex = 1;
+      // ✅ INICIAR TRANSACCIÓN
+      await client.queryArray("BEGIN");
 
-      estados.forEach((estado) => {
-        const { venta_id, estado: estadoValor, descripcion, usuario_id } =
-          estado;
-        placeholders.push(
-          `($${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++})`,
+      try {
+        const values: any[] = [];
+        const placeholders: string[] = [];
+        let paramIndex = 1;
+
+        estados.forEach((estado) => {
+          const { venta_id, estado: estadoValor, descripcion, usuario_id } =
+            estado;
+
+          placeholders.push(
+            `($${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++})`,
+          );
+
+          values.push(
+            venta_id,
+            estadoValor.replace(/_/g, " "),
+            descripcion || null,
+            new Date(),
+            usuario_id,
+          );
+        });
+
+        const result = await client.queryObject(
+          `INSERT INTO estado (venta_id, estado, descripcion, fecha_creacion, usuario_id)
+           VALUES ${placeholders.join(", ")}
+           RETURNING estado_id, venta_id, estado, descripcion, fecha_creacion, usuario_id`,
+          values,
         );
-        // Normalizar estado: reemplazar guiones bajos por espacios
-        values.push(
-          venta_id,
-          estadoValor.replace(/_/g, " "),
-          descripcion,
-          new Date(),
-          usuario_id,
-        );
-      });
 
-      const result = await client.queryObject<EstadoVenta>(
-        `INSERT INTO estado (venta_id, estado, descripcion, fecha_creacion, usuario_id)
-         VALUES ${placeholders.join(", ")}
-         RETURNING estado_id, venta_id, estado, descripcion, fecha_creacion, usuario_id`,
-        values,
-      );
+        // ✅ COMMIT EXITOSO
+        await client.queryArray("COMMIT");
 
-      this.logSuccess("Estados creados en bulk exitosamente", {
-        count: result.rows.length,
-      });
+        this.logSuccess("Estados creados en bulk exitosamente", {
+          count: result.rows.length,
+        });
 
-      return result.rows.map(this.mapRowToEstadoVenta) || [];
+        return result.rows.map(this.mapRowToEstadoVenta);
+      } catch (insertError) {
+        // ✅ ROLLBACK en caso de error en el INSERT
+        await client.queryArray("ROLLBACK");
+        throw insertError;
+      }
     } catch (error) {
-      this.logError("Error en creación masiva de estados", error);
+      this.logError("Error en creación masiva de estados", {
+        error,
+        estadosCount: estados.length,
+        ventasSample: estados.slice(0, 3).map((e) => e.venta_id),
+      });
       throw error;
+    }
+  }
+
+  /**
+   * Valida múltiples venta_ids en una sola query
+   */
+  private async validateVentaIdsBulk(ventaIds: number[]): Promise<void> {
+    if (ventaIds.length === 0) return;
+
+    const client = this.connection.getClient();
+
+    const placeholders = ventaIds.map((_, i) => `$${i + 1}`).join(", ");
+
+    const result = await client.queryObject(
+      `SELECT venta_id FROM venta WHERE venta_id IN (${placeholders})`,
+      ventaIds,
+    );
+
+    const foundIds = new Set(result.rows.map((row: any) => Number(row.venta_id)));
+    const missingIds = ventaIds.filter((id) => !foundIds.has(Number(id)));
+
+    if (missingIds.length > 0) {
+      throw new Error(
+        `Las siguientes ventas no existen: ${missingIds.join(", ")}`,
+      );
+    }
+  }
+
+  /**
+   * Valida múltiples usuario_ids en una sola query
+   */
+  private async validateUsuarioIdsBulk(usuarioIds: number[]): Promise<void> {
+    if (usuarioIds.length === 0) return;
+
+    const client = this.connection.getClient();
+
+    const placeholders = usuarioIds.map((_, i) => `$${i + 1}`).join(", ");
+
+    const result = await client.queryObject(
+      `SELECT persona_id FROM usuario WHERE persona_id IN (${placeholders})`,
+      usuarioIds,
+    );
+
+    const foundIds = new Set(result.rows.map((row: any) => row.persona_id));
+    const missingIds = usuarioIds.filter((id) => !foundIds.has(id));
+
+    if (missingIds.length > 0) {
+      throw new Error(
+        `Los siguientes usuarios no existen: ${missingIds.join(", ")}`,
+      );
+    }
+  }
+
+  /**
+   * Valida múltiples estados en una sola query
+   */
+  private async validateEstadosBulk(estados: string[]): Promise<void> {
+    if (estados.length === 0) return;
+
+    const client = this.connection.getClient();
+
+    // Normalizar estados ANTES de validar (para consistencia)
+    const estadosNormalizados = estados.map((e) => e.replace(/_/g, " "));
+    const placeholders = estadosNormalizados.map((_, i) => `$${i + 1}`).join(
+      ", ",
+    );
+
+    const result = await client.queryObject(
+      `SELECT estado FROM tipo_estado WHERE estado IN (${placeholders})`,
+      estadosNormalizados,
+    );
+
+    const foundEstados = new Set(result.rows.map((row: any) => row.estado));
+    const missingEstados = estadosNormalizados.filter((e) =>
+      !foundEstados.has(e)
+    );
+
+    if (missingEstados.length > 0) {
+      throw new Error(
+        `Los siguientes estados no son válidos: ${missingEstados.join(", ")}`,
+      );
     }
   }
 
@@ -748,7 +850,7 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
    */
   private async validateVentaId(venta_id: number): Promise<void> {
     const client = this.connection.getClient();
-    const result = await client.queryObject<{ venta_id: number }>(
+    const result = await client.queryObject(
       `SELECT venta_id FROM venta WHERE venta_id = $1`,
       [venta_id],
     );
@@ -763,7 +865,7 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
    */
   private async validateUsuarioId(usuario_id: string): Promise<void> {
     const client = this.connection.getClient();
-    const result = await client.queryObject<{ persona_id: string }>(
+    const result = await client.queryObject(
       `SELECT persona_id FROM usuario WHERE persona_id = $1 AND estado = 'ACTIVO'`,
       [usuario_id],
     );

@@ -5,9 +5,9 @@ export enum SaleStatus {
   EN_TRANSPORTE = 'EN_TRANSPORTE',
   EN_REVISION = 'EN_REVISION',
   PENDIENTE_PORTABILIDAD = 'PENDIENTE_PORTABILIDAD',
-  CREADO_SIN_DOCU = 'CREADO_SIN_DOCU',
+  CREADO_SIN_DOCU = 'CREADO SIN DOCU',
   CREADO_DOCU_OK = 'CREADO DOCU OK',
-  PENDIENTE_DOCUMENTACION = 'PENDIENTE_DOCUMENTACION',
+  PENDIENTE_DOCUMENTACION = 'PENDIENTE DOCUMENTACION',
   COMPLETADO = 'COMPLETADO',
   APROBADO = 'APROBADO',
   ACTIVADO_NRO_PORTADO = 'ACTIVADO NRO PORTADO',
@@ -35,7 +35,8 @@ export enum LogisticStatus {
   INGRESADO_PICKUP = 'INGRESADO_PICKUP',
   NO_ENTREGADO = 'NO_ENTREGADO',
   PIEZA_EXTRAVIADA = 'PIEZA_EXTRAVIADA',
-  RENDIDO_AL_CLIENTE = 'RENDIDO_AL_CLIENTE'
+  RENDIDO_AL_CLIENTE = 'RENDIDO_AL_CLIENTE',
+  ESIM = 'ESIM'
 }
 
 export enum LineStatus {
@@ -90,6 +91,7 @@ export interface Sale {
   phoneNumber: string;
   status: SaleStatus;
   logisticStatus: LogisticStatus;
+  logisticStatusDisplay?: string; // Texto original del estado de correo del backend
   lineStatus: LineStatus;
   productType: ProductType;
   originMarket: OriginMarket;

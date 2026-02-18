@@ -14,11 +14,11 @@
 // ============================================
 import { VentaModelDB } from "../interface/venta.ts";
 import { VentaCreate, VentaUpdate } from "../schemas/venta/Venta.ts";
-import { DateRangeQuery, ValidationResult } from "../types/ventaTypes.ts";
+import { ValidationResult } from "../types/ventaTypes.ts";
 import { PlanService } from "./PlanService.ts";
 import { PromocionService } from "./PromocionService.ts";
 import { CorreoCreate } from "../schemas/correo/Correo.ts";
-import { PortabilidadCreate } from "../schemas/venta/Portabilidad.ts";
+//import { PortabilidadCreate } from "../schemas/venta/Portabilidad.ts";
 import { EstadoVentaModelDB } from "../interface/EstadoVenta.ts";
 import { logger } from "../Utils/logger.ts";
 
@@ -74,12 +74,12 @@ export class VentaService {
   async create(input: VentaCreate, usuarioId: string) {
     try {
       const newVenta = await this.modelVenta.add({ input });
-      
+
       // Crear estado automático según SDS y STL (solo si hay modelo de estado)
       const estadoVentaModel = this.modelEstadoVenta;
       if (estadoVentaModel) {
         const estadoInicial = (input.sds && input.stl)
-          ? "CREADO_SIN_DOCU"
+          ? "CREADO DOCU OK"
           : "INICIAL";
 
         await estadoVentaModel.add({
@@ -87,15 +87,24 @@ export class VentaService {
             venta_id: newVenta.venta_id,
             estado: estadoInicial as
               | "INICIAL"
-              | "CREADO_SIN_DOCU"
-              | "CREADO DOCU OK"
+              | "EN_PROCESO"
               | "EN_TRANSPORTE"
+              | "EN_REVISION"
+              | "PENDIENTE_PORTABILIDAD"
               | "CREADO DOCU OK"
+              | "PENDIENTE_DOCUMENTACION"
+              | "COMPLETADO"
+              | "APROBADO"
               | "ACTIVADO NRO PORTADO"
-              | "CANCELADO",
-            descripcion: estadoInicial === "CREADO_SIN_DOCU"
+              | "ACTIVADO"
+              | "EXITOSO"
+              | "RECHAZADO"
+              | "CANCELADO"
+              | "ANULADO",
+            descripcion: estadoInicial === "CREADO DOCU OK"
               ? "Venta creada con STL y SDS"
               : "Venta pendiente de cargar STL y/o SDS",
+            usuario_id: usuarioId,
           },
         });
 

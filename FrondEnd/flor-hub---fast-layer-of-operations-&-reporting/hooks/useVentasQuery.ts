@@ -35,21 +35,21 @@ export const useVentasQuery = (
   } = useQuery({
     queryKey: ['ventasUI', page, limit, filters],
     queryFn: async () => {
-      console.log('[useVentasQuery] Fetching ventas con filtros:', { page, limit, filters });
+      // console.log('[useVentasQuery] Fetching ventas con filtros:', { page, limit, filters });
       if (limit === 0) return { ventas: [], total: 0, page: 1, limit: 0 };
       const result = await getVentasUI(page, limit, filters);
-      console.log('[useVentasQuery] Respuesta del servidor:', result);
+      // console.log('[useVentasQuery] Respuesta del servidor:', result);
       return result;
     },
     select: (response) => {
-      console.log('[useVentasQuery] Datos crudos recibidos:', response);
+      // console.log('[useVentasQuery] Datos crudos recibidos:', response);
       const ventas = response.ventas?.map((v, index) => {
-        console.log(`[useVentasQuery] Mapeando venta ${index + 1}:`, v);
+        // console.log(`[useVentasQuery] Mapeando venta ${index + 1}:`, v);
         const mapped = mapVentaUIToSale(v);
-        console.log(`[useVentasQuery] Venta mapeada ${index + 1}:`, mapped);
+        // console.log(`[useVentasQuery] Venta mapeada ${index + 1}:`, mapped);
         return mapped;
       }) || [];
-      console.log('[useVentasQuery] Total ventas mapeadas:', ventas.length);
+      // console.log('[useVentasQuery] Total ventas mapeadas:', ventas.length);
       return {
         ventas,
         total: Number(response.total) || 0,

@@ -41,17 +41,17 @@ await load({ export: true });
 
 // Función helper para convertir BigInt a string en respuestas JSON
 function convertBigIntToString(obj: any): any {
-  if (typeof obj === 'bigint') {
+  if (typeof obj === "bigint") {
     return obj.toString();
   }
   // PostgreSQL/Deno puede devolver objetos Date con estructura específica
-  if (obj !== null && typeof obj === 'object') {
+  if (obj !== null && typeof obj === "object") {
     // Verificar si tiene método toISOString (obj Date de Deno/PostgreSQL)
-    if (typeof obj.toISOString === 'function') {
+    if (typeof obj.toISOString === "function") {
       return obj.toISOString();
     }
     // Verificar si es un objeto con epoch (timestamp de PostgreSQL)
-    if (obj.epoch && typeof obj.epoch === 'number') {
+    if (obj.epoch && typeof obj.epoch === "number") {
       return new Date(obj.epoch * 1000).toISOString();
     }
     // Si es un array (tiene propiedad length y no es un objeto Date)
@@ -96,8 +96,8 @@ export function ventaRouter(
   const planService = new PlanService(planModel);
   const promocionService = new PromocionService(promocionModel);
   // const estadoVentaModel = new EstadoVentaMySQL(client); // Eliminado - usando solo PostgreSQL
-// const estadoVentaService = new EstadoVentaService(estadoVentaModel); // Desactivado - no hay modelo PostgreSQL equivalente
-// const estadoVentaController = new EstadoVentaController(estadoVentaService); // Desactivado temporalmente
+  // const estadoVentaService = new EstadoVentaService(estadoVentaModel); // Desactivado - no hay modelo PostgreSQL equivalente
+  // const estadoVentaController = new EstadoVentaController(estadoVentaService); // Desactivado temporalmente
   const correoController = new CorreoController(correoModel);
   const lineaNuevaController = new LineaNuevaController(
     lineaNuevaModel,
@@ -247,10 +247,9 @@ export function ventaRouter(
         ctx.response.status = 500;
         ctx.response.body = {
           success: false,
-          message:
-            error instanceof Error
-              ? error.message
-              : "Error al buscar ventas por fecha",
+          message: error instanceof Error
+            ? error.message
+            : "Error al buscar ventas por fecha",
         };
       }
     },
@@ -289,10 +288,9 @@ export function ventaRouter(
         ctx.response.status = 500;
         ctx.response.body = {
           success: false,
-          message:
-            error instanceof Error
-              ? error.message
-              : "Error al buscar venta por SDS",
+          message: error instanceof Error
+            ? error.message
+            : "Error al buscar venta por SDS",
         };
       }
     },
@@ -331,10 +329,9 @@ export function ventaRouter(
         ctx.response.status = 500;
         ctx.response.body = {
           success: false,
-          message:
-            error instanceof Error
-              ? error.message
-              : "Error al buscar venta por SAP",
+          message: error instanceof Error
+            ? error.message
+            : "Error al buscar venta por SAP",
         };
       }
     },
@@ -364,10 +361,9 @@ export function ventaRouter(
         ctx.response.status = 500;
         ctx.response.body = {
           success: false,
-          message:
-            error instanceof Error
-              ? error.message
-              : "Error al buscar ventas por vendedor",
+          message: error instanceof Error
+            ? error.message
+            : "Error al buscar ventas por vendedor",
         };
       }
     },
@@ -397,10 +393,9 @@ export function ventaRouter(
         ctx.response.status = 500;
         ctx.response.body = {
           success: false,
-          message:
-            error instanceof Error
-              ? error.message
-              : "Error al buscar ventas por cliente",
+          message: error instanceof Error
+            ? error.message
+            : "Error al buscar ventas por cliente",
         };
       }
     },
@@ -439,10 +434,9 @@ export function ventaRouter(
         ctx.response.status = 500;
         ctx.response.body = {
           success: false,
-          message:
-            error instanceof Error
-              ? error.message
-              : "Error al buscar ventas por plan",
+          message: error instanceof Error
+            ? error.message
+            : "Error al buscar ventas por plan",
         };
       }
     },
@@ -545,8 +539,9 @@ export function ventaRouter(
       ctx.response.status = 500;
       ctx.response.body = {
         success: false,
-        message:
-          error instanceof Error ? error.message : "Error al obtener venta",
+        message: error instanceof Error
+          ? error.message
+          : "Error al obtener venta",
       };
     }
   });

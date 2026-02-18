@@ -2,7 +2,7 @@
 // Configuración base y cliente HTTP para la API
 // Token JWT se envía en header Authorization, manejado por tokenStorage
 
-import { tokenStorage } from './tokenStorage';
+import { tokenStorage, TOKEN_KEY } from './tokenStorage';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT || '30000');
@@ -14,13 +14,13 @@ const ENABLE_DEBUG = import.meta.env.VITE_ENABLE_DEBUG === 'true' || import.meta
 // Logger condicional para debug
 const debugLog = (...args: any[]) => {
   if (ENABLE_DEBUG) {
-    console.log('[API DEBUG]', ...args);
+    // console.log('[API DEBUG]', ...args);
   }
 };
 
 const debugError = (...args: any[]) => {
   if (ENABLE_DEBUG) {
-    console.error('[API ERROR]', ...args);
+    // console.error('[API ERROR]', ...args);
   }
 };
 
@@ -104,37 +104,40 @@ async function apiRequest<T>(
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      // Agregar Authorization header si hay token
-      ...(tokenStorage.hasToken() && {
-        'Authorization': `Bearer ${tokenStorage.getToken()}`
-      }),
+      // Agregar Authorization header si hay token válido
+      ...(() => {
+        const token = tokenStorage.getToken();
+        if (token && token.length > 0) {
+          return { 'Authorization': `Bearer ${token}` };
+        }
+        // console.warn('[API] Token está vacío o no existe en sessionStorage');
+        return {};
+      })(),
       ...options.headers,
     },
   };
   
-  // Timeout handling
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), options.timeout || TIMEOUT);
-  config.signal = controller.signal;
+  // DEBUG: Log del token que se está enviando
+  const debugToken = tokenStorage.getToken();
+  // debugLog('[API REQUEST - TOKEN DEBUG]', { 
+  //   url, 
+  //   method: config.method,
+  //   hasToken: !!(debugToken && debugToken.length > 0),
+  //   tokenValue: (debugToken && debugToken.length > 0) ? `${debugToken.substring(0, 50)}...` : 'EMPTY',
+  //   tokenKey: TOKEN_KEY,
+  //   sessionStorageKeys: Object.keys(window.sessionStorage || {}),
+  // });
   
+  // if (!debugToken || debugToken.length === 0) {
+  //   console.warn('[API] Token está vacío o no existe en sessionStorage');
+  // }
+       
   try {
     const response = await fetch(url, config);
-    clearTimeout(timeoutId);
-    
-    debugLog('[API REQUEST]', { 
-      url, 
-      method: config.method, 
-      status: response.status,
-      statusText: response.statusText 
-    });
     
     if (!response.ok) {
-      if (response.status === 401) {
-        throw new Error('401:Token inválido o expirado');
-      }
-      
       const errorData = await response.json().catch(() => ({}));
-      debugError('[API ERROR RESPONSE]', { url, status: response.status, errorData });
+      // debugError('[API ERROR RESPONSE]', { url, status: response.status, errorData });
       
       let errorMessage = errorData.message || `Error ${response.status}: ${response.statusText}`;
       
@@ -156,7 +159,7 @@ async function apiRequest<T>(
     }
     
     const data: ApiResponse<T> = await response.json();
-    console.log('[API SUCCESS]', { url, status: response.status, data });
+    // console.log('[API SUCCESS]', { url, status: response.status, data });
     return data;
   } catch (error: any) {
     if (error.name === 'AbortError') {

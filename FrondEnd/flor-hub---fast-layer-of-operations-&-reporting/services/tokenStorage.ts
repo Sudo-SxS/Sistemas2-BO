@@ -2,7 +2,7 @@
 // Almacenamiento de token JWT en sessionStorage
 // El frontend NO maneja cookies, eso lo hace el backend
 
-const TOKEN_KEY = 'auth_token';
+export const TOKEN_KEY = 'auth_token';
 
 export const tokenStorage = {
   /**
