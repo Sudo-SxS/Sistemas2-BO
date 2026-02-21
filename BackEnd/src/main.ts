@@ -127,6 +127,7 @@ import { mensajeRouter } from "./router/MensajeRouter.ts";
 import { comentarioRouter } from "./router/ComentarioRouter.ts";
 import routerHome from "./router/HomeRouter.ts";
 import { celulaRouter } from "./router/CelulaRouter.ts";
+import { estadisticaRouter } from "./router/EstadisticaRouter.ts";
 
 // Importar middleware de manejo de errores
 import {
@@ -306,6 +307,11 @@ app.use(comentarioRouterInstance.allowedMethods());
 const celulaRouterInstance = celulaRouter(celulaController, usuarioModel);
 app.use(celulaRouterInstance.routes());
 app.use(celulaRouterInstance.allowedMethods());
+
+// ✅ NUEVO: Router Estadísticas
+const estadisticaRouterInstance = estadisticaRouter(pgClient);
+app.use(estadisticaRouterInstance.routes());
+app.use(estadisticaRouterInstance.allowedMethods());
 
 // ============================================
 // MANEJO DE ERRORES 404 (DEBE IR AL FINAL)
