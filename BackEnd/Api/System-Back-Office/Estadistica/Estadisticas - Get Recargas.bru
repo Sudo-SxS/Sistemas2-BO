@@ -1,0 +1,26 @@
+meta {
+  name: Estadisticas - Get Recargas
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:8000/estadisticas/recargas?periodo=MES
+  auth: bearer
+}
+
+params:query {
+  periodo: MES
+  cellaId: 
+  fechaPortacionDesde: 
+  fechaPortacionHasta: 
+}
+
+headers {
+  Content-Type: application/json
+}
+
+settings {
+  encodeUrl: true
+  timeout: 30000
+}

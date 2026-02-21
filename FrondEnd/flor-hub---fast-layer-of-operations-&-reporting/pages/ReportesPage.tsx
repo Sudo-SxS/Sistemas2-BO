@@ -71,7 +71,7 @@ export const ReportesPage: React.FC<ReportesPageProps> = ({
   });
 
   const stats = useMemo(() => {
-    if (!estadisticas) {
+    if (!estadisticas || !estadisticas.resumen || !estadisticas.totales) {
       return {
         totalBrutas: 0,
         activados: 0,
@@ -102,54 +102,72 @@ export const ReportesPage: React.FC<ReportesPageProps> = ({
       };
     }
 
-    const { resumen, totales } = estadisticas;
+    const resumen = estadisticas.resumen;
+    const totales = estadisticas.totales;
     const total = resumen.totalVentas || 1;
 
+    console.log('[ReportesPage] Resumen:', resumen);
+    console.log('[ReportesPage] Totales:', totales);
+
     return {
-      totalBrutas: resumen.totalVentas,
-      activados: totales.totalActivados,
-      countNetas: totales.totalActivados,
-      aprobadoAbd: resumen.aprobadoAbd,
-      rechazados: resumen.rechazados,
-      cancelados: resumen.cancelados,
-      spCancelados: resumen.spCancelados,
-      entregados: resumen.entregados,
-      noEntregados: resumen.noEntregados,
-      rendidos: resumen.rendidos,
-      agendados: resumen.agendados,
-      pendienteCarga: resumen.pendientePin,
+      totalBrutas: resumen.totalVentas || 0,
+      activados: totales.totalActivados || 0,
+      countNetas: totales.totalActivados || 0,
+      aprobadoAbd: resumen.aprobadoAbd || 0,
+      rechazados: resumen.rechazados || 0,
+      cancelados: resumen.cancelados || 0,
+      spCancelados: resumen.spCancelados || 0,
+      entregados: resumen.entregados || 0,
+      noEntregados: resumen.noEntregados || 0,
+      rendidos: resumen.rendidos || 0,
+      agendados: resumen.agendados || 0,
+      pendienteCarga: resumen.pendientePin || 0,
       montoBruto: 0,
       montoNeto: 0,
-      percActivados: ((totales.totalActivados / total) * 100).toFixed(1),
-      percAprobadoAbd: ((resumen.aprobadoAbd / total) * 100).toFixed(1),
-      percRechazados: ((resumen.rechazados / total) * 100).toFixed(1),
-      percCancelados: ((resumen.cancelados / total) * 100).toFixed(1),
-      percSpCancelados: ((resumen.spCancelados / total) * 100).toFixed(1),
-      percEntregados: ((resumen.entregados / total) * 100).toFixed(1),
-      percNoEntregados: ((resumen.noEntregados / total) * 100).toFixed(1),
-      percRendidos: ((resumen.rendidos / total) * 100).toFixed(1),
-      percAgendados: ((resumen.agendados / total) * 100).toFixed(1),
-      percPendiente: ((resumen.pendientePin / total) * 100).toFixed(1),
+      percActivados: ((totales.totalActivados || 0) / total * 100).toFixed(1),
+      percAprobadoAbd: ((resumen.aprobadoAbd || 0) / total * 100).toFixed(1),
+      percRechazados: ((resumen.rechazados || 0) / total * 100).toFixed(1),
+      percCancelados: ((resumen.cancelados || 0) / total * 100).toFixed(1),
+      percSpCancelados: ((resumen.spCancelados || 0) / total * 100).toFixed(1),
+      percEntregados: ((resumen.entregados || 0) / total * 100).toFixed(1),
+      percNoEntregados: ((resumen.noEntregados || 0) / total * 100).toFixed(1),
+      percRendidos: ((resumen.rendidos || 0) / total * 100).toFixed(1),
+      percAgendados: ((resumen.agendados || 0) / total * 100).toFixed(1),
+      percPendiente: ((resumen.pendientePin || 0) / total * 100).toFixed(1),
       avgTicket: '0',
-      conversionRate: totales.tasaConversion.toString()
+      conversionRate: String(totales.tasaConversion || 0)
     };
   }, [estadisticas]);
 
   const chartData = useMemo(() => {
-    if (!estadisticas?.detalle) return [];
+    console.log('[ReportesPage] Detalle:', estadisticas?.detalle);
+    
+    if (!estadisticas?.detalle?.length) {
+      return [{ date: new Date().toISOString().split('T')[0], brutas: 0, netas: 0 }];
+    }
     
     const groups: Record<string, any> = {};
     estadisticas.detalle.forEach((item) => {
-      const date = new Date(item.fechaCreacion).toISOString().split('T')[0];
+      if (!item?.fechaCreacion || !item?.estado) return;
+      
+      const fecha = new Date(item.fechaCreacion);
+      if (isNaN(fecha.getTime())) return;
+      
+      const date = fecha.toISOString().split('T')[0];
       if (!groups[date]) {
         groups[date] = { date, brutas: 0, netas: 0 };
       }
       groups[date].brutas++;
-      if (['ACTIVADO NRO PORTADO', 'ACTIVADO NRO CLARO', 'ACTIVADO', 'EXITOSO'].includes(item.estado)) {
+      
+      const estadosActivados = ['ACTIVADO NRO PORTADO', 'ACTIVADO NRO CLARO', 'ACTIVADO', 'EXITOSO'];
+      if (estadosActivados.includes(item.estado)) {
         groups[date].netas++;
       }
     });
-    return Object.values(groups).sort((a: any, b: any) => a.date.localeCompare(b.date));
+    
+    const result = Object.values(groups).sort((a: any, b: any) => a.date.localeCompare(b.date));
+    console.log('[ReportesPage] ChartData:', result);
+    return result.length > 0 ? result : [{ date: new Date().toISOString().split('T')[0], brutas: 0, netas: 0 }];
   }, [estadisticas]);
 
   if (isLoading) {
@@ -236,7 +254,7 @@ export const ReportesPage: React.FC<ReportesPageProps> = ({
               onChange={(e) => setReportFilter(prev => ({ ...prev, supervisor: e.target.value }))}
             >
               <option value="TODOS">TODAS LAS CÉLULAS</option>
-              {estadisticas?.ventasPorCell.map(c => (
+              {estadisticas?.ventasPorCell?.map(c => (
                 <option key={c.cellaId} value={c.cellaId}>{c.cellaNombre}</option>
               ))}
             </select>
@@ -249,7 +267,7 @@ export const ReportesPage: React.FC<ReportesPageProps> = ({
               onChange={(e) => setReportFilter(prev => ({ ...prev, advisor: e.target.value }))}
             >
               <option value="TODOS">TODOS LOS ASESORES</option>
-              {estadisticas?.ventasPorVendedor.map(v => (
+              {estadisticas?.ventasPorVendedor?.map(v => (
                 <option key={v.vendedorId} value={v.vendedorId}>{v.vendedorNombre}</option>
               ))}
             </select>
@@ -281,12 +299,12 @@ export const ReportesPage: React.FC<ReportesPageProps> = ({
         <MiniStatusBadge label="Pdte. PIN" percentage={stats.percPendiente} count={stats.pendienteCarga} colorClass="bg-fuchsia-500" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>} />
       </div>
 
-      {estadisticas && estadisticas.recargas.totalRecargas > 0 && (
+      {estadisticas && estadisticas.recargas?.totalRecargas > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-[2vh]">
           <div className="bento-card p-[3vh] rounded-[3.5vh] dark:bg-slate-900/40 dark:border-white/5">
             <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-widest mb-[2vh] text-[clamp(0.8rem,1.3vh,1.5rem)]">Top Asesores con Más Recargas</h3>
             <div className="space-y-[1vh]">
-              {estadisticas.recargas.topAsesorRecargas.slice(0, 5).map((asesor, idx) => (
+              {estadisticas.recargas.topAsesorRecargas?.slice(0, 5).map((asesor, idx) => (
                 <div key={asesor.vendedorId} className="flex justify-between items-center p-[1.5vh] rounded-[1vh] bg-white/50 dark:bg-white/5">
                   <div className="flex items-center gap-[1vh]">
                     <span className="font-black text-slate-400">{idx + 1}.</span>
@@ -300,7 +318,7 @@ export const ReportesPage: React.FC<ReportesPageProps> = ({
           <div className="bento-card p-[3vh] rounded-[3.5vh] dark:bg-slate-900/40 dark:border-white/5">
             <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-widest mb-[2vh] text-[clamp(0.8rem,1.3vh,1.5rem)]">Top Células con Más Recargas</h3>
             <div className="space-y-[1vh]">
-              {estadisticas.recargas.topCellRecargas.slice(0, 5).map((cell, idx) => (
+              {estadisticas.recargas.topCellRecargas?.slice(0, 5).map((cell, idx) => (
                 <div key={cell.cellaId} className="flex justify-between items-center p-[1.5vh] rounded-[1vh] bg-white/50 dark:bg-white/5">
                   <div className="flex items-center gap-[1vh]">
                     <span className="font-black text-slate-400">{idx + 1}.</span>

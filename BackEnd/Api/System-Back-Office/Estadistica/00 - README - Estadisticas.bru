@@ -1,0 +1,119 @@
+meta {
+  name: 00 - README - Estadisticas
+  type: http
+  seq: 0
+}
+
+get {
+  url: http://localhost:8000/estadisticas?periodo=MES
+  body: none
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+settings {
+  encodeUrl: true
+  timeout: 30000
+}
+
+// ============================================
+// ENDPOINTS DE ESTADISTICAS - REFERENCIA COMPLETA
+// ============================================
+//
+// SECUENCIA DE ARCHIVOS EN ESTA CARPETA:
+//
+// 1. Estadisticas - Get Completo
+//    GET /estadisticas?periodo=MES&cellaId=&asesorId=
+//    Obtiene estadísticas completas de ventas
+//
+// 2. Estadisticas - Get Recargas
+//    GET /estadisticas/recargas?periodo=MES&cellaId=&fechaPortacionDesde=&fechaPortacionHasta=
+//    Obtiene estadísticas de recargas/portaciones
+//
+// ============================================
+// PARAMETROS DE CONSULTA:
+// ============================================
+//
+// periodo: OBLIGATORIO
+//   - HOY: Hoy
+//   - SEMANA: Últimos 7 días
+//   - MES: Último mes
+//   - SEMESTRE: Últimos 6 meses
+//   - AÑO: Último año
+//   - TODO: Todo el historial
+//
+// cellaId: OPCIONAL
+//   - ID de la célula a filtrar
+//
+// asesorId: OPCIONAL
+//   - ID del vendedor a filtrar
+//
+// fechaPortacionDesde: OPCIONAL
+//   - Fecha inicial para filtrar portaciones (ISO date)
+//
+// fechaPortacionHasta: OPCIONAL
+//   - Fecha final para filtrar portaciones (ISO date)
+//
+// ============================================
+// PERMISOS REQUERIDOS:
+// ============================================
+//
+// ROLES PERMITIDOS:
+// - ADMIN
+// - SUPERADMIN
+// - BACK_OFFICE
+// - SUPERVISOR
+//
+// ============================================
+// RESPUESTA - GET /estadisticas:
+// ============================================
+//
+// {
+//   "success": true,
+//   "data": {
+//     "resumen": {
+//       "totalVentas": 150,
+//       "agendados": 20,
+//       "aprobadoAbd": 30,
+//       "rechazados": 10,
+//       "noEntregados": 5,
+//       "entregados": 25,
+//       "rendidos": 20,
+//       "activadoPortado": 15,
+//       "activadoClaro": 10,
+//       "cancelados": 5,
+//       "spCancelados": 3,
+//       "pendientePin": 7,
+//       "percAgendados": 13.33,
+//       "percAprobadoAbd": 20.0,
+//       ...
+//     },
+//     "ventasPorVendedor": [...],
+//     "ventasPorCell": [...],
+//     "detalle": [...],
+//     "recargas": {...},
+//     "totales": {
+//       "totalVentas": 150,
+//       "totalActivados": 25,
+//       "tasaConversion": 16.67
+//     }
+//   }
+// }
+//
+// ============================================
+// RESPUESTA - GET /estadisticas/recargas:
+// ============================================
+//
+// {
+//   "success": true,
+//   "data": {
+//     "totalRecargas": 50,
+//     "totalPortacionesRecargadas": 120,
+//     "topAsesorRecargas": [...],
+//     "topCellRecargas": [...],
+//     "numerosRecargados": [...]
+//   }
+// }

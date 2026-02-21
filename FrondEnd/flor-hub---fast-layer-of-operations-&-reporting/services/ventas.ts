@@ -433,7 +433,7 @@ export const mapVentaUIToSale = (venta: VentaUIResponse): Sale => {
   
   return {
     id: `V-${venta.venta_id}`,
-    customerName: `${venta.cliente_nombre} ${venta.cliente_apellido}`.trim(),
+    customerName: `${venta.cliente_nombre || ''} ${venta.cliente_apellido || ''}`.trim(),
     dni: venta.cliente_documento || '',
     phoneNumber: phoneNumber,
     status: mapEstadoToSaleStatus(venta.estado_actual),
@@ -466,7 +466,7 @@ export const mapVentaUIToSale = (venta: VentaUIResponse): Sale => {
           author: venta.vendedor_nombre ? `${venta.vendedor_nombre} ${venta.vendedor_apellido}`.trim() : 'Sistema'
         }]
       : [],
-    advisor: `${venta.vendedor_nombre} ${venta.vendedor_apellido}`.trim(),
+    advisor: `${venta.vendedor_nombre || ''} ${venta.vendedor_apellido || ''}`.trim(),
     supervisor: venta.supervisor_nombre 
       ? `${venta.supervisor_nombre} ${venta.supervisor_apellido || ''}`.trim()
       : '',

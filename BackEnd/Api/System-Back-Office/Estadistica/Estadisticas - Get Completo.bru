@@ -1,0 +1,25 @@
+meta {
+  name: Estadisticas - Get Completo
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:8000/estadisticas?periodo=MES
+  auth: bearer
+}
+
+params:query {
+  periodo: MES
+  cellaId: 
+  asesorId: 
+}
+
+headers {
+  Content-Type: application/json
+}
+
+settings {
+  encodeUrl: true
+  timeout: 30000
+}
