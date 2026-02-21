@@ -397,7 +397,7 @@ export class EstadisticaPostgreSQL {
     let paramIndex = 2;
 
     if (userRol === "VENDEDOR") {
-      whereClause += ` AND p.vendedor_id = $${paramIndex++}`;
+      whereClause += ` AND v.vendedor_id = $${paramIndex++}`;
       values.push(userId);
     }
 
@@ -413,7 +413,8 @@ export class EstadisticaPostgreSQL {
       FROM (
         SELECT p.numero_portar, COUNT(*) as cantidad
         FROM portabilidad p
-        INNER JOIN usuario u ON p.vendedor_id = u.persona_id
+        INNER JOIN venta v ON p.venta_id = v.venta_id
+        INNER JOIN usuario u ON v.vendedor_id = u.persona_id
         ${whereClause}
         GROUP BY p.numero_portar
         HAVING COUNT(*) > 1
@@ -426,11 +427,12 @@ export class EstadisticaPostgreSQL {
 
     const topAsesorQuery = `
       SELECT 
-        p.vendedor_id,
+        v.vendedor_id,
         CONCAT(pv.nombre, ' ', pv.apellido) as vendedor_nombre,
         COUNT(*) as cantidad_recargas
       FROM portabilidad p
-      INNER JOIN usuario u ON p.vendedor_id = u.persona_id
+      INNER JOIN venta v ON p.venta_id = v.venta_id
+      INNER JOIN usuario u ON v.vendedor_id = u.persona_id
       INNER JOIN persona pv ON u.persona_id = pv.persona_id
       ${whereClause}
       AND p.numero_portar IN (
@@ -440,7 +442,7 @@ export class EstadisticaPostgreSQL {
         GROUP BY numero_portar 
         HAVING COUNT(*) > 1
       )
-      GROUP BY p.vendedor_id, pv.nombre, pv.apellido
+      GROUP BY v.vendedor_id, pv.nombre, pv.apellido
       ORDER BY cantidad_recargas DESC
       LIMIT 5
     `;
@@ -458,7 +460,8 @@ export class EstadisticaPostgreSQL {
         COALESCE(c.nombre, 'Sin Célula') as cella_nombre,
         COUNT(*) as cantidad_recargas
       FROM portabilidad p
-      INNER JOIN usuario u ON p.vendedor_id = u.persona_id
+      INNER JOIN venta v ON p.venta_id = v.venta_id
+      INNER JOIN usuario u ON v.vendedor_id = u.persona_id
       LEFT JOIN celula c ON u.celula = c.id_celula
       ${whereClause}
       AND p.numero_portar IN (
@@ -487,7 +490,8 @@ export class EstadisticaPostgreSQL {
         MAX(p.venta_id) as ultima_venta_id,
         MAX(p.fecha_creacion) as ultima_fecha
       FROM portabilidad p
-      INNER JOIN usuario u ON p.vendedor_id = u.persona_id
+      INNER JOIN venta v ON p.venta_id = v.venta_id
+      INNER JOIN usuario u ON v.vendedor_id = u.persona_id
       ${whereClause}
       GROUP BY p.numero_portar
       HAVING COUNT(*) > 1
