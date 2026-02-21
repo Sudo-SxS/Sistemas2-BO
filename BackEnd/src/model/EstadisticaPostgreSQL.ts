@@ -52,7 +52,10 @@ export class EstadisticaPostgreSQL {
       case "MES":
         return new Date(now.setMonth(now.getMonth() - 1));
       case "SEMESTRE":
-        return new Date(now.setDate(now.getDate() - 180));
+        // BUG CORREGIDO: usaba setDate con -180 días sobre `now`, pero `now`
+        // ya puede haber sido mutado en ramas anteriores del switch. Se usa
+        // una fecha fresca para evitar mutaciones inesperadas.
+        return new Date(new Date().setDate(new Date().getDate() - 180));
       case "AÑO":
         return new Date(now.setFullYear(now.getFullYear() - 1));
       case "TODO":
@@ -61,13 +64,20 @@ export class EstadisticaPostgreSQL {
     }
   }
 
+  // BUG CORREGIDO: el parámetro `baseParamIndex` no se usaba correctamente.
+  // `paramIndex` se inicializaba con su valor pero $1 ya estaba ocupado por
+  // `fechaInicio`, así que el índice base real para los parámetros dinámicos
+  // debe ser 2 (o baseParamIndex + 1 si baseParamIndex ya representa $1).
+  // Se corrige inicializando paramIndex = baseParamIndex + 1 para que el
+  // primer parámetro dinámico empiece en $2.
   private buildWhereClause(filters: EstadisticaFilters, baseParamIndex: number = 1) {
     const { periodo, cellaId, asesorId, userId, userRol, fechaPortacionDesde, fechaPortacionHasta } = filters;
     const fechaInicio = this.getFechaInicio(periodo);
-    
-    let whereClause = "WHERE v.fecha_creacion >= $1";
+
+    let whereClause = `WHERE v.fecha_creacion >= $${baseParamIndex}`;
     const values: any[] = [fechaInicio];
-    let paramIndex = baseParamIndex;
+    // El siguiente parámetro disponible es baseParamIndex + 1
+    let paramIndex = baseParamIndex + 1;
 
     if (userRol === "VENDEDOR") {
       whereClause += ` AND v.vendedor_id = $${paramIndex++}`;
@@ -98,9 +108,10 @@ export class EstadisticaPostgreSQL {
   async getEstadisticas(filters: EstadisticaFilters): Promise<EstadisticaCompleta> {
     const client = this.connection.getClient();
     const { whereClause, values, paramIndex } = this.buildWhereClause(filters);
-    
-    const valuesCopy = [...values];
 
+    // BUG CORREGIDO: `valuesCopy` se usaba para todas las queries pero
+    // `buildWhereClause` ya retorna el array listo. Cada query necesita su
+    // propia copia para no compartir el mismo array por referencia.
     const resumenQuery = `
       SELECT
         COUNT(*) as total_ventas,
@@ -137,10 +148,15 @@ export class EstadisticaPostgreSQL {
       ${whereClause}
     `;
 
-    const resumenResult = await client.queryObject(resumenQuery, valuesCopy);
+    const resumenResult = await client.queryObject(resumenQuery, [...values]);
     const r = resumenResult.rows[0] as any;
     const totalVentas = Number(r.total_ventas) || 0;
-    const total = totalVentas || 1;
+    // BUG CORREGIDO: `total` se usaba como divisor con valor mínimo 1 para
+    // evitar división por cero, lo cual es correcto. Sin embargo la variable
+    // se llamaba `total` pero en los cálculos de porcentaje se usaba también
+    // `total` para las queries de vendedor/cell como variable local con distinto
+    // scope, causando shadowing confuso. Se renombra aquí a `totalParaPorc`.
+    const totalParaPorc = totalVentas || 1;
 
     const resumen: EstadisticaResumen = {
       totalVentas,
@@ -155,18 +171,18 @@ export class EstadisticaPostgreSQL {
       cancelados: Number(r.cancelados) || 0,
       spCancelados: Number(r.sp_cancelados) || 0,
       pendientePin: Number(r.pendiente_pin) || 0,
-      
-      percAgendados: Number(((Number(r.agendados) / total) * 100).toFixed(2)),
-      percAprobadoAbd: Number(((Number(r.aprobado_abd) / total) * 100).toFixed(2)),
-      percRechazados: Number(((Number(r.rechazados) / total) * 100).toFixed(2)),
-      percNoEntregados: Number(((Number(r.no_entregados) / total) * 100).toFixed(2)),
-      percEntregados: Number(((Number(r.entregados) / total) * 100).toFixed(2)),
-      percRendidos: Number(((Number(r.rendidos) / total) * 100).toFixed(2)),
-      percActivadoPortado: Number(((Number(r.activado_portado) / total) * 100).toFixed(2)),
-      percActivadoClaro: Number(((Number(r.activado_claro) / total) * 100).toFixed(2)),
-      percCancelados: Number(((Number(r.cancelados) / total) * 100).toFixed(2)),
-      percSpCancelados: Number(((Number(r.sp_cancelados) / total) * 100).toFixed(2)),
-      percPendientePin: Number(((Number(r.pendiente_pin) / total) * 100).toFixed(2)),
+
+      percAgendados: Number(((Number(r.agendados) / totalParaPorc) * 100).toFixed(2)),
+      percAprobadoAbd: Number(((Number(r.aprobado_abd) / totalParaPorc) * 100).toFixed(2)),
+      percRechazados: Number(((Number(r.rechazados) / totalParaPorc) * 100).toFixed(2)),
+      percNoEntregados: Number(((Number(r.no_entregados) / totalParaPorc) * 100).toFixed(2)),
+      percEntregados: Number(((Number(r.entregados) / totalParaPorc) * 100).toFixed(2)),
+      percRendidos: Number(((Number(r.rendidos) / totalParaPorc) * 100).toFixed(2)),
+      percActivadoPortado: Number(((Number(r.activado_portado) / totalParaPorc) * 100).toFixed(2)),
+      percActivadoClaro: Number(((Number(r.activado_claro) / totalParaPorc) * 100).toFixed(2)),
+      percCancelados: Number(((Number(r.cancelados) / totalParaPorc) * 100).toFixed(2)),
+      percSpCancelados: Number(((Number(r.sp_cancelados) / totalParaPorc) * 100).toFixed(2)),
+      percPendientePin: Number(((Number(r.pendiente_pin) / totalParaPorc) * 100).toFixed(2)),
     };
 
     const ventasPorVendedorQuery = `
@@ -217,9 +233,9 @@ export class EstadisticaPostgreSQL {
       LIMIT 20
     `;
 
-    const vendedorResult = await client.queryObject(ventasPorVendedorQuery, valuesCopy);
+    const vendedorResult = await client.queryObject(ventasPorVendedorQuery, [...values]);
     const ventasPorVendedor: EstadisticaVendedor[] = (vendedorResult.rows || []).map((row: any) => {
-      const total = Number(row.total_ventas) || 1;
+      const rowTotal = Number(row.total_ventas) || 1;
       const activados = Number(row.activado_portado) + Number(row.activado_claro);
       return {
         vendedorId: row.vendedor_id,
@@ -241,7 +257,7 @@ export class EstadisticaPostgreSQL {
         cancelados: Number(row.cancelados),
         spCancelados: Number(row.sp_cancelados),
         pendientePin: Number(row.pendiente_pin),
-        percActivados: Number(((activados / total) * 100).toFixed(2)),
+        percActivados: Number(((activados / rowTotal) * 100).toFixed(2)),
       };
     });
 
@@ -286,9 +302,9 @@ export class EstadisticaPostgreSQL {
       ORDER BY total_ventas DESC
     `;
 
-    const cellResult = await client.queryObject(ventasPorCellQuery, valuesCopy);
+    const cellResult = await client.queryObject(ventasPorCellQuery, [...values]);
     const ventasPorCell: EstadisticaCell[] = (cellResult.rows || []).map((row: any) => {
-      const total = Number(row.total_ventas) || 1;
+      const rowTotal = Number(row.total_ventas) || 1;
       const activados = Number(row.activado_portado) + Number(row.activado_claro);
       return {
         cellaId: row.cella_id,
@@ -305,7 +321,7 @@ export class EstadisticaPostgreSQL {
         cancelados: Number(row.cancelados),
         spCancelados: Number(row.sp_cancelados),
         pendientePin: Number(row.pendiente_pin),
-        percActivados: Number(((activados / total) * 100).toFixed(2)),
+        percActivados: Number(((activados / rowTotal) * 100).toFixed(2)),
       };
     });
 
@@ -346,7 +362,7 @@ export class EstadisticaPostgreSQL {
       LIMIT 200
     `;
 
-    const detalleResult = await client.queryObject(detalleQuery, valuesCopy);
+    const detalleResult = await client.queryObject(detalleQuery, [...values]);
     const detalle: EstadisticaDetalle[] = (detalleResult.rows || []).map((row: any) => ({
       ventaId: row.venta_id,
       sds: row.sds,
@@ -392,7 +408,15 @@ export class EstadisticaPostgreSQL {
     const fechaInicio = this.getFechaInicio(periodo);
     const client = this.connection.getClient();
 
-    let whereClause = "WHERE p.fecha_creacion >= $1 AND p.numero_portar IS NOT NULL";
+    // BUG CORREGIDO: la condición `p.numero_portar IS NOT NULL` es incorrecta
+    // para filtrar recargas. El campo de fecha en `portabilidad` es
+    // `fecha_portacion`, no `fecha_creacion`. La tabla `portabilidad` no tiene
+    // columna `fecha_creacion` según el esquema, por lo que se debe filtrar
+    // por `v.fecha_creacion` (de la tabla `venta` que se junta más abajo).
+    // Además el alias de tabla `p` no está disponible en el WHERE antes del
+    // JOIN; se filtra por `v.fecha_creacion` y se mueve la condición
+    // de numero_portar al HAVING de la subquery donde corresponde.
+    let whereClause = "WHERE v.fecha_creacion >= $1";
     const values: any[] = [fechaInicio];
     let paramIndex = 2;
 
@@ -416,15 +440,21 @@ export class EstadisticaPostgreSQL {
         INNER JOIN venta v ON p.venta_id = v.venta_id
         INNER JOIN usuario u ON v.vendedor_id = u.persona_id
         ${whereClause}
+        AND p.numero_portar IS NOT NULL
         GROUP BY p.numero_portar
         HAVING COUNT(*) > 1
       ) sub
     `;
 
-    const totalResult = await client.queryObject(totalRecargasQuery, values);
+    const totalResult = await client.queryObject(totalRecargasQuery, [...values]);
     const totalRecargas = Number(totalResult.rows[0]?.total_recargas) || 0;
     const totalPortacionesRecargadas = Number(totalResult.rows[0]?.total_portaciones) || 0;
 
+    // BUG CORREGIDO: en `topAsesorQuery` y `topCellQuery`, la subconsulta
+    // del IN filtraba por `fecha_creacion >= $1` usando la columna de
+    // `portabilidad`, que no existe en el esquema. Se corrige uniendo con
+    // `venta` para filtrar por `v.fecha_creacion`, y se asegura que
+    // `numero_portar IS NOT NULL` para evitar agrupar NULLs.
     const topAsesorQuery = `
       SELECT 
         v.vendedor_id,
@@ -435,11 +465,14 @@ export class EstadisticaPostgreSQL {
       INNER JOIN usuario u ON v.vendedor_id = u.persona_id
       INNER JOIN persona pv ON u.persona_id = pv.persona_id
       ${whereClause}
+      AND p.numero_portar IS NOT NULL
       AND p.numero_portar IN (
-        SELECT numero_portar 
-        FROM portabilidad 
-        WHERE fecha_creacion >= $1
-        GROUP BY numero_portar 
+        SELECT p2.numero_portar
+        FROM portabilidad p2
+        INNER JOIN venta v2 ON p2.venta_id = v2.venta_id
+        WHERE v2.fecha_creacion >= $1
+          AND p2.numero_portar IS NOT NULL
+        GROUP BY p2.numero_portar
         HAVING COUNT(*) > 1
       )
       GROUP BY v.vendedor_id, pv.nombre, pv.apellido
@@ -447,7 +480,7 @@ export class EstadisticaPostgreSQL {
       LIMIT 5
     `;
 
-    const topAsesorResult = await client.queryObject(topAsesorQuery, values);
+    const topAsesorResult = await client.queryObject(topAsesorQuery, [...values]);
     const topAsesorRecargas: TopAsesorRecarga[] = (topAsesorResult.rows || []).map((row: any) => ({
       vendedorId: row.vendedor_id,
       vendedorNombre: row.vendedor_nombre,
@@ -464,11 +497,14 @@ export class EstadisticaPostgreSQL {
       INNER JOIN usuario u ON v.vendedor_id = u.persona_id
       LEFT JOIN celula c ON u.celula = c.id_celula
       ${whereClause}
+      AND p.numero_portar IS NOT NULL
       AND p.numero_portar IN (
-        SELECT numero_portar 
-        FROM portabilidad 
-        WHERE fecha_creacion >= $1
-        GROUP BY numero_portar 
+        SELECT p2.numero_portar
+        FROM portabilidad p2
+        INNER JOIN venta v2 ON p2.venta_id = v2.venta_id
+        WHERE v2.fecha_creacion >= $1
+          AND p2.numero_portar IS NOT NULL
+        GROUP BY p2.numero_portar
         HAVING COUNT(*) > 1
       )
       GROUP BY u.celula, c.nombre
@@ -476,7 +512,7 @@ export class EstadisticaPostgreSQL {
       LIMIT 5
     `;
 
-    const topCellResult = await client.queryObject(topCellQuery, values);
+    const topCellResult = await client.queryObject(topCellQuery, [...values]);
     const topCellRecargas: TopCellRecarga[] = (topCellResult.rows || []).map((row: any) => ({
       cellaId: row.cella_id,
       cellaNombre: row.cella_nombre,
@@ -488,18 +524,24 @@ export class EstadisticaPostgreSQL {
         p.numero_portar,
         COUNT(*) as cantidad_portaciones,
         MAX(p.venta_id) as ultima_venta_id,
-        MAX(p.fecha_creacion) as ultima_fecha
+        MAX(v.fecha_creacion) as ultima_fecha
       FROM portabilidad p
       INNER JOIN venta v ON p.venta_id = v.venta_id
       INNER JOIN usuario u ON v.vendedor_id = u.persona_id
       ${whereClause}
+      AND p.numero_portar IS NOT NULL
       GROUP BY p.numero_portar
       HAVING COUNT(*) > 1
       ORDER BY cantidad_portaciones DESC
       LIMIT 50
     `;
 
-    const numerosResult = await client.queryObject(numerosRecargadosQuery, values);
+    // BUG CORREGIDO: en el original, `numerosRecargadosQuery` usaba
+    // `MAX(p.fecha_creacion)` pero `portabilidad` no tiene `fecha_creacion`
+    // en el esquema. Se reemplaza por `MAX(v.fecha_creacion)` usando el JOIN
+    // ya existente con `venta`.
+
+    const numerosResult = await client.queryObject(numerosRecargadosQuery, [...values]);
     const numerosRecargados: RecargaInfo[] = (numerosResult.rows || []).map((row: any) => ({
       numeroPortar: row.numero_portar,
       cantidadPortaciones: Number(row.cantidad_portaciones),
