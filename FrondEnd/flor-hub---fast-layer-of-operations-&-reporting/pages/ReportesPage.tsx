@@ -1,9 +1,21 @@
 import React, { useState, useMemo } from 'react';
-import { MOCK_SALES } from '../constants';
-import { SaleStatus, LogisticStatus, LineStatus } from '../types';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useEstadisticas, Periodo } from '../hooks/useEstadisticas';
+import { exportToExcel } from '../utils/exportExcel';
 
 type Period = 'DIA' | 'SEMANA' | 'MES' | 'SEMESTRE' | 'AÑO' | 'HISTORICO';
+
+const mapPeriodToBackend = (period: Period): Periodo => {
+  switch (period) {
+    case 'DIA': return 'HOY';
+    case 'SEMANA': return 'SEMANA';
+    case 'MES': return 'MES';
+    case 'SEMESTRE': return 'SEMESTRE';
+    case 'AÑO': return 'AÑO';
+    case 'HISTORICO': return 'TODO';
+    default: return 'MES';
+  }
+};
 
 const StatCard = ({ title, value, percentage, color, icon, suffix = "", subtitle = "" }: any) => (
   <div className="bento-card p-[3vh] rounded-[3.5vh] flex flex-col justify-between group transition-all duration-500 overflow-hidden relative min-h-[18vh] dark:bg-slate-900/40 dark:border-white/5">
@@ -52,91 +64,112 @@ export const ReportesPage: React.FC<ReportesPageProps> = ({
 }) => {
   const [reportFilter, setReportFilter] = useState({ advisor: 'TODOS', supervisor: 'TODOS', period: 'MES' as Period });
 
-  const filteredData = useMemo(() => {
-    const today = new Date();
-    
-    return MOCK_SALES.filter(s => {
-      const matchAdvisor = reportFilter.advisor === 'TODOS' || s.advisor === reportFilter.advisor;
-      const matchSupervisor = reportFilter.supervisor === 'TODOS' || s.supervisor === reportFilter.supervisor;
-      
-      const saleDate = new Date(s.date);
-      let matchPeriod = true;
-
-      if (reportFilter.period === 'DIA') {
-        matchPeriod = saleDate.toDateString() === today.toDateString();
-      } else if (reportFilter.period === 'SEMANA') {
-        const weekAgo = new Date();
-        weekAgo.setDate(today.getDate() - 7);
-        matchPeriod = saleDate >= weekAgo;
-      } else if (reportFilter.period === 'MES') {
-        matchPeriod = saleDate.getMonth() === today.getMonth() && saleDate.getFullYear() === today.getFullYear();
-      } else if (reportFilter.period === 'SEMESTRE') {
-        const sixMonthsAgo = new Date();
-        sixMonthsAgo.setMonth(today.getMonth() - 6);
-        matchPeriod = saleDate >= sixMonthsAgo;
-      } else if (reportFilter.period === 'AÑO') {
-        matchPeriod = saleDate.getFullYear() === today.getFullYear();
-      }
-
-      return matchAdvisor && matchSupervisor && matchPeriod;
-    });
-  }, [reportFilter]);
+  const { data: estadisticas, isLoading, error } = useEstadisticas({
+    periodo: mapPeriodToBackend(reportFilter.period),
+    cellaId: reportFilter.supervisor !== 'TODOS' ? reportFilter.supervisor : undefined,
+    asesorId: reportFilter.advisor !== 'TODOS' ? reportFilter.advisor : undefined,
+  });
 
   const stats = useMemo(() => {
-    const total = filteredData.length || 1;
-    const data = {
-      totalBrutas: filteredData.length,
-      activados: 0,
-      rechazados: 0,
-      cancelados: 0,
-      entregados: 0,
-      noEntregados: 0,
-      agendados: 0,
-      pendienteCarga: 0,
-      montoBruto: 0,
-      montoNeto: 0,
-      countNetas: 0
-    };
+    if (!estadisticas) {
+      return {
+        totalBrutas: 0,
+        activados: 0,
+        countNetas: 0,
+        aprobadoAbd: 0,
+        rechazados: 0,
+        cancelados: 0,
+        spCancelados: 0,
+        entregados: 0,
+        noEntregados: 0,
+        rendidos: 0,
+        agendados: 0,
+        pendienteCarga: 0,
+        montoBruto: 0,
+        montoNeto: 0,
+        percActivados: '0',
+        percAprobadoAbd: '0',
+        percRechazados: '0',
+        percCancelados: '0',
+        percSpCancelados: '0',
+        percEntregados: '0',
+        percNoEntregados: '0',
+        percRendidos: '0',
+        percAgendados: '0',
+        percPendiente: '0',
+        avgTicket: '0',
+        conversionRate: '0'
+      };
+    }
 
-    filteredData.forEach(s => {
-      data.montoBruto += s.amount;
-      if (s.status === SaleStatus.ACTIVADO) {
-        data.activados++;
-        data.montoNeto += s.amount;
-        data.countNetas++;
-      }
-      if (s.status === SaleStatus.RECHAZADO) data.rechazados++;
-      if (s.status === SaleStatus.CANCELADO) data.cancelados++;
-      if (s.status === SaleStatus.EN_PROCESO) data.agendados++;
-      if (s.lineStatus === LineStatus.PENDIENTE_PRECARGA) data.pendienteCarga++;
-
-      if ([LogisticStatus.ENTREGADO, LogisticStatus.RENDIDO_AL_CLIENTE].includes(s.logisticStatus)) data.entregados++;
-      if ([LogisticStatus.NO_ENTREGADO, LogisticStatus.PIEZA_EXTRAVIADA].includes(s.logisticStatus)) data.noEntregados++;
-    });
+    const { resumen, totales } = estadisticas;
+    const total = resumen.totalVentas || 1;
 
     return {
-      ...data,
-      percActivados: ((data.activados / total) * 100).toFixed(1),
-      percRechazados: ((data.rechazados / total) * 100).toFixed(1),
-      percCancelados: ((data.cancelados / total) * 100).toFixed(1),
-      percEntregados: ((data.entregados / total) * 100).toFixed(1),
-      percNoEntregados: ((data.noEntregados / total) * 100).toFixed(1),
-      percAgendados: ((data.agendados / total) * 100).toFixed(1),
-      percPendiente: ((data.pendienteCarga / total) * 100).toFixed(1),
-      avgTicket: (data.montoBruto / total).toFixed(2),
-      conversionRate: ((data.countNetas / total) * 100).toFixed(1)
+      totalBrutas: resumen.totalVentas,
+      activados: totales.totalActivados,
+      countNetas: totales.totalActivados,
+      aprobadoAbd: resumen.aprobadoAbd,
+      rechazados: resumen.rechazados,
+      cancelados: resumen.cancelados,
+      spCancelados: resumen.spCancelados,
+      entregados: resumen.entregados,
+      noEntregados: resumen.noEntregados,
+      rendidos: resumen.rendidos,
+      agendados: resumen.agendados,
+      pendienteCarga: resumen.pendientePin,
+      montoBruto: 0,
+      montoNeto: 0,
+      percActivados: ((totales.totalActivados / total) * 100).toFixed(1),
+      percAprobadoAbd: ((resumen.aprobadoAbd / total) * 100).toFixed(1),
+      percRechazados: ((resumen.rechazados / total) * 100).toFixed(1),
+      percCancelados: ((resumen.cancelados / total) * 100).toFixed(1),
+      percSpCancelados: ((resumen.spCancelados / total) * 100).toFixed(1),
+      percEntregados: ((resumen.entregados / total) * 100).toFixed(1),
+      percNoEntregados: ((resumen.noEntregados / total) * 100).toFixed(1),
+      percRendidos: ((resumen.rendidos / total) * 100).toFixed(1),
+      percAgendados: ((resumen.agendados / total) * 100).toFixed(1),
+      percPendiente: ((resumen.pendientePin / total) * 100).toFixed(1),
+      avgTicket: '0',
+      conversionRate: totales.tasaConversion.toString()
     };
-  }, [filteredData]);
+  }, [estadisticas]);
 
   const chartData = useMemo(() => {
-      const groups: Record<string, any> = {};
-      filteredData.forEach(s => {
-          if (!groups[s.date]) groups[s.date] = { date: s.date, brutas: 0, netas: 0 };
-          groups[s.date].brutas++;
-          if (s.status === SaleStatus.ACTIVADO) groups[s.date].netas++;
-      });
-      return Object.values(groups).sort((a, b) => a.date.localeCompare(b.date));
-  }, [filteredData]);
+    if (!estadisticas?.detalle) return [];
+    
+    const groups: Record<string, any> = {};
+    estadisticas.detalle.forEach((item) => {
+      const date = new Date(item.fechaCreacion).toISOString().split('T')[0];
+      if (!groups[date]) {
+        groups[date] = { date, brutas: 0, netas: 0 };
+      }
+      groups[date].brutas++;
+      if (['ACTIVADO NRO PORTADO', 'ACTIVADO NRO CLARO', 'ACTIVADO', 'EXITOSO'].includes(item.estado)) {
+        groups[date].netas++;
+      }
+    });
+    return Object.values(groups).sort((a: any, b: any) => a.date.localeCompare(b.date));
+  }, [estadisticas]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[50vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-[50vh]">
+        <div className="text-center">
+          <p className="text-red-500 font-black text-lg">Error al cargar estadísticas</p>
+          <p className="text-slate-400 text-sm">{error.message}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-[3vh] animate-in fade-in slide-in-from-bottom-6 duration-700">
@@ -156,6 +189,39 @@ export const ReportesPage: React.FC<ReportesPageProps> = ({
                     {p === 'DIA' ? 'Hoy' : p}
                 </button>
             ))}
+            <button
+              onClick={() => {
+                if (estadisticas) {
+                  exportToExcel(
+                    {
+                      totalVentas: estadisticas.resumen.totalVentas,
+                      agendados: estadisticas.resumen.agendados,
+                      aprobadoAbd: estadisticas.resumen.aprobadoAbd,
+                      rechazados: estadisticas.resumen.rechazados,
+                      noEntregados: estadisticas.resumen.noEntregados,
+                      entregados: estadisticas.resumen.entregados,
+                      rendidos: estadisticas.resumen.rendidos,
+                      activadoPortado: estadisticas.resumen.activadoPortado,
+                      activadoClaro: estadisticas.resumen.activadoClaro,
+                      cancelados: estadisticas.resumen.cancelados,
+                      spCancelados: estadisticas.resumen.spCancelados,
+                      pendientePin: estadisticas.resumen.pendientePin,
+                      tasaConversion: estadisticas.totales.tasaConversion,
+                    },
+                    estadisticas.recargas.numerosRecargados,
+                    estadisticas.detalle,
+                    `estadisticas_${reportFilter.period.toLowerCase()}`
+                  );
+                }
+              }}
+              disabled={!estadisticas}
+              className="px-[2vh] py-[1vh] rounded-[1.2vh] font-black uppercase tracking-widest transition-all text-[clamp(0.6rem,1vh,1.4rem)] bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Excel
+            </button>
           </div>
         </div>
 
@@ -163,14 +229,16 @@ export const ReportesPage: React.FC<ReportesPageProps> = ({
 
         <div className="flex flex-wrap gap-[1vw]">
           <div className="flex-1 min-w-[200px] flex flex-col gap-[1vh]">
-            <label className="text-[clamp(0.6rem,1.1vh,1.2rem)] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-[1vh]">Supervisor</label>
+            <label className="text-[clamp(0.6rem,1.1vh,1.2rem)] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-[1vh]">Célula</label>
             <select 
               className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[1.8vh] px-[2.5vh] py-[1.5vh] font-black text-slate-800 dark:text-slate-200 outline-none hover:shadow-md transition-all cursor-pointer text-[clamp(0.7rem,1.2vh,1.5rem)]"
               value={reportFilter.supervisor}
               onChange={(e) => setReportFilter(prev => ({ ...prev, supervisor: e.target.value }))}
             >
-              <option value="TODOS">TODOS LOS SUPERVISORES</option>
-              {supervisors.map(s => <option key={s} value={s}>{s.toUpperCase()}</option>)}
+              <option value="TODOS">TODAS LAS CÉLULAS</option>
+              {estadisticas?.ventasPorCell.map(c => (
+                <option key={c.cellaId} value={c.cellaId}>{c.cellaNombre}</option>
+              ))}
             </select>
           </div>
           <div className="flex-1 min-w-[200px] flex flex-col gap-[1vh]">
@@ -181,28 +249,70 @@ export const ReportesPage: React.FC<ReportesPageProps> = ({
               onChange={(e) => setReportFilter(prev => ({ ...prev, advisor: e.target.value }))}
             >
               <option value="TODOS">TODOS LOS ASESORES</option>
-              {advisors.map(a => <option key={a} value={a}>{a.toUpperCase()}</option>)}
+              {estadisticas?.ventasPorVendedor.map(v => (
+                <option key={v.vendedorId} value={v.vendedorId}>{v.vendedorNombre}</option>
+              ))}
             </select>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[2vh]">
-        <StatCard title="Ventas Brutas" value={stats.totalBrutas} color="bg-slate-900" subtitle="Total registros cargados" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
-        <StatCard title="Activaciones (Netas)" value={stats.countNetas} percentage={stats.conversionRate} color="bg-emerald-500" subtitle="Ventas efectivas activadas" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
-        <StatCard title="Recaudación Bruta" value={stats.montoBruto.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} suffix="€" color="bg-indigo-600" subtitle="Valor total del embudo" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>} />
-        <StatCard title="Ticket Promedio" value={stats.avgTicket} suffix="€" color="bg-purple-600" subtitle="Gasto medio por cliente" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>} />
+        <StatCard title="Ventas Brutas" value={stats.totalBrutas} color="bg-slate-900" subtitle="Total registros" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
+        <StatCard title="Activados" value={stats.countNetas} percentage={stats.conversionRate} color="bg-emerald-500" subtitle="Ventas efectivas" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
+        <StatCard title="Recargas" value={estadisticas?.recargas.totalRecargas || 0} color="bg-amber-500" subtitle="Números re-portados" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>} />
+        <StatCard title="Tasa Conversión" value={stats.conversionRate} suffix="%" color="bg-purple-600" subtitle="Activados/Ventas" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>} />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-[1vw]">
-        <MiniStatusBadge label="Activados" percentage={stats.percActivados} count={stats.activados} colorClass="bg-emerald-500" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>} />
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-[1vw]">
+        <MiniStatusBadge label="Agendados" percentage={stats.percAgendados} count={stats.agendados} colorClass="bg-amber-500" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>} />
+        <MiniStatusBadge label="Aprob. ABD" percentage={stats.percAprobadoAbd} count={stats.aprobadoAbd} colorClass="bg-teal-500" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
+        <MiniStatusBadge label="Activ. Portado" percentage={((estadisticas?.resumen.activadoPortado || 0) / (stats.totalBrutas || 1) * 100).toFixed(1)} count={estadisticas?.resumen.activadoPortado || 0} colorClass="bg-emerald-600" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>} />
+        <MiniStatusBadge label="Activ. Claro" percentage={((estadisticas?.resumen.activadoClaro || 0) / (stats.totalBrutas || 1) * 100).toFixed(1)} count={estadisticas?.resumen.activadoClaro || 0} colorClass="bg-emerald-400" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>} />
         <MiniStatusBadge label="Rechazados" percentage={stats.percRechazados} count={stats.rechazados} colorClass="bg-rose-500" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" /></svg>} />
         <MiniStatusBadge label="Cancelados" percentage={stats.percCancelados} count={stats.cancelados} colorClass="bg-slate-400" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 12H9" /></svg>} />
-        <MiniStatusBadge label="Entregados" percentage={stats.percEntregados} count={stats.entregados} colorClass="bg-indigo-500" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>} />
-        <MiniStatusBadge label="No Entregados" percentage={stats.percNoEntregados} count={stats.noEntregados} colorClass="bg-orange-500" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>} />
-        <MiniStatusBadge label="Agendados" percentage={stats.percAgendados} count={stats.agendados} colorClass="bg-amber-500" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>} />
-        <MiniStatusBadge label="Pdte. Carga" percentage={stats.percPendiente} count={stats.pendienteCarga} colorClass="bg-fuchsia-500" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>} />
       </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-[1vw]">
+        <MiniStatusBadge label="SP Cancelado" percentage={stats.percSpCancelados} count={stats.spCancelados} colorClass="bg-red-400" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 12H9" /></svg>} />
+        <MiniStatusBadge label="Entregados" percentage={stats.percEntregados} count={stats.entregados} colorClass="bg-indigo-500" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>} />
+        <MiniStatusBadge label="No Entreg." percentage={stats.percNoEntregados} count={stats.noEntregados} colorClass="bg-orange-500" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>} />
+        <MiniStatusBadge label="Rendidos" percentage={stats.percRendidos} count={stats.rendidos} colorClass="bg-cyan-500" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
+        <MiniStatusBadge label="Pdte. PIN" percentage={stats.percPendiente} count={stats.pendienteCarga} colorClass="bg-fuchsia-500" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>} />
+      </div>
+
+      {estadisticas && estadisticas.recargas.totalRecargas > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-[2vh]">
+          <div className="bento-card p-[3vh] rounded-[3.5vh] dark:bg-slate-900/40 dark:border-white/5">
+            <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-widest mb-[2vh] text-[clamp(0.8rem,1.3vh,1.5rem)]">Top Asesores con Más Recargas</h3>
+            <div className="space-y-[1vh]">
+              {estadisticas.recargas.topAsesorRecargas.slice(0, 5).map((asesor, idx) => (
+                <div key={asesor.vendedorId} className="flex justify-between items-center p-[1.5vh] rounded-[1vh] bg-white/50 dark:bg-white/5">
+                  <div className="flex items-center gap-[1vh]">
+                    <span className="font-black text-slate-400">{idx + 1}.</span>
+                    <span className="font-black text-slate-700 dark:text-slate-300 text-[clamp(0.7rem,1.1vh,1.3rem)]">{asesor.vendedorNombre}</span>
+                  </div>
+                  <span className="font-black text-amber-500 text-[clamp(0.8rem,1.2vh,1.4rem)]">{asesor.cantidadRecargas} recargas</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="bento-card p-[3vh] rounded-[3.5vh] dark:bg-slate-900/40 dark:border-white/5">
+            <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-widest mb-[2vh] text-[clamp(0.8rem,1.3vh,1.5rem)]">Top Células con Más Recargas</h3>
+            <div className="space-y-[1vh]">
+              {estadisticas.recargas.topCellRecargas.slice(0, 5).map((cell, idx) => (
+                <div key={cell.cellaId} className="flex justify-between items-center p-[1.5vh] rounded-[1vh] bg-white/50 dark:bg-white/5">
+                  <div className="flex items-center gap-[1vh]">
+                    <span className="font-black text-slate-400">{idx + 1}.</span>
+                    <span className="font-black text-slate-700 dark:text-slate-300 text-[clamp(0.7rem,1.1vh,1.3rem)]">{cell.cellaNombre}</span>
+                  </div>
+                  <span className="font-black text-amber-500 text-[clamp(0.8rem,1.2vh,1.4rem)]">{cell.cantidadRecargas} recargas</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-[2vh]">
         <div className="lg:col-span-2 bento-card p-[3vh] rounded-[3.5vh] h-[50vh] flex flex-col dark:bg-slate-900/40 dark:border-white/5">
@@ -248,8 +358,8 @@ export const ReportesPage: React.FC<ReportesPageProps> = ({
                 </div>
             </div>
             <div className="mt-[4vh] grid grid-cols-2 gap-[1.5vw] w-full">
-                <div className="bg-slate-50 dark:bg-white/5 p-[2.2vh] rounded-[2.5vh]"><p className="font-black text-slate-400 dark:text-slate-500 uppercase mb-[0.5vh] text-[clamp(0.6rem,1vh,1.2rem)]">Total Monto Neto</p><p className="font-black text-indigo-600 dark:text-indigo-400 italic text-[clamp(1.2rem,2vh,2rem)]">{stats.montoNeto.toLocaleString()}€</p></div>
-                <div className="bg-slate-50 dark:bg-white/5 p-[2.2vh] rounded-[2.5vh]"><p className="font-black text-slate-400 dark:text-slate-500 uppercase mb-[0.5vh] text-[clamp(0.6rem,1vh,1.2rem)]">Pérdida (Cancel/Rech)</p><p className="font-black text-rose-500 dark:text-rose-400 italic text-[clamp(1.2rem,2vh,2rem)]">{(stats.montoBruto - stats.montoNeto).toLocaleString()}€</p></div>
+                <div className="bg-slate-50 dark:bg-white/5 p-[2.2vh] rounded-[2.5vh]"><p className="font-black text-slate-400 dark:text-slate-500 uppercase mb-[0.5vh] text-[clamp(0.6rem,1vh,1.2rem)]">Total Recargas</p><p className="font-black text-amber-500 italic text-[clamp(1.2rem,2vh,2rem)]">{estadisticas?.recargas.totalRecargas || 0}</p></div>
+                <div className="bg-slate-50 dark:bg-white/5 p-[2.2vh] rounded-[2.5vh]"><p className="font-black text-slate-400 dark:text-slate-500 uppercase mb-[0.5vh] text-[clamp(0.6rem,1vh,1.2rem)]">Portaciones</p><p className="font-black text-amber-600 italic text-[clamp(1.2rem,2vh,2rem)]">{estadisticas?.recargas.totalPortacionesRecargadas || 0}</p></div>
             </div>
         </div>
       </div>

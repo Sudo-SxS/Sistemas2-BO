@@ -1,5 +1,5 @@
 // ============================================
-// BackEnd/src/controller/EstadisticaController.ts
+// BackEnd/src/Controller/EstadisticaController.ts
 // Controlador de estadísticas
 // ============================================
 

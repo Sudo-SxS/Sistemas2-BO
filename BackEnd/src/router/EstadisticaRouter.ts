@@ -4,7 +4,7 @@
 // ============================================
 
 import { Router } from "oak";
-import { EstadisticaController } from "../controller/EstadisticaController.ts";
+import { EstadisticaController } from "../Controller/EstadisticaController.ts";
 import { EstadisticaService } from "../services/EstadisticaService.ts";
 import { EstadisticaPostgreSQL } from "../model/EstadisticaPostgreSQL.ts";
 import { authMiddleware } from "../middleware/authMiddlewares.ts";
