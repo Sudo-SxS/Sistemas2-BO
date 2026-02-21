@@ -173,8 +173,8 @@ export class EstadisticaPostgreSQL {
       SELECT
         v.vendedor_id,
         CONCAT(pv.nombre, ' ', pv.apellido) as vendedor_nombre,
-        pv.legajo as legajo,
-        pv.exa as exa,
+        u.legajo as legajo,
+        u.exa as exa,
         pv.email as email,
         u.celula as cella_id,
         COALESCE(c.nombre, 'Sin Célula') as cella_nombre,
@@ -212,7 +212,7 @@ export class EstadisticaPostgreSQL {
       LEFT JOIN portabilidad p ON v.venta_id = p.venta_id
       LEFT JOIN celula c ON u.celula = c.id_celula
       ${whereClause}
-      GROUP BY v.vendedor_id, pv.nombre, pv.apellido, pv.legajo, pv.exa, pv.email, u.celula, c.nombre
+      GROUP BY v.vendedor_id, pv.nombre, pv.apellido, u.legajo, u.exa, pv.email, u.celula, c.nombre
       ORDER BY total_ventas DESC
       LIMIT 20
     `;

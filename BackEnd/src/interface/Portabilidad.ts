@@ -13,5 +13,4 @@ export interface PortabilidadModelDB extends Omit<ModelDB<Portabilidad>, 'add' |
     byEmpresaOrigen: Array<{ empresa_origen: string; cantidad: number }>;
     byMercadoOrigen: Array<{ mercado_origen: string; cantidad: number }>;
   }>;
-  getByEstado: ({ estado }: { estado: string }) => Promise<Portabilidad[]>;
 }

@@ -45,7 +45,7 @@ export class PortabilidadPostgreSQL implements PortabilidadModelDB {
 
   async getById({ id }: { id: number }): Promise<Portabilidad | undefined> {
     const result = await this.safeQuery<Portabilidad[]>(
-      `SELECT * FROM portabilidad WHERE venta = $1`,
+      `SELECT * FROM portabilidad WHERE venta_id = $1`,
       [id],
     );
 
@@ -63,7 +63,7 @@ export class PortabilidadPostgreSQL implements PortabilidadModelDB {
         input.spn,
         input.empresa_origen,
         input.mercado_origen,
-        input.numero_porta,
+        input.numero_portar,
         input.pin?.toString() || null,
         input.fecha_vencimiento_pin || null,
         input.fecha_portacion || null,
@@ -92,9 +92,9 @@ export class PortabilidadPostgreSQL implements PortabilidadModelDB {
       fields.push(`mercado_origen = $${paramIndex++}`);
       values.push(input.mercado_origen);
     }
-    if (input.numero_porta !== undefined) {
-      fields.push(`numero_porta = $${paramIndex++}`);
-      values.push(input.numero_porta);
+    if (input.numero_portar !== undefined) {
+      fields.push(`numero_portar = $${paramIndex++}`);
+      values.push(input.numero_portar);
     }
     if (input.pin !== undefined) {
       fields.push(`pin = $${paramIndex++}`);
@@ -110,7 +110,7 @@ export class PortabilidadPostgreSQL implements PortabilidadModelDB {
     values.push(id);
 
     await this.safeQuery(
-      `UPDATE portabilidad SET ${fields.join(", ")} WHERE venta = $${paramIndex}`,
+      `UPDATE portabilidad SET ${fields.join(", ")} WHERE venta_id = $${paramIndex}`,
       values,
     );
 
@@ -119,7 +119,7 @@ export class PortabilidadPostgreSQL implements PortabilidadModelDB {
 
   async delete({ id }: { id: number }): Promise<boolean> {
     await this.safeQuery(
-      `DELETE FROM portabilidad WHERE venta = $1`,
+      `DELETE FROM portabilidad WHERE venta_id = $1`,
       [id],
     );
 
@@ -173,14 +173,5 @@ export class PortabilidadPostgreSQL implements PortabilidadModelDB {
       byEmpresaOrigen,
       byMercadoOrigen,
     };
-  }
-
-  async getByEstado({ estado }: { estado: string }): Promise<Portabilidad[]> {
-    const result = await this.safeQuery<Portabilidad[]>(
-      `SELECT * FROM portabilidad WHERE estado = $1`,
-      [estado],
-    );
-
-    return result || [];
   }
 }
