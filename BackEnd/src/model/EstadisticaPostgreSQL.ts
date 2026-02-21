@@ -323,9 +323,9 @@ export class EstadisticaPostgreSQL {
         pc.email as cliente_email,
         v.vendedor_id,
         CONCAT(pv.nombre, ' ', pv.apellido) as vendedor_nombre,
-        pvu.legajo as vendedor_legajo,
-        pvu.exa as vendedor_exa,
-        pvu.email as vendedor_email,
+        u.legajo as vendedor_legajo,
+        u.exa as vendedor_exa,
+        pv.email as vendedor_email,
         COALESCE(c.nombre, 'Sin Célula') as cella_nombre
       FROM venta v
       INNER JOIN (
@@ -337,7 +337,6 @@ export class EstadisticaPostgreSQL {
       ) e ON v.venta_id = e.venta_id
       INNER JOIN usuario u ON v.vendedor_id = u.persona_id
       INNER JOIN persona pv ON u.persona_id = pv.persona_id
-      INNER JOIN persona pvu ON u.persona_id = pvu.persona_id
       INNER JOIN cliente cl ON v.cliente_id = cl.persona_id
       INNER JOIN persona pc ON cl.persona_id = pc.persona_id
       LEFT JOIN portabilidad p ON v.venta_id = p.venta_id
