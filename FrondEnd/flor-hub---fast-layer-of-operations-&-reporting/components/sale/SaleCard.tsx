@@ -223,10 +223,10 @@ export const SaleCard = React.memo(({ sale, isSelected, onToggleSelect, onClick,
       {/* Estado Venta */}
       <div className="w-full lg:w-[12%] flex-shrink-0">
         <div 
-          title={sale.status.replace(/_/g, ' ')}
+          title={(sale.status || 'SIN_ESTADO').replace(/_/g, ' ')}
           className={`px-[1.5vh] py-[1.2vh] rounded-[1.8vh] font-black uppercase tracking-widest border text-center text-[clamp(0.75rem,1.3vh,1.6rem)] shadow-sm truncate whitespace-nowrap overflow-hidden ${getStatusStyles(sale.status)}`}
         >
-          {sale.status.replace(/_/g, ' ')}
+          {(sale.status || 'SIN_ESTADO').replace(/_/g, ' ')}
         </div>
       </div>
 

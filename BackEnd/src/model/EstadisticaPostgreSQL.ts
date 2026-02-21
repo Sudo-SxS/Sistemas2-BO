@@ -133,7 +133,7 @@ export class EstadisticaPostgreSQL {
         ORDER BY fecha_creacion DESC
         LIMIT 1
       ) ec ON true
-      LEFT JOIN portabilidad p ON v.venta_id = p.venta
+      LEFT JOIN portabilidad p ON v.venta_id = p.venta_id
       ${whereClause}
     `;
 
@@ -209,8 +209,8 @@ export class EstadisticaPostgreSQL {
         ORDER BY fecha_creacion DESC
         LIMIT 1
       ) ec ON true
-      LEFT JOIN portabilidad p ON v.venta_id = p.venta
-      LEFT JOIN cella c ON u.celula = c.celula_id
+      LEFT JOIN portabilidad p ON v.venta_id = p.venta_id
+      LEFT JOIN celula c ON u.celula = c.id_celula
       ${whereClause}
       GROUP BY v.vendedor_id, pv.nombre, pv.apellido, pv.legajo, pv.exa, pv.email, u.celula, c.nombre
       ORDER BY total_ventas DESC
@@ -279,8 +279,8 @@ export class EstadisticaPostgreSQL {
         ORDER BY fecha_creacion DESC
         LIMIT 1
       ) ec ON true
-      LEFT JOIN portabilidad p ON v.venta_id = p.venta
-      LEFT JOIN cella c ON u.celula = c.celula_id
+      LEFT JOIN portabilidad p ON v.venta_id = p.venta_id
+      LEFT JOIN celula c ON u.celula = c.id_celula
       ${whereClause}
       GROUP BY u.celula, c.nombre
       ORDER BY total_ventas DESC
@@ -340,8 +340,8 @@ export class EstadisticaPostgreSQL {
       INNER JOIN persona pvu ON u.persona_id = pvu.persona_id
       INNER JOIN cliente cl ON v.cliente_id = cl.persona_id
       INNER JOIN persona pc ON cl.persona_id = pc.persona_id
-      LEFT JOIN portabilidad p ON v.venta_id = p.venta
-      LEFT JOIN cella c ON u.celula = c.celula_id
+      LEFT JOIN portabilidad p ON v.venta_id = p.venta_id
+      LEFT JOIN celula c ON u.celula = c.id_celula
       ${whereClause}
       ORDER BY v.fecha_creacion DESC
       LIMIT 200
@@ -460,7 +460,7 @@ export class EstadisticaPostgreSQL {
         COUNT(*) as cantidad_recargas
       FROM portabilidad p
       INNER JOIN usuario u ON p.vendedor_id = u.persona_id
-      LEFT JOIN cella c ON u.celula = c.celula_id
+      LEFT JOIN celula c ON u.celula = c.id_celula
       ${whereClause}
       AND p.numero_portar IN (
         SELECT numero_portar 
