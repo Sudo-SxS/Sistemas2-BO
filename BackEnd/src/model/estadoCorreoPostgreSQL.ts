@@ -72,7 +72,11 @@ export class EstadoCorreoPostgreSQL implements EstadoCorreoModelDB {
       this.baseSelect + " ORDER BY fecha_creacion DESC",
     );
 
-    return result.rows ?? [];
+    // Convertir BigInt a número para evitar error de serialización JSON
+    return (result.rows ?? []).map(row => ({
+      ...row,
+      estado_correo_id: Number(row.estado_correo_id),
+    }));
   }
 
   // ======================================================

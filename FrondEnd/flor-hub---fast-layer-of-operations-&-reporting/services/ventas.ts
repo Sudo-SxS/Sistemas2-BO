@@ -95,6 +95,21 @@ interface VentaUIResponse {
   ultimo_comentario: string | null;
   ultimo_comentario_titulo: string | null;
   fecha_ultimo_comentario: string | null;
+  // Historial de estados
+  historial_estados?: Array<{
+    estado_id: number;
+    estado: string;
+    descripcion: string | null;
+    fecha_creacion: string;
+  }>;
+  // Historial de correo
+  historial_correo?: Array<{
+    estado_correo_id: number;
+    estado: string;
+    descripcion: string | null;
+    ubicacion_actual: string | null;
+    fecha_creacion: string;
+  }>;
 }
 
 interface VentaUIListResponse {
@@ -384,13 +399,17 @@ export const mapVentaUIToSale = (venta: VentaUIResponse): Sale => {
   const mapCorreoEstadoToLogisticStatus = (estado: string | null): LogisticStatus => {
     if (!estado) return LogisticStatus.INICIAL;
     const estadoUpper = estado.toUpperCase();
-    if (estadoUpper.includes('ENTREGADO')) return LogisticStatus.ENTREGADO;
-    if (estadoUpper.includes('TRANSITO') || estadoUpper.includes('TRÁNSITO') || estadoUpper.includes('CAMINO')) return LogisticStatus.EN_TRANSITO;
-    if (estadoUpper.includes('REPARTO') || estadoUpper.includes('REPARTIENDO')) return LogisticStatus.EN_REPARTO;
-    if (estadoUpper.includes('LLEGADA')) return LogisticStatus.LLEGADA_DESTINO;
-    if (estadoUpper.includes('DEVUELTO')) return LogisticStatus.DEVUELTO;
+    if (estadoUpper.includes('ENTREGADO') && !estadoUpper.includes('RENDIDO')) return LogisticStatus.ENTREGADO;
+    if (estadoUpper.includes('RENDIDO')) return LogisticStatus.RENDIDO_AL_CLIENTE;
+    if (estadoUpper.includes('NO ENTREGADO')) return LogisticStatus.NO_ENTREGADO;
+    if (estadoUpper.includes('RECLAMO') && estadoUpper.includes('UES')) return LogisticStatus.RECLAMO_UES;
+    if (estadoUpper.includes('TRANSITO') || estadoUpper.includes('TRÁNSITO')) return LogisticStatus.EN_TRANSITO;
+    if (estadoUpper.includes('CENTRO LOGISTICO') || estadoUpper.includes('ECOMMERCE')) return LogisticStatus.INGRESADO_CENTRO_LOGISTICO;
+    if (estadoUpper.includes('AGENCIA')) return LogisticStatus.INGRESADO_AGENCIA;
+    if (estadoUpper.includes('PICK UP') || estadoUpper.includes('PICKUP')) return LogisticStatus.INGRESADO_PICKUP;
+    if (estadoUpper.includes('DEVUELTO') && !estadoUpper.includes('CLIENTE')) return LogisticStatus.DEVUELTO;
+    if (estadoUpper.includes('DEVUELTO AL CLIENTE')) return LogisticStatus.DEVUELTO_CLIENTE;
     if (estadoUpper.includes('ASIGNADO')) return LogisticStatus.ASIGNADO;
-    if (estadoUpper.includes('PENDIENTE')) return LogisticStatus.PENDIENTE;
     return LogisticStatus.INICIAL;
   };
 
@@ -452,7 +471,9 @@ export const mapVentaUIToSale = (venta: VentaUIResponse): Sale => {
       ? `${venta.supervisor_nombre} ${venta.supervisor_apellido || ''}`.trim()
       : '',
     correo_id: venta.correo_id,
-    sap: venta.sap
+    sap: venta.sap,
+    historial_estados: venta.historial_estados || [],
+    historial_correo: venta.historial_correo || []
   };
 };
 

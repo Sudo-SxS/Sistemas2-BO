@@ -192,10 +192,12 @@ export default function App() {
   // Estado de Interfaz
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showNomina, setShowNomina] = useState(false);
-  const [rowsPerPage, setRowsPerPage] = useState<number | 'TODOS'>(50);
-  const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isUpdatingBulk, setIsUpdatingBulk] = useState(false); // Nuevo estado para acciones bulk
+  
+  // Paginación - estados (límite se calcula después de obtener total)
+  const [rowsPerPage, setRowsPerPage] = useState<number | 'TODOS'>(50);
+  const [currentPage, setCurrentPage] = useState(1); // Nuevo estado para acciones bulk
 
   // Estado de Modales
   const [showCommandPalette, setShowCommandPalette] = useState(false);
@@ -269,6 +271,23 @@ export default function App() {
     }
     return apiSales;
   }, [ventasRaw, inspectionMode]);
+
+  // Paginación - cálculos (después de obtener total del hook)
+  const currentLimit = rowsPerPage === 'TODOS' ? 1000 : rowsPerPage;
+  const totalPages = Math.ceil(total / currentLimit) || 1;
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+
+  // Reiniciar página cuando cambian los filtros o rowsPerPage
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [startDate, endDate, searchQuery, filters]);
 
   const handleUpdateLogistic = useCallback(async (status: LogisticStatus) => {
     if (selectedIds.size === 0) return;
@@ -611,14 +630,37 @@ export default function App() {
   const trackingGroups = useMemo(() => {
     const groups = { agendados: [] as Sale[], entregadosPorta: [] as Sale[], noEntregadosPorta: [] as Sale[], noEntregadosLN: [] as Sale[], pendientePin: [] as Sale[] };
     filteredSales?.forEach(sale => {
-      const isDelivered = [LogisticStatus.ENTREGADO, LogisticStatus.RENDIDO_AL_CLIENTE].includes(sale.logisticStatus);
       const isPorta = sale.productType === ProductType.PORTABILITY;
       const isLN = sale.productType === ProductType.NEW_LINE;
-      if (sale.lineStatus === LineStatus.PENDIENTE_PORTABILIDAD) groups.pendientePin.push(sale);
-      else if (isDelivered && isPorta) groups.entregadosPorta.push(sale);
-      else if (!isDelivered && isPorta && sale.logisticStatus !== LogisticStatus.INICIAL) groups.noEntregadosPorta.push(sale);
-      else if (!isDelivered && isLN && sale.logisticStatus !== LogisticStatus.INICIAL) groups.noEntregadosLN.push(sale);
-      else if (sale.status === SaleStatus.EN_PROCESO || sale.logisticStatus === LogisticStatus.ASIGNADO) groups.agendados.push(sale);
+      const isDelivered = sale.logisticStatus === 'ENTREGADO' || sale.logisticStatus === 'RENDIDO_AL_CLIENTE' || sale.logisticStatus === 'ESIM';
+      const hasRechazadoInHistory = sale.historial_estados?.some(h => 
+        h.estado.includes('RECHAZADO')
+      ) || false;
+      const statusVenta = sale.status as string;
+      const isAnulado = statusVenta === 'CANCELADO' || statusVenta === 'ANULADO' || statusVenta === 'SPN CANCELADA' || statusVenta === 'CLIENTE DESISTE';
+
+      // PENDIENTE PIN: CREADO, PENDIENTE DOCU/PIN, PIN INGRESADO, PENDIENTE CARGA PIN
+      const isPendientePin = ['CREADO', 'PENDIENTE DOCU/PIN', 'PIN INGRESADO', 'PENDIENTE CARGA PIN'].includes(statusVenta);
+      
+      if (isPendientePin) {
+        groups.pendientePin.push(sale);
+      }
+      // AGENDADOS: AGENDADO o APROBADO ABD
+      else if (statusVenta === 'AGENDADO' || statusVenta === 'APROBADO ABD') {
+        groups.agendados.push(sale);
+      }
+      // ENTREGADOS PORTA: PORTABILITY + ENTREGADO/RENDIDO_AL_CLIENTE/ESIM + sin rechazo en historial + no anulado
+      else if (isPorta && isDelivered && !hasRechazadoInHistory && !isAnulado) {
+        groups.entregadosPorta.push(sale);
+      }
+      // NO ENTREGADOS PORTA: PORTABILITY + NO es ENTREGADO ni RENDIDO_AL_CLIENTE ni ESIM
+      else if (isPorta && !isDelivered) {
+        groups.noEntregadosPorta.push(sale);
+      }
+      // NO ENTREGADOS LN: LÍNEA NUEVA + NO es ENTREGADO ni RENDIDO_AL_CLIENTE ni ESIM
+      else if (isLN && !isDelivered) {
+        groups.noEntregadosLN.push(sale);
+      }
     });
     return groups;
   }, [filteredSales]);
@@ -754,6 +796,10 @@ export default function App() {
                 setRowsPerPage={setRowsPerPage}
                 onExport={() => exportToCSV(filteredSales, `FLORHUB_Export`)}
                 totalRecords={currentTotalRecords}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPrevPage={handlePrevPage}
+                onNextPage={handleNextPage}
               />
             )}
 

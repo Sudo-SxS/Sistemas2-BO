@@ -461,7 +461,7 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
         count: result.rows.length,
       });
 
-      return result.rows.map((row) => this.mapRowToEstadoVenta(row));
+      return result.rows.map((row: any) => this.mapRowToEstadoVenta(row));
     } catch (error) {
       this.logError(
         "Error al obtener últimos estados de todas las ventas",
@@ -775,7 +775,9 @@ export class EstadoVentaPostgreSQL implements EstadoVentaModelDB {
       ventaIds,
     );
 
-    const foundIds = new Set(result.rows.map((row: any) => Number(row.venta_id)));
+    const foundIds = new Set(
+      result.rows.map((row: any) => Number(row.venta_id)),
+    );
     const missingIds = ventaIds.filter((id) => !foundIds.has(Number(id)));
 
     if (missingIds.length > 0) {

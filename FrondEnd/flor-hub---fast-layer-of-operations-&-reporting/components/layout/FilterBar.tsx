@@ -13,6 +13,10 @@ interface FilterBarProps {
   setRowsPerPage: (val: number | 'TODOS') => void;
   onExport: () => void;
   totalRecords: number;
+  currentPage: number;
+  totalPages: number;
+  onPrevPage: () => void;
+  onNextPage: () => void;
 }
 
 export const FilterBar: React.FC<FilterBarProps> = ({
@@ -21,7 +25,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   endDate, setEndDate,
   showAdvancedFilters, setShowAdvancedFilters,
   rowsPerPage, setRowsPerPage,
-  onExport, totalRecords
+  onExport, totalRecords,
+  currentPage, totalPages, onPrevPage, onNextPage
 }) => {
   return (
     <div className="flex flex-col lg:flex-row items-center gap-[1.5vw] glass-panel p-[2.5vh] rounded-[3.5vh] mb-[2vh] relative transition-all z-20">
@@ -83,10 +88,49 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           value={rowsPerPage} 
           onChange={(e) => setRowsPerPage(e.target.value === 'TODOS' ? 'TODOS' : Number(e.target.value))}
         >
-          <option value={50}>50 REGISTROS</option>
-          <option value={100}>100 REGISTROS</option>
+          <option value={50}>50</option>
+          <option value={100}>100</option>
+          <option value={250}>250</option>
+          <option value={500}>500</option>
+          <option value={750}>750</option>
           <option value="TODOS">TODOS</option>
         </select>
+
+        <div className="flex items-center gap-[0.5vw]">
+          <button
+            onClick={onPrevPage}
+            disabled={currentPage <= 1}
+            className="px-[1vw] h-[7.5vh] rounded-[2.2vh] font-black border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-[0.5vw] text-[clamp(0.7rem,1.3vh,1.6rem)]"
+          >
+            <svg className="w-[2vh] h-[2vh]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Anterior
+          </button>
+          
+          <div className="flex items-center gap-[0.3vw] px-[1vw]">
+            <span className="font-black text-slate-600 dark:text-slate-400 text-[clamp(0.7rem,1.3vh,1.5rem)]">
+              {currentPage}
+            </span>
+            <span className="font-black text-slate-400 dark:text-slate-500 text-[clamp(0.6rem,1.1vh,1.3rem)]">
+              de
+            </span>
+            <span className="font-black text-indigo-600 dark:text-indigo-400 text-[clamp(0.7rem,1.3vh,1.5rem)]">
+              {totalPages}
+            </span>
+          </div>
+
+          <button
+            onClick={onNextPage}
+            disabled={currentPage >= totalPages}
+            className="px-[1vw] h-[7.5vh] rounded-[2.2vh] font-black border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-[0.5vw] text-[clamp(0.7rem,1.3vh,1.6rem)]"
+          >
+            Siguiente
+            <svg className="w-[2vh] h-[2vh]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
       </div>
       
       <div className="ml-auto text-right min-w-[8vw]">

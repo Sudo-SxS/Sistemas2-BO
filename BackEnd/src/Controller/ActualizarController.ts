@@ -3,6 +3,7 @@ import { EstadoVentaModelDB } from "../interface/EstadoVenta.ts";
 import { EstadoCorreoCreate } from "../schemas/correo/EstadoCorreo.ts";
 import {
   EstadoVentaCreate,
+  EstadoVentaEnum,
   EstadoVentaEstado,
 } from "../schemas/venta/EstadoVenta.ts";
 import { VentaModelDB } from "../interface/venta.ts";
@@ -65,46 +66,52 @@ export class ActualizarController {
       numeroDeUbicacionSAP = Ubicacion;
     }
 
-    const todosLosEstados = await this.correoModelDB.getAll({
-      page: 1,
-      limit: 100000,
-    });
+    const todosLosEstados = await this.estadoCorreoModelDB.getAll();
 
     if (!todosLosEstados || todosLosEstados.length === 0) {
       return 0;
     }
 
+    // Optimización: Crear Map para búsqueda O(1) en lugar de O(n)
+    const correoMap = new Map();
+    for (const correo of todosLosEstados) {
+      if (correo.sap_id) {
+        correoMap.set(correo.sap_id, correo);
+      }
+    }
+
     for (const estado of estadoNew.slice(1)) {
-      for (const correo of todosLosEstados) {
-        if (correo.sap_id === estado[numeroDeGuiaSAP]) {
-          /*console.log(
-            `Estado: ${estado[numeroDeEstadoSAP]}, Descripcion: ${
-              estado[numeroDeDescripcionSAP]
-            }, Ubicacion: ${estado[numeroDeUbicacionSAP]}`,
-          );*/
-          const estadoCorreoCreate: EstadoCorreoCreate = {
-            sap_id: estado[numeroDeGuiaSAP],
-            estado: estado[numeroDeEstadoSAP] as
-              | "INICIAL"
-              | "ASIGNADO"
-              | "DEVUELTO AL CLIENTE"
-              | "EN DEVOLUCION"
-              | "EN TRANSITO"
-              | "ENTREGADO"
-              | "INGRESADO CENTRO LOGISTICO - ECOMMERCE"
-              | "INGRESADO EN AGENCIA"
-              | "INGRESADO PICK UP CENTER UES"
-              | "NO ENTREGADO"
-              | "PIEZA EXTRAVIADA"
-              | "RENDIDO AL CLIENTE",
-            descripcion: estado[numeroDeDescripcionSAP],
-            usuario_id: "0219c4f7-a760-4365-99e2-20929b47fe99",
-            ubicacion_actual: estado[numeroDeUbicacionSAP],
-          };
-          count += await this.actualizarService.actualizarEstadoCorreo(
-            estadoCorreoCreate,
-          );
-        }
+      const guiaValue = estado[numeroDeGuiaSAP];
+      if (!guiaValue) continue;
+
+      const correo = correoMap.get(guiaValue);
+      if (correo) {
+        /*console.log(
+          `Estado: ${estado[numeroDeEstadoSAP]}, Descripcion: ${
+            estado[numeroDeDescripcionSAP]
+          }, Ubicacion: ${estado[numeroDeUbicacionSAP]}`,
+        );*/
+        const estadoCorreoCreate: EstadoCorreoCreate = {
+          estado: estado[numeroDeEstadoSAP] as
+            | "INICIAL"
+            | "ASIGNADO"
+            | "EN TRANSITO"
+            | "INGRESADO CENTRO LOGISTICO - ECOMMERCE"
+            | "INGRESADO EN AGENCIA"
+            | "INGRESADO PICK UP CENTER UES"
+            | "DEVUELTO"
+            | "DEVUELTO AL CLIENTE"
+            | "ENTREGADO"
+            | "NO ENTREGADO"
+            | "RENDIDO AL CLIENTE"
+            | "RECLAMO UES",
+          descripcion: estado[numeroDeDescripcionSAP],
+          usuario_id: "0219c4f7-a760-4365-99e2-20929b47fe99",
+          ubicacion_actual: estado[numeroDeUbicacionSAP],
+        };
+        count += await this.actualizarService.actualizarEstadoCorreo(
+          estadoCorreoCreate,
+        );
       }
     }
 
@@ -179,13 +186,19 @@ export class ActualizarController {
       return 0;
     }
 
-    let ventaActual;
-    for (const estado of estadoNew.slice(1)) {
-      for (const venta of todosLosEstadosActuales) {
-        if (venta.sds === estado[numeroDeVentaSDS]) {
-          ventaActual = venta;
-        }
+    // Optimización: Crear Map para búsqueda O(1) en lugar de O(n)
+    const ventasMap = new Map();
+    for (const venta of todosLosEstadosActuales) {
+      if (venta.sds) {
+        ventasMap.set(venta.sds, venta);
       }
+    }
+
+    for (const estado of estadoNew.slice(1)) {
+      const sdsValue = estado[numeroDeVentaSDS];
+      if (!sdsValue) continue;
+
+      const ventaActual = ventasMap.get(sdsValue);
       if (ventaActual) {
         //console.log(ventaActual, "Nuevo Estado:", estado[numeroDeEstado]);
         if (estado[numeroDeEstado] === undefined) {
@@ -196,27 +209,29 @@ export class ActualizarController {
         const estadoVentaCreate: EstadoVentaCreate = {
           venta_id: ventaActual.venta_id,
           estado: estado[numeroDeEstado] as
-            | "PENDIENTE DE CARGA"
-            | "CREADO SIN DOCU"
-            | "CREADO DOCU OK"
-            | "EN TRANSPORTE"
-            | "ENTREGADO"
+            | "INICIAL"
             | "REPACTAR"
-            | "ACTIVADO NRO CLARO"
-            | "ACTIVADO NRO PORTADO"
             | "AGENDADO"
             | "APROBADO ABD"
-            | "CANCELADO"
+            | "CREADO SIN DOCU"
+            | "CREADO DOCU OK"
             | "CREADO"
-            | "EVALUANDO DONANTE"
-            | "PENDIENTE CARGA PIN"
+            | "PENDIENTE DOCU/PIN"
             | "PIN INGRESADO"
-            | "RECHAZADO ABD"
+            | "PENDIENTE CARGA PIN"
+            | "EVALUANDO DONANTE"
+            | "APROBADO"
+            | "ACTIVADO NRO PORTADO"
+            | "ACTIVADO NRO CLARO"
+            | "ACTIVADO"
+            | "EXITOSO"
             | "RECHAZADO DONANTE"
-            | "SPN CANCELADA",
+            | "RECHAZADO ABD"
+            | "CANCELADO"
+            | "SPN CANCELADA"
+            | "CLIENTE DESISTE",
           descripcion: estado[numeroDeDescripcion] || "",
           usuario_id: "0219c4f7-a760-4365-99e2-20929b47fe99",
-          fecha_creacion: new Date(),
         };
         // DEBUG: Descomentar para debugging
         // console.log("EstadoVentaCreate:", estadoVentaCreate);
@@ -231,7 +246,7 @@ export class ActualizarController {
         // console.log("Venta no encontrada:", estado[numeroDeVentaSDS]);
       }
 
-      console.log("Count acumulado:", count);
+      // console.log("Count acumulado:", count);
     }
     return count;
   }

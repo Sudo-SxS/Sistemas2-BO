@@ -49,23 +49,12 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await fetch('/actualizar/estado-venta', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-        },
-        body: formData,
-      });
+      const response = await api.post<{ success: boolean; message: string }>('actualizar/estado-venta', formData);
       
-      if (!response.ok) throw new Error('Error en la subida');
-      
-      const result = await response.json();
-      if (result.success) {
-        // Éxito - el modal se cierra automáticamente
-      } else {
-        throw new Error(result.message || 'Error desconocido');
+      if (!response.success) {
+        throw new Error(response.message || 'Error desconocido');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error:', error);
       throw error;
     } finally {
@@ -79,21 +68,12 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await fetch('/actualizar/seguimiento-linea', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-        },
-        body: formData,
-      });
+      const response = await api.post<{ success: boolean; message: string }>('actualizar/seguimiento-linea', formData);
       
-      if (!response.ok) throw new Error('Error en la subida');
-      
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || 'Error desconocido');
+      if (!response.success) {
+        throw new Error(response.message || 'Error desconocido');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error:', error);
       throw error;
     } finally {
@@ -107,21 +87,12 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await fetch('/actualizar/correo', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-        },
-        body: formData,
-      });
+      const response = await api.post<{ success: boolean; message: string }>('actualizar/correo', formData);
       
-      if (!response.ok) throw new Error('Error en la subida');
-      
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || 'Error desconocido');
+      if (!response.success) {
+        throw new Error(response.message || 'Error desconocido');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error:', error);
       throw error;
     } finally {

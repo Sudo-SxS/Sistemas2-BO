@@ -8,21 +8,16 @@ const toUpper = (v: string) => v.trim().toUpperCase();
 export const LogisticStatusEnum = z.enum([
   "INICIAL",
   "ASIGNADO",
-  "EN_TRANSITO",
-  "EN_CAMINO",
-  "EN_REPARTO",
-  "LLEGADA_DESTINO",
-  "PENDIENTE",
+  "EN TRANSITO",
+  "INGRESADO CENTRO LOGISTICO - ECOMMERCE",
+  "INGRESADO EN AGENCIA",
+  "INGRESADO PICK UP CENTER UES",
   "DEVUELTO",
   "DEVUELTO AL CLIENTE",
-  "EN DEVOLUCION",
   "ENTREGADO",
-  "INGRESADO_LOGISTICO",
-  "INGRESADO_AGENCIA",
-  "INGRESADO_PICKUP",
-  "NO_ENTREGADO",
-  "PIEZA_EXTRAVIADA",
-  "RENDIDO_AL_CLIENTE"
+  "NO ENTREGADO",
+  "RENDIDO AL CLIENTE",
+  "RECLAMO UES",
 ]);
 
 export const EstadoCorreoSchema = z.object({
