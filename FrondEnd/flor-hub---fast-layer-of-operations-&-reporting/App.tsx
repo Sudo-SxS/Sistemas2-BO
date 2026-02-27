@@ -104,7 +104,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>(() => 
     (localStorage.getItem('activeTab') as AppTab) || 'GESTIÓN'
   );
-  const [trackingSubTab, setTrackingSubTab] = useState<'AGENDADOS' | 'ENTREGADOS_PORTA' | 'NO_ENTREGADOS_PORTA' | 'NO_ENTREGADOS_LN' | 'PENDIENTE_PIN'>(() => 
+  const [trackingSubTab, setTrackingSubTab] = useState<'AGENDADOS' | 'ENTREGADOS_PORTA' | 'NO_ENTREGADOS_PORTA' | 'NO_ENTREGADOS_LN' | 'PENDIENTE_PIN' | 'RECHAZADOS'>(() => 
     (localStorage.getItem('trackingSubTab') as any) || 'AGENDADOS'
   );
   const [isDarkMode, setIsDarkMode] = useState(() => 
@@ -628,29 +628,31 @@ export default function App() {
 
   // Agrupación para Seguimiento
   const trackingGroups = useMemo(() => {
-    const groups = { agendados: [] as Sale[], entregadosPorta: [] as Sale[], noEntregadosPorta: [] as Sale[], noEntregadosLN: [] as Sale[], pendientePin: [] as Sale[] };
+    const groups = { agendados: [] as Sale[], entregadosPorta: [] as Sale[], noEntregadosPorta: [] as Sale[], noEntregadosLN: [] as Sale[], pendientePin: [] as Sale[], rechazados: [] as Sale[] };
     filteredSales?.forEach(sale => {
       const isPorta = sale.productType === ProductType.PORTABILITY;
       const isLN = sale.productType === ProductType.NEW_LINE;
       const isDelivered = sale.logisticStatus === 'ENTREGADO' || sale.logisticStatus === 'RENDIDO_AL_CLIENTE' || sale.logisticStatus === 'ESIM';
-      const hasRechazadoInHistory = sale.historial_estados?.some(h => 
-        h.estado.includes('RECHAZADO')
-      ) || false;
       const statusVenta = sale.status as string;
-      const isAnulado = statusVenta === 'CANCELADO' || statusVenta === 'ANULADO' || statusVenta === 'SPN CANCELADA' || statusVenta === 'CLIENTE DESISTE';
-
+      
       // PENDIENTE PIN: CREADO, PENDIENTE DOCU/PIN, PIN INGRESADO, PENDIENTE CARGA PIN
       const isPendientePin = ['CREADO', 'PENDIENTE DOCU/PIN', 'PIN INGRESADO', 'PENDIENTE CARGA PIN'].includes(statusVenta);
       
-      if (isPendientePin) {
+      // RECHAZADOS: RECHAZADO DONANTE o RECHAZADO ABD
+      const isRechazado = statusVenta === 'RECHAZADO DONANTE' || statusVenta === 'RECHAZADO ABD';
+      
+      if (isRechazado) {
+        groups.rechazados.push(sale);
+      }
+      else if (isPendientePin) {
         groups.pendientePin.push(sale);
       }
       // AGENDADOS: AGENDADO o APROBADO ABD
       else if (statusVenta === 'AGENDADO' || statusVenta === 'APROBADO ABD') {
         groups.agendados.push(sale);
       }
-      // ENTREGADOS PORTA: PORTABILITY + ENTREGADO/RENDIDO_AL_CLIENTE/ESIM + sin rechazo en historial + no anulado
-      else if (isPorta && isDelivered && !hasRechazadoInHistory && !isAnulado) {
+      // ENTREGADOS PORTA: PORTABILITY + ENTREGADO/RENDIDO_AL_CLIENTE/ESIM
+      else if (isPorta && isDelivered) {
         groups.entregadosPorta.push(sale);
       }
       // NO ENTREGADOS PORTA: PORTABILITY + NO es ENTREGADO ni RENDIDO_AL_CLIENTE ni ESIM
@@ -672,6 +674,7 @@ export default function App() {
       case 'NO_ENTREGADOS_PORTA': return trackingGroups.noEntregadosPorta;
       case 'NO_ENTREGADOS_LN': return trackingGroups.noEntregadosLN;
       case 'PENDIENTE_PIN': return trackingGroups.pendientePin;
+      case 'RECHAZADOS': return trackingGroups.rechazados;
       default: return [];
     }
   }, [trackingSubTab, trackingGroups]);
@@ -864,7 +867,8 @@ export default function App() {
                   entregadosPorta: trackingGroups.entregadosPorta.length,
                   noEntregadosPorta: trackingGroups.noEntregadosPorta.length,
                   noEntregadosLN: trackingGroups.noEntregadosLN.length,
-                  pendientePin: trackingGroups.pendientePin.length
+                  pendientePin: trackingGroups.pendientePin.length,
+                  rechazados: trackingGroups.rechazados.length
                 }}
               />
             )}

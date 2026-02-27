@@ -51,6 +51,7 @@ CREATE TABLE public.correo (
   departamento_numero character varying,
   geolocalizacion character varying,
   comentario_cartero character varying,
+  sap character varying,
   CONSTRAINT correo_pkey PRIMARY KEY (sap_id)
 );
 CREATE TABLE public.empresa (
@@ -67,7 +68,7 @@ CREATE TABLE public.empresa_origen (
   CONSTRAINT empresa_origen_pkey PRIMARY KEY (empresa_origen_id)
 );
 CREATE TABLE public.estado (
-  estado_id bigint NOT NULL,
+  estado_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   venta_id integer NOT NULL,
   estado character varying NOT NULL,
   descripcion character varying NOT NULL,
@@ -174,7 +175,7 @@ CREATE TABLE public.plan (
 );
 CREATE TABLE public.portabilidad (
   venta_id integer NOT NULL,
-  spn character varying NOT NULL,
+  spn character varying,
   empresa_origen character varying NOT NULL,
   mercado_origen text NOT NULL CHECK (mercado_origen = ANY (ARRAY['PREPAGO'::text, 'POSPAGO'::text])),
   numero_portar character varying NOT NULL,

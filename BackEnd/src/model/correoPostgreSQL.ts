@@ -58,6 +58,7 @@ export class CorreoPostgreSQL implements CorreoModelDB {
   private readonly baseSelect = `
     SELECT
       sap_id,
+      sap,
       telefono_contacto,
       telefono_alternativo,
       destinatario,
@@ -198,6 +199,7 @@ export class CorreoPostgreSQL implements CorreoModelDB {
         await client.queryObject(
           `INSERT INTO correo (
             sap_id,
+            sap,
             telefono_contacto,
             telefono_alternativo,
             destinatario,
@@ -215,9 +217,10 @@ export class CorreoPostgreSQL implements CorreoModelDB {
             departamento_numero,
             geolocalizacion,
             comentario_cartero
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
           [
             input.sap_id,
+            input.sap || null,
             input.telefono_contacto,
             input.telefono_alternativo || null,
             input.destinatario,

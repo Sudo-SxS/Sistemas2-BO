@@ -11,8 +11,15 @@ import { z } from "zod";
 export const CorreoSchema = z.object({
   sap_id: z.string()
     .max(255, "SAP ID no puede exceder 255 caracteres")
-    .min(1, "SAP ID es requerido")
-    .transform((val) => val.toUpperCase()),
+    .optional()
+    .transform((val) => val?.toUpperCase()),
+
+  // Nuevo campo SAP adicional (puede ser null)
+  sap: z.string()
+    .max(255, "SAP no puede exceder 255 caracteres")
+    .nullable()
+    .optional()
+    .transform((val) => val?.toUpperCase()),
 
   telefono_contacto: z.string()
     .max(20, "Teléfono de contacto no puede exceder 20 caracteres")

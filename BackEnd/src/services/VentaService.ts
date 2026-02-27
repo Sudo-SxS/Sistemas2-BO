@@ -78,8 +78,8 @@ export class VentaService {
       // Crear estado automático según SDS y STL (solo si hay modelo de estado)
       const estadoVentaModel = this.modelEstadoVenta;
       if (estadoVentaModel) {
-        const estadoInicial = (input.sds && input.stl)
-          ? "CREADO DOCU OK"
+        const estadoInicial = input.sds
+          ? "CREADO SIN DOCU"
           : "INICIAL";
 
         await estadoVentaModel.add({
@@ -87,23 +87,29 @@ export class VentaService {
             venta_id: newVenta.venta_id,
             estado: estadoInicial as
               | "INICIAL"
-              | "EN_PROCESO"
-              | "EN_TRANSPORTE"
-              | "EN_REVISION"
-              | "PENDIENTE_PORTABILIDAD"
+              | "REPACTAR"
+              | "AGENDADO"
+              | "APROBADO ABD"
+              | "CREADO SIN DOCU"
               | "CREADO DOCU OK"
-              | "PENDIENTE_DOCUMENTACION"
-              | "COMPLETADO"
+              | "CREADO"
+              | "PENDIENTE DOCU/PIN"
+              | "PIN INGRESADO"
+              | "PENDIENTE CARGA PIN"
+              | "EVALUANDO DONANTE"
               | "APROBADO"
               | "ACTIVADO NRO PORTADO"
+              | "ACTIVADO NRO CLARO"
               | "ACTIVADO"
               | "EXITOSO"
-              | "RECHAZADO"
+              | "RECHAZADO DONANTE"
+              | "RECHAZADO ABD"
               | "CANCELADO"
-              | "ANULADO",
-            descripcion: estadoInicial === "CREADO DOCU OK"
-              ? "Venta creada con STL y SDS"
-              : "Venta pendiente de cargar STL y/o SDS",
+              | "SPN CANCELADA"
+              | "CLIENTE DESISTE",
+            descripcion: input.sds
+              ? "Venta creada con SDS"
+              : "Venta sin SDS",
             usuario_id: usuarioId,
           },
         });
