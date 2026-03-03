@@ -432,15 +432,8 @@ export class VentaController {
       logger.debug("request.venta:", request.venta);
       logger.debug("request.correo:", request.correo);
 
-      // 1.2. Asignar SAP automáticamente
-      const ventaData = this.ventaService.assignSap(
-        request.venta,
-        request.correo,
-      );
-      logger.debug(`SAP asignado: ${ventaData.sap || "null"}`);
-
-      // 1.3. Validar reglas de negocio chip/correo
-      if (ventaData.chip === "ESIM" && request.correo) {
+      // 1.2. Validar reglas de negocio chip/correo
+      if (request.venta.chip === "ESIM" && request.correo) {
         logger.debug("Validación fallida: ESIM con correo");
         return {
           success: false,
@@ -448,7 +441,7 @@ export class VentaController {
         };
       }
 
-      if (ventaData.chip === "ESIM" && ventaData.stl) {
+      if (request.venta.chip === "ESIM" && request.venta.stl) {
         logger.debug("Validación fallida: ESIM con STL");
         return {
           success: false,
@@ -458,7 +451,8 @@ export class VentaController {
 
       // Validar correo con Zod (si aplica)
       let correoValidado: CorreoCreate | null = null;
-      if (ventaData.chip === "SIM" && request.correo) {
+      let ventaData = request.venta;
+      if (request.venta.chip === "SIM" && request.correo) {
         logger.debug("Validando datos de correo con Zod");
 
         const correoResult = CorreoCreateSchema.safeParse(request.correo);
@@ -483,6 +477,10 @@ export class VentaController {
 
         logger.debug("Correo validado exitosamente con Zod");
         logger.debug(`SAP ID generado automáticamente: ${correoValidado.sap_id}`);
+
+        // Asignar SAP después de generar el sap_id automáticamente
+        ventaData = this.ventaService.assignSap(ventaData, correoValidado);
+        logger.debug(`SAP asignado después de generar sap_id: ${ventaData.sap || "null"}`);
       }
 
       // 1.5. Verificar que cliente existe
@@ -613,6 +611,9 @@ export class VentaController {
           );
 
           // Guardar referencia para rollback solo en caso de error de BD posterior
+          if (!nuevoCorreo.sap_id) {
+            throw new Error("No se pudo obtener el sap_id del correo creado");
+          }
           correoCreado = { sap_id: nuevoCorreo.sap_id };
 
           logger.info(

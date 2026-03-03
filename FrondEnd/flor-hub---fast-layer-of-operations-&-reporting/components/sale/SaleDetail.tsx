@@ -55,7 +55,7 @@ export const SaleDetail: React.FC<SaleDetailProps> = ({ ventaDetalle, isLoading,
           </div>
           <div>
             <span className="text-xs text-indigo-600 font-bold uppercase tracking-wider">SAP</span>
-            <p className="text-lg font-mono font-bold text-indigo-900">{venta.sap || '-'}</p>
+            <p className="text-lg font-mono font-bold text-indigo-900">{correo?.sap || 'S/D'}</p>
           </div>
           <div>
             <span className="text-xs text-indigo-600 font-bold uppercase tracking-wider">Chip</span>
@@ -259,33 +259,73 @@ export const SaleDetail: React.FC<SaleDetailProps> = ({ ventaDetalle, isLoading,
           <h3 className="text-lg font-bold text-indigo-900 mb-4">Datos del Correo</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
+              <span className="text-xs text-indigo-600 font-bold uppercase tracking-wider">SAP</span>
+              <p className="text-lg font-mono font-bold text-indigo-900">{correo.sap || 'S/D'}</p>
+            </div>
+            <div>
               <span className="text-xs text-indigo-600 font-bold uppercase tracking-wider">SAP ID</span>
-              <p className="text-lg font-mono font-bold text-indigo-900">{correo.sap_id}</p>
+              <p className="text-lg font-mono font-bold text-indigo-900">{correo.sap_id || 'S/D'}</p>
             </div>
             <div>
               <span className="text-xs text-indigo-600 font-bold uppercase tracking-wider">Teléfono Contacto</span>
               <p className="text-lg font-bold text-indigo-900">{correo.telefono_contacto}</p>
             </div>
             <div>
+              <span className="text-xs text-indigo-600 font-bold uppercase tracking-wider">Teléfono Alternativo</span>
+              <p className="text-lg font-bold text-indigo-900">{correo.telefono_alternativo || 'S/D'}</p>
+            </div>
+            <div>
               <span className="text-xs text-indigo-600 font-bold uppercase tracking-wider">Destinatario</span>
               <p className="text-lg font-bold text-indigo-900">{correo.destinatario}</p>
             </div>
-            <div>
+            {correo.persona_autorizada && (
+              <div>
+                <span className="text-xs text-indigo-600 font-bold uppercase tracking-wider">Persona Autorizada</span>
+                <p className="text-lg font-bold text-indigo-900">{correo.persona_autorizada}</p>
+              </div>
+            )}
+            <div className="col-span-2">
               <span className="text-xs text-indigo-600 font-bold uppercase tracking-wider">Dirección</span>
               <p className="text-lg font-bold text-indigo-900">{correo.direccion} {correo.numero_casa}</p>
+            </div>
+            <div>
+              <span className="text-xs text-indigo-600 font-bold uppercase tracking-wider">Entre Calles</span>
+              <p className="text-lg font-bold text-indigo-900">{correo.entre_calles || 'S/D'}</p>
+            </div>
+            <div>
+              <span className="text-xs text-indigo-600 font-bold uppercase tracking-wider">Barrio</span>
+              <p className="text-lg font-bold text-indigo-900">{correo.barrio || 'S/D'}</p>
             </div>
             <div>
               <span className="text-xs text-indigo-600 font-bold uppercase tracking-wider">Localidad</span>
               <p className="text-lg font-bold text-indigo-900">{correo.localidad}</p>
             </div>
             <div>
+              <span className="text-xs text-indigo-600 font-bold uppercase tracking-wider">Departamento</span>
+              <p className="text-lg font-bold text-indigo-900">{correo.departamento}</p>
+            </div>
+            <div>
               <span className="text-xs text-indigo-600 font-bold uppercase tracking-wider">Código Postal</span>
               <p className="text-lg font-bold text-indigo-900">{correo.codigo_postal}</p>
+            </div>
+            <div>
+              <span className="text-xs text-indigo-600 font-bold uppercase tracking-wider">Piso</span>
+              <p className="text-lg font-bold text-indigo-900">{correo.piso || 'S/D'}</p>
+            </div>
+            <div>
+              <span className="text-xs text-indigo-600 font-bold uppercase tracking-wider">Depto Número</span>
+              <p className="text-lg font-bold text-indigo-900">{correo.departamento_numero || 'S/D'}</p>
             </div>
             {correo.geolocalizacion && (
               <div>
                 <span className="text-xs text-indigo-600 font-bold uppercase tracking-wider">Geolocalización</span>
                 <p className="text-lg font-mono font-bold text-indigo-900">{correo.geolocalizacion}</p>
+              </div>
+            )}
+            {correo.comentario_cartero && (
+              <div className="col-span-2">
+                <span className="text-xs text-indigo-600 font-bold uppercase tracking-wider">Comentario Cartero</span>
+                <p className="text-lg font-bold text-indigo-900">{correo.comentario_cartero}</p>
               </div>
             )}
           </div>

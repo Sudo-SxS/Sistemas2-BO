@@ -91,6 +91,30 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onVentaCr
   const promocionId = formFase2.watch('promocion_id');
   const chip = formFase2.watch('chip');
 
+  // Funciones para reutilizar datos
+  const usarClienteComoAutorizado = () => {
+    const nombre = formFase1.getValues('nombre');
+    const apellido = formFase1.getValues('apellido');
+    formFase3.setValue('persona_autorizada', `${nombre} ${apellido}`.trim());
+    addToast('Persona autorizada copiada del cliente', 'success');
+  };
+
+  const usarNumeroPortarComoContacto = () => {
+    const numeroPortar = formFase2.getValues('numero_portar');
+    if (numeroPortar) {
+      formFase3.setValue('numero', numeroPortar);
+      addToast('Número a portar usado como contacto', 'success');
+    }
+  };
+
+  const usarTelefonoClienteComoContacto = () => {
+    const telefono = formFase1.getValues('telefono');
+    if (telefono) {
+      formFase3.setValue('numero', telefono);
+      addToast('Teléfono del cliente usado como contacto', 'success');
+    }
+  };
+
   // Filtered Data
   const filteredPlanes = React.useMemo(() => {
     if (!planes) return [];
@@ -241,6 +265,7 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onVentaCr
           telefono_contacto: dataFase3?.numero || '',
           telefono_alternativo: dataFase3?.telefono_alternativo || null,
           destinatario: `${dataFase1?.nombre || ''} ${dataFase1?.apellido || ''}`.trim(),
+          persona_autorizada: dataFase3?.persona_autorizada || null,
           direccion: dataFase3?.direccion || '',
           numero_casa: dataFase3?.numero_casa ? Number(dataFase3.numero_casa) : 1,
           entre_calles: dataFase3?.entre_calles || null,
@@ -251,6 +276,7 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onVentaCr
           geolocalizacion: dataFase3?.geolocalizacion || null,
           piso: dataFase3?.piso || null,
           departamento_numero: dataFase3?.departamento_numero || null,
+          comentario_cartero: dataFase3?.comentario_cartero || null,
         };
       }
 
@@ -576,7 +602,30 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onVentaCr
                         <>
                             <div className="grid grid-cols-2 gap-4">
                                 <div><label className={labelClass}>SAP <span className="text-xs text-slate-400">(Opcional - Solo números)</span></label><input {...formFase3.register('sap')} inputMode="numeric" className={inputClass} placeholder="123456789" /></div>
-                                <div><label className={labelClass}>Teléfono Contacto <span className="text-red-500">*</span></label><input {...formFase3.register('numero')} inputMode="numeric" className={inputClass} placeholder="091123456" /></div>
+                                <div>
+                                    <label className={labelClass}>Teléfono Contacto <span className="text-red-500">*</span></label>
+                                    <div className="flex gap-2">
+                                        <input {...formFase3.register('numero')} inputMode="numeric" className={inputClass} placeholder="091123456" />
+                                        {tipoVenta === 'PORTABILIDAD' ? (
+                                            <button type="button" onClick={usarNumeroPortarComoContacto} className="px-3 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-medium hover:bg-blue-200 dark:hover:bg-blue-900/50 whitespace-nowrap">
+                                                Usar N°
+                                            </button>
+                                        ) : (
+                                            <button type="button" onClick={usarTelefonoClienteComoContacto} className="px-3 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-medium hover:bg-blue-200 dark:hover:bg-blue-900/50 whitespace-nowrap">
+                                                Cliente
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="col-span-2">
+                                    <label className={labelClass}>Persona Autorizada <span className="text-xs text-slate-400">(Opcional)</span></label>
+                                    <div className="flex gap-2">
+                                        <input {...formFase3.register('persona_autorizada')} className={inputClass} placeholder="Nombre de persona autorizada" />
+                                        <button type="button" onClick={usarClienteComoAutorizado} className="px-3 py-2 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg text-xs font-medium hover:bg-green-200 dark:hover:bg-green-900/50 whitespace-nowrap">
+                                            Cliente
+                                        </button>
+                                    </div>
+                                </div>
                                 <div className="col-span-2"><label className={labelClass}>Dirección <span className="text-red-500">*</span></label><input {...formFase3.register('direccion')} className={inputClass} /></div>
                                 <div><label className={labelClass}>Número <span className="text-red-500">*</span></label><input {...formFase3.register('numero_casa')} inputMode="numeric" className={inputClass} /></div>
                                 <div><label className={labelClass}>Entre Calles</label><input {...formFase3.register('entre_calles')} className={inputClass} /></div>
@@ -593,6 +642,7 @@ export const SaleFormModal: React.FC<SaleFormModalProps> = ({ onClose, onVentaCr
                                 <div><label className={labelClass}>Piso <span className="text-xs text-slate-400">(Opcional)</span></label><input {...formFase3.register('piso')} className={inputClass} placeholder="Opcional" /></div>
                                 <div><label className={labelClass}>Depto Número <span className="text-xs text-slate-400">(Opcional)</span></label><input {...formFase3.register('departamento_numero')} className={inputClass} placeholder="Opcional" /></div>
                                 <div><label className={labelClass}>Teléfono Alternativo</label><input {...formFase3.register('telefono_alternativo')} inputMode="numeric" className={inputClass} placeholder="Opcional" /></div>
+                                <div><label className={labelClass}>Comentario Cartero <span className="text-xs text-slate-400">(Opcional)</span></label><input {...formFase3.register('comentario_cartero')} className={inputClass} placeholder="Opcional" /></div>
                                 <div className="col-span-2"><label className={labelClass}>Geolocalización</label><input {...formFase3.register('geolocalizacion')} className={inputClass} placeholder="Latitud,Longitud" /></div>
                             </div>
                         </>

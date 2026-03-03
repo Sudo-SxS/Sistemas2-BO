@@ -85,18 +85,26 @@ export const TabCorreo = memo(({ editedData, isEditing, onEdit, onUpdateLogistic
         </div>
       )}
     <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+      <EditableField label="SAP ID" value={editedData?.correo?.sapId || ''} field="correo.sapId" isEditing={false} onEdit={onEdit} />
       <EditableField label="Destinatario" value={editedData?.correo?.destinatario || ''} field="correo.destinatario" isEditing={isEditing} onEdit={onEdit} />
       <EditableField label="Persona Autorizada" value={editedData?.correo?.personaAutorizada || ''} field="correo.personaAutorizada" isEditing={isEditing} onEdit={onEdit} />
       <EditableField label="Teléfono Contacto" value={editedData?.correo?.telefonoContacto || ''} field="correo.telefonoContacto" isEditing={isEditing} onEdit={onEdit} />
+      <EditableField label="Teléfono Alternativo" value={editedData?.correo?.telefonoAlternativo || ''} field="correo.telefonoAlternativo" isEditing={isEditing} onEdit={onEdit} />
     </div>
 
     <SectionHeader title="Dirección de Entrega" icon="📍" />
     <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
       <EditableField label="Calle" value={editedData?.correo?.direccion || ''} field="correo.direccion" isEditing={isEditing} onEdit={onEdit} />
       <EditableField label="Número" value={editedData?.correo?.numeroCasa || ''} field="correo.numeroCasa" type="number" isEditing={isEditing} onEdit={onEdit} />
+      <EditableField label="Entre Calles" value={editedData?.correo?.entreCalles || ''} field="correo.entreCalles" isEditing={isEditing} onEdit={onEdit} />
+      <EditableField label="Barrio" value={editedData?.correo?.barrio || ''} field="correo.barrio" isEditing={isEditing} onEdit={onEdit} />
       <EditableField label="Localidad" value={editedData?.correo?.localidad || ''} field="correo.localidad" isEditing={isEditing} onEdit={onEdit} />
+      <EditableField label="Departamento" value={editedData?.correo?.departamento || ''} field="correo.departamento" isEditing={isEditing} onEdit={onEdit} />
       <EditableField label="Provincia" value={editedData?.correo?.departamento || ''} field="correo.departamento" isEditing={isEditing} onEdit={onEdit} />
       <EditableField label="C.P." value={editedData?.correo?.codigoPostal || ''} field="correo.codigoPostal" type="number" isEditing={isEditing} onEdit={onEdit} />
+      <EditableField label="Piso" value={editedData?.correo?.piso || ''} field="correo.piso" isEditing={isEditing} onEdit={onEdit} />
+      <EditableField label="Depto Número" value={editedData?.correo?.departamentoNumero || ''} field="correo.departamentoNumero" isEditing={isEditing} onEdit={onEdit} />
+      <EditableField label="Geolocalización" value={editedData?.correo?.geolocalizacion || ''} field="correo.geolocalizacion" isEditing={isEditing} onEdit={onEdit} />
     </div>
     </div>
   );

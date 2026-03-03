@@ -5,8 +5,8 @@ import React, { memo } from 'react';
 type TabType = 'venta' | 'cliente' | 'plan' | 'correo' | 'estados';
 
 // Helper para colores de estado
-export const getStatusColor = (status: string) => {
-  const s = status?.toUpperCase() || '';
+export const getStatusColor = (status: unknown) => {
+  const s = typeof status === 'string' ? status.toUpperCase() : '';
   if (s.includes('EXITOSO') || s.includes('COMPLETADO') || s.includes('ENTREGADO') || s.includes('ACTIVA') || s.includes('ACTIVADO')) 
     return 'bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-500/30';
   if (s.includes('RECHAZADO') || s.includes('CANCELADO') || s.includes('ANULADO') || s.includes('ERROR')) 

@@ -55,6 +55,7 @@ export const Fase2Schema = z.object({
 export const Fase3Schema = z.object({
   sap: z.string().regex(/^\d*$/, 'Solo números').optional(),
   numero: z.string().min(8, 'Teléfono requerido').regex(/^\d+$/, 'Solo números'),
+  persona_autorizada: z.string().optional(),
   tipo: z.enum(['RESIDENCIAL', 'EMPRESARIAL']).optional(),
   direccion: z.string().min(1, 'Dirección requerida'),
   numero_casa: z.string().min(1, 'Número requerido'),
@@ -67,6 +68,7 @@ export const Fase3Schema = z.object({
   telefono_alternativo: z.string().regex(/^\d*$/, 'Solo números').optional(),
   piso: z.string().optional(),
   departamento_numero: z.string().optional(),
+  comentario_cartero: z.string().optional(),
 });
 
 export type Fase1Data = z.infer<typeof Fase1Schema>;
